@@ -604,6 +604,12 @@ function getInventorySortGroup(item) {
     return 60;
 }
 
+function getInventoryItemSortRarity(item) {
+    const rarityId = getItemRarityId(item);
+    const index = SCRAP_RARITY_ORDER.indexOf(rarityId);
+    return index === -1 ? -1 : index;
+}
+
 function getInventoryItemSortQuality(item) {
     if (!item) return 0;
 
@@ -620,6 +626,10 @@ function getInventoryItemSortQuality(item) {
 function compareInventoryItemsByType(first, second) {
     const groupDifference = getInventorySortGroup(first) - getInventorySortGroup(second);
     if (groupDifference !== 0) return groupDifference;
+
+    const rarityDifference = getInventoryItemSortRarity(second)
+        - getInventoryItemSortRarity(first);
+    if (rarityDifference !== 0) return rarityDifference;
 
     const qualityDifference = getInventoryItemSortQuality(second)
         - getInventoryItemSortQuality(first);
@@ -716,12 +726,12 @@ function ensureScrapToolbar() {
         sortButton.innerText = "Sort";
         sortButton.setAttribute(
             "data-tooltip",
-            "Sort unlocked inventory items by type and quality. Locked items stay in their slots."
+            "Sort unlocked inventory items by type, rarity and quality. Locked items stay in their slots."
         );
         sortButton.addEventListener("click", function () {
             const sorted = sortInventoryByType();
             renderInventorySlots();
-            if (sorted > 0) logMessage("Inventory sorted by type and quality.");
+            if (sorted > 0) logMessage("Inventory sorted by type, rarity and quality.");
         });
 
         const scrapButton = document.createElement("button");
