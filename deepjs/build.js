@@ -387,6 +387,24 @@ const BUILDING_DEFS = Object.freeze({
 });
 
 const BUILDING_SKILL_EXP_PER_WORKPOINT = 0.1;
+// Improving a building awards 1/10 of the skill experience its construction
+// would have awarded. Construction experience is WorkPoints * 0.1, so this
+// share is applied to the definition's full construction WorkPoints.
+const BUILDING_IMPROVE_EXP_SHARE = 0.1;
+
+function getBuildingImproveSkillExp(buildingOrDef) {
+    if (!buildingOrDef) return 0;
+    const def = buildingOrDef.defId
+        ? getBuildingDefinition(buildingOrDef.defId)
+        : (buildingOrDef.id ? buildingOrDef : getBuildingDefinition(buildingOrDef));
+    if (!def) return 0;
+
+    return round2(
+        (Number(def.workPoints) || 0)
+        * BUILDING_SKILL_EXP_PER_WORKPOINT
+        * BUILDING_IMPROVE_EXP_SHARE
+    );
+}
 
 // Building rarity is derived from construction quality: every 10 quality
 // points unlock the next item rarity tier, from Common to Galaxic.
@@ -439,10 +457,13 @@ function hasBuildingTag(buildingOrDef, tag) {
 // keep their explicit legacy costs; every other building uses this fallback.
 function getBuildingImproveCost(buildingOrDef) {
     if (!buildingOrDef) return null;
-    if (buildingOrDef.improveCost) return buildingOrDef.improveCost;
 
-    const def = getBuildingDefinition(buildingOrDef.defId || buildingOrDef);
+    const def = buildingOrDef.defId
+        ? getBuildingDefinition(buildingOrDef.defId)
+        : (buildingOrDef.id ? buildingOrDef : getBuildingDefinition(buildingOrDef));
     if (!def) return null;
+
+    if (buildingOrDef.improveCost) return buildingOrDef.improveCost;
     if (def.improveCost) return def.improveCost;
 
     const workPoints = Math.max(1, Math.round((Number(def.workPoints) || 0) * 0.1));
@@ -3325,6 +3346,12 @@ function renderImproveResources() {
     ));
 
     container.appendChild(createBuildValueRow(
+        "Skill experience",
+        "+" + round2(getBuildingImproveSkillExp(def)),
+        "improveExp"
+    ));
+
+    container.appendChild(createBuildValueRow(
         "Current quality",
         "Q" + round2(getBuildingQualityValue(building)),
         "currentQuality"
@@ -3402,7 +3429,8 @@ function renderImproveDetails() {
     const workCost = document.createElement("div");
     workCost.className = "craftnote";
     workCost.innerText = "Improvement work: " + cost.workPoints + " WorkPoints"
-        + " | Skill: " + def.skill;
+        + " | Skill: " + def.skill
+        + " | Skill exp: +" + round2(getBuildingImproveSkillExp(def));
     info.appendChild(workCost);
 
     if (def.effectText) {
@@ -3545,13 +3573,41 @@ function performImprovement(building) {
 
     building.quality = newQuality;
 
+    const skillExp = getBuildingImproveSkillExp(def);
+    if (skillExp > 0
+        && player
+        && player[def.skill]
+        && typeof player[def.skill].addexp === "function") {
+        player[def.skill].addexp(skillExp);
+    }
+
+    // Infrastructure and housing improvements also train Architecture, just
+    // like their construction, at the same 1/10 share.
+    let architectureExp = 0;
+    if (skillExp > 0
+        && player
+        && player.architecture
+        && typeof player.architecture.addexp === "function"
+        && (def.category === BUILDINGS_CATEGORY.id
+            || def.category === HOUSES_CATEGORY.id)) {
+        architectureExp = skillExp;
+        player.architecture.addexp(architectureExp);
+    }
+
     if (typeof renderResources === "function") renderResources();
     renderBuildPanels();
     refreshMapCoordinates(true);
+    if (typeof updateGUI === "function") updateGUI();
+
+    let expText = "+" + round2(skillExp) + " " + def.skill + " exp";
+    if (architectureExp > 0) {
+        expText += " and +" + round2(architectureExp) + " architecture exp";
+    }
 
     logMessage("Improved " + def.name + " #" + building.uid
         + ": Q" + round2(oldQuality) + " -> Q" + round2(newQuality)
-        + " (resource quality Q" + round2(targetQuality) + ").");
+        + " (resource quality Q" + round2(targetQuality) + ")."
+        + " Gained " + expText + ".");
     return true;
 }
 
