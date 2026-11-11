@@ -71,6 +71,11 @@ function hasBootsEquipped() {
         && player.equipment.feet);
 }
 
+function isForageBelowTwenty() {
+    return typeof getEffectiveLevel === "function"
+        && Math.max(0, Number(getEffectiveLevel("forage")) || 0) < 20;
+}
+
 function formatDramaDuration(seconds) {
     const total = Math.max(0, Math.ceil(Number(seconds) || 0));
     return Math.floor(total / 60) + ":" + String(total % 60).padStart(2, "0");
@@ -184,6 +189,28 @@ const DRAMA_EVENTS = Object.freeze([
         },
         apply: function () {
             applyCatchedCold();
+            logMessage(this.message);
+        },
+    }),
+    Object.freeze({
+        id: "Wrong_food",
+        name: "Wrong food",
+        cost: 20,
+        type: DRAMA_EVENT_TYPES.Negative,
+        message: "You ate a wrong berry and vomit. now you are very very hungry",
+        getChance: function () {
+            return isForageBelowTwenty() ? 0.05 : 0;
+        },
+        isAvailable: function () {
+            return isForageBelowTwenty();
+        },
+        condition: function () {
+            return !!(typeof player !== "undefined"
+                && player
+                && Number(player.maxHunger) > 0);
+        },
+        apply: function () {
+            player.hunger = player.maxHunger;
             logMessage(this.message);
         },
     }),
