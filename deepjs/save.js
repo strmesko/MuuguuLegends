@@ -135,6 +135,7 @@
             hearthfireFuelElapsed: round2(hearthfireFuelElapsed),
             DramaMeter: typeof DramaMeter !== "undefined" ? DramaMeter : 0,
             dramaEventTimer: typeof dramaEventTimer !== "undefined" ? dramaEventTimer : 0,
+            catchedColdRemaining: typeof catchedColdRemaining !== "undefined" ? catchedColdRemaining : 0,
             mapSeed: window.mapView ? window.mapView.getSeed() : null,
         };
     }
@@ -469,7 +470,11 @@
         hearthfireFuelElapsed = Math.max(0, Number(saved.hearthfireFuelElapsed) || 0);
         hearthfireActiveCampfireUid = null;
         if (typeof restoreDramaState === "function") {
-            restoreDramaState(saved.DramaMeter, saved.dramaEventTimer);
+            restoreDramaState(
+                saved.DramaMeter,
+                saved.dramaEventTimer,
+                saved.catchedColdRemaining
+            );
         }
         restoreTechnologies(saved.technologies);
         minPotentialBonusPercent = saved.minPotentialBonusPercent

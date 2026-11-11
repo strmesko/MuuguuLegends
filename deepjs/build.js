@@ -908,7 +908,10 @@ function getBuildingWorkPerSecond(buildingOrDef) {
     const weatherMultiplier = typeof getGameWeatherActionMultiplier === "function"
         ? getGameWeatherActionMultiplier("build")
         : 1;
-    return Math.max(0, averageStat * skillLevel * weatherMultiplier);
+    const coldMultiplier = typeof getCatchedColdActionMultiplier === "function"
+        ? getCatchedColdActionMultiplier()
+        : 1;
+    return Math.max(0, averageStat * skillLevel * weatherMultiplier * coldMultiplier);
 }
 
 function getBestCompletedBuildingQuality(defId, tile) {

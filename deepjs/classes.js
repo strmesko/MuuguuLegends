@@ -1669,11 +1669,18 @@ function getEffectiveLevel(key) {
     const equipmentBonus = typeof getEquippedStatBonus === "function"
         ? getEquippedStatBonus(key)
         : 0;
-    if (typeof getEquippedPropertyLevelBonus !== "function") {
-        return base + equipmentBonus;
+    let effective = base + equipmentBonus;
+    if (typeof getEquippedPropertyLevelBonus === "function") {
+        effective = base * (1 + getEquippedPropertyLevelBonus(key)) + equipmentBonus;
     }
 
-    return base * (1 + getEquippedPropertyLevelBonus(key)) + equipmentBonus;
+    // Catched a cold slows the character: -20% effective Speed.
+    if (key === "speed"
+        && typeof getCatchedColdSpeedMultiplier === "function") {
+        effective *= getCatchedColdSpeedMultiplier();
+    }
+
+    return effective;
 }
 
 // Multiplier for standalone item properties such as Max HP or travel speed.

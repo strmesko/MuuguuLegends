@@ -4,10 +4,14 @@
 
 var DramaMeter = 0;
 var dramaEventTimer = 0;
+var catchedColdRemaining = 0;
 
 const DRAMA_METER_MAX = 10000;
 const DRAMA_EVENT_INTERVAL_SECONDS = 5;
 const DRAMA_LUCK_CHANCE_PER_LEVEL = 0.06;
+const CATCHED_COLD_DURATION_SECONDS = 5 * 60;
+const CATCHED_COLD_ACTION_MULTIPLIER = 0.8;
+const CATCHED_COLD_SPEED_MULTIPLIER = 0.8;
 
 const DRAMA_EVENT_TYPES = Object.freeze({
     Negative: "Negative",
@@ -67,6 +71,75 @@ function hasBootsEquipped() {
         && player.equipment.feet);
 }
 
+function formatDramaDuration(seconds) {
+    const total = Math.max(0, Math.ceil(Number(seconds) || 0));
+    return Math.floor(total / 60) + ":" + String(total % 60).padStart(2, "0");
+}
+
+function getCurrentDramaTemperature() {
+    if (typeof gameTime === "undefined"
+        || typeof gameMinutesToDateTime !== "function"
+        || typeof getGameTemperature !== "function") {
+        return 0;
+    }
+    return getGameTemperature(gameMinutesToDateTime(gameTime.totalMinutes));
+}
+
+function hasHouseOrCampfireOnTile(tile) {
+    const target = tile || (typeof currentTile !== "undefined" ? currentTile : null);
+    if (!target) return false;
+
+    const list = Array.isArray(target.buildings)
+        ? target.buildings
+        : (typeof getCurrentTileBuildings === "function"
+            ? getCurrentTileBuildings()
+            : []);
+
+    return list.some(function (building) {
+        if (!building || !building.completed) return false;
+        if (building.defId === "campfire") return true;
+
+        const def = typeof getBuildingDefinition === "function"
+            ? getBuildingDefinition(building.defId)
+            : null;
+        return !!(def && def.category === "houses");
+    });
+}
+
+function hasCatchedCold() {
+    return catchedColdRemaining > 0;
+}
+
+function applyCatchedCold() {
+    catchedColdRemaining = CATCHED_COLD_DURATION_SECONDS;
+}
+
+function getCatchedColdActionMultiplier() {
+    return hasCatchedCold() ? CATCHED_COLD_ACTION_MULTIPLIER : 1;
+}
+
+function getCatchedColdSpeedMultiplier() {
+    return hasCatchedCold() ? CATCHED_COLD_SPEED_MULTIPLIER : 1;
+}
+
+function getCatchedColdStatus() {
+    if (!hasCatchedCold()) return null;
+
+    return {
+        id: "catched-cold",
+        name: "Catched a cold",
+        kind: "debuff",
+        color: "#6fa8dc",
+        icon: "fa-snowflake-o",
+        tooltip: [
+            "<b>Catched a cold</b>",
+            "-20% action effectiveness",
+            "-20% Speed",
+            "Remaining: " + formatDramaDuration(catchedColdRemaining),
+        ].join("<br>"),
+    };
+}
+
 const DRAMA_EVENTS = Object.freeze([
     Object.freeze({
         id: "Wrong_Step",
@@ -92,6 +165,28 @@ const DRAMA_EVENTS = Object.freeze([
             logMessage(this.message);
         },
     }),
+    Object.freeze({
+        id: "Catch_a_cold",
+        name: "Catch a cold",
+        cost: 200,
+        type: DRAMA_EVENT_TYPES.Negative,
+        message: "You caught a cold.",
+        getChance: function () {
+            const temperature = getCurrentDramaTemperature();
+            const sheltered = hasHouseOrCampfireOnTile();
+            return temperature < 0 && !sheltered ? 0.20 : 0.01;
+        },
+        isAvailable: function () {
+            return !hasCatchedCold();
+        },
+        condition: function () {
+            return !hasCatchedCold();
+        },
+        apply: function () {
+            applyCatchedCold();
+            logMessage(this.message);
+        },
+    }),
 ]);
 
 function canTriggerDramaEvent(event) {
@@ -103,10 +198,17 @@ function canTriggerDramaEvent(event) {
     return true;
 }
 
-function tryTriggerDramaEvent() {
-    if (!DRAMA_EVENTS.length) return false;
+function getAvailableDramaEvents() {
+    return DRAMA_EVENTS.filter(function (event) {
+        return typeof event.isAvailable !== "function" || event.isAvailable(event);
+    });
+}
 
-    const event = DRAMA_EVENTS[Math.floor(Math.random() * DRAMA_EVENTS.length)];
+function tryTriggerDramaEvent() {
+    const availableEvents = getAvailableDramaEvents();
+    if (!availableEvents.length) return false;
+
+    const event = availableEvents[Math.floor(Math.random() * availableEvents.length)];
     if (!canTriggerDramaEvent(event)) return false;
 
     const chance = getDramaEventChance(event);
@@ -121,6 +223,14 @@ function updateDrama(diff) {
     const seconds = Math.max(0, Number(diff) || 0);
     if (seconds <= 0) return;
 
+    if (catchedColdRemaining > 0) {
+        const previousRemaining = catchedColdRemaining;
+        catchedColdRemaining = Math.max(0, catchedColdRemaining - seconds);
+        if (previousRemaining > 0 && catchedColdRemaining <= 0) {
+            logMessage("Catched a cold has worn off.");
+        }
+    }
+
     addDramaMeter(seconds);
     dramaEventTimer += seconds;
 
@@ -130,10 +240,15 @@ function updateDrama(diff) {
     }
 }
 
-function restoreDramaState(savedMeter, savedTimer) {
+function restoreDramaState(savedMeter, savedTimer, savedColdRemaining) {
     setDramaMeter(savedMeter);
     const timer = Number(savedTimer);
     dramaEventTimer = Number.isFinite(timer) && timer >= 0
         ? Math.min(DRAMA_EVENT_INTERVAL_SECONDS, timer)
+        : 0;
+
+    const cold = Number(savedColdRemaining);
+    catchedColdRemaining = Number.isFinite(cold) && cold > 0
+        ? Math.min(CATCHED_COLD_DURATION_SECONDS, cold)
         : 0;
 }
