@@ -433,6 +433,10 @@
       ensureResourceBranch('intermediate-resources-items', 'smithing', 'smithing', 'Heat units and refined metal bars for smithing');
       ensureResourceBranch('intermediate-resources-items', 'cooking', 'Cooking', 'Flour and other cooking intermediates');
       ensureResourceBranch('cooking-items', 'flour', 'Flour', 'Stone-ground flour made with a Big Grinding stone');
+      ensureResourceBranch('cooking-items', 'maple', 'Maple', 'Maple sirup from Maple extractors');
+      if (resource && resource.id === RESOURCE_IDS.MAPLE_SIRUP) {
+        return document.getElementById('maple-items');
+      }
       if (isFlourFoodResource(resource)) {
         return document.getElementById('flour-items');
       }
@@ -462,6 +466,9 @@
         return getRawResourceContainer(resource);
       }
       if (isFlourFoodResource(resource)) return getIntermediateResourceContainer(resource);
+      if (resource && resource.id === RESOURCE_IDS.MAPLE_SIRUP) {
+        return getIntermediateResourceContainer(resource);
+      }
       if (isFoodResource(resource)) return getFoodResourceContainer(resource);
       if (isRawResource(resource)) return getRawResourceContainer(resource);
       if (isIntermediateResource(resource)) return getIntermediateResourceContainer(resource);

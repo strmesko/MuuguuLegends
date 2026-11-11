@@ -21,6 +21,7 @@ const BUILDING_IDS = Object.freeze({
     STUMP_CHAIR: "stump-chair",
     SMELTER: "smelter",
     BIG_GRINDING_STONE: "big-grinding-stone",
+    MAPLE_EXTRACTOR: "maple-extractor",
 });
 
 const BUILDING_CATEGORY = Object.freeze({
@@ -65,6 +66,98 @@ const BUILDING_CATEGORIES = Object.freeze([
     FURNITURE_CATEGORY,
     BUILDING_IMPROVE_CATEGORY,
 ]);
+
+const MAPLE_METAL_SHEET_CHOICES = Object.freeze([
+    RESOURCE_IDS.IRON_SHEET_PLATES,
+    RESOURCE_IDS.COPPER_SHEET_PLATES,
+    RESOURCE_IDS.TIN_SHEET_PLATES,
+    RESOURCE_IDS.BRONZE_SHEET_PLATES,
+    RESOURCE_IDS.STEEL_SHEET_PLATES,
+    RESOURCE_IDS.GOLD_SHEET_PLATES,
+]);
+
+let selectedMapleMetalSheetId = MAPLE_METAL_SHEET_CHOICES[0];
+
+function getSelectedMapleMetalSheetId() {
+    if (MAPLE_METAL_SHEET_CHOICES.indexOf(selectedMapleMetalSheetId) === -1) {
+        selectedMapleMetalSheetId = MAPLE_METAL_SHEET_CHOICES[0];
+    }
+    return selectedMapleMetalSheetId;
+}
+
+function setSelectedMapleMetalSheetId(resourceId) {
+    const id = Number(resourceId);
+    if (MAPLE_METAL_SHEET_CHOICES.indexOf(id) === -1) return false;
+
+    selectedMapleMetalSheetId = id;
+    if (typeof renderFurniturePanels === "function") {
+        renderFurniturePanels();
+    }
+    return true;
+}
+
+function getBuildingBuildRequirements(def) {
+    if (!def) return [];
+
+    const requirements = (Array.isArray(def.resources) ? def.resources : [])
+        .map(function (requirement) {
+            return {
+                resourceId: requirement.resourceId,
+                amount: requirement.amount,
+            };
+        });
+
+    if (def.id === BUILDING_IDS.MAPLE_EXTRACTOR) {
+        requirements.push({
+            resourceId: getSelectedMapleMetalSheetId(),
+            amount: 1,
+        });
+    }
+
+    return requirements;
+}
+
+function createMapleMetalChoiceBox() {
+    const box = document.createElement("div");
+    box.className = "craftchoice";
+
+    const label = document.createElement("label");
+    label.className = "craftchoice-label";
+    label.innerText = "Choose metal sheet:";
+    label.htmlFor = "maple-metal-choice";
+    box.appendChild(label);
+
+    if (typeof createCraftIngredientSelect === "function") {
+        box.appendChild(createCraftIngredientSelect({
+            id: "maple-metal-choice",
+            resourceIds: MAPLE_METAL_SHEET_CHOICES,
+            selectedResourceId: getSelectedMapleMetalSheetId(),
+            includeNone: false,
+            onSelect: function (resourceId) {
+                setSelectedMapleMetalSheetId(resourceId);
+            },
+        }));
+        return box;
+    }
+
+    const select = document.createElement("select");
+    select.id = "maple-metal-choice";
+    select.className = "maple-metal-select";
+    MAPLE_METAL_SHEET_CHOICES.forEach(function (resourceId) {
+        const option = document.createElement("option");
+        option.value = String(resourceId);
+        option.innerText = RESOURCE_DEFS[resourceId]
+            ? RESOURCE_DEFS[resourceId].name
+            : String(resourceId);
+        select.appendChild(option);
+    });
+    select.value = String(getSelectedMapleMetalSheetId());
+    select.addEventListener("change", function () {
+        setSelectedMapleMetalSheetId(Number(select.value));
+    });
+    box.appendChild(select);
+    return box;
+}
 
 const HOUSE_POWER_TYPES = Object.freeze({
     smelt: Object.freeze({ id: "smelt", label: "Smelt power" }),
@@ -402,6 +495,24 @@ const BUILDING_DEFS = Object.freeze({
         iconClass: "fa-circle-o-notch",
         effectText: "Enables Grind Flour on this tile. Grinds every seed resource into flour while you stay here.",
     }),
+    [BUILDING_IDS.MAPLE_EXTRACTOR]: Object.freeze({
+        id: BUILDING_IDS.MAPLE_EXTRACTOR,
+        name: "Maple extractor",
+        category: FURNITURE_CATEGORY.id,
+        description: "A tapped maple tree with a metal collection sheet. Generates Maple sirup once per in-game day while you stay on this tile.",
+        resources: Object.freeze([
+            Object.freeze({ resourceId: RESOURCE_IDS.WOODEN_LOGS, amount: 10 }),
+        ]),
+        workPoints: 2000,
+        spaceElementRequirements: Object.freeze([
+            Object.freeze({ element: "Tree", amount: 1 }),
+        ]),
+        consumeSpaceElements: true,
+        skill: "carpentry",
+        effects: Object.freeze([]),
+        iconClass: "fa-tree",
+        effectText: "Produces Maple sirup once per in-game day equal to BuildingQuality. Multiple Maple extractors on the tile each produce their own amount. Missed days are collected when you return.",
+    }),
 });
 
 const BUILDING_SKILL_EXP_PER_WORKPOINT = 0.1;
@@ -488,7 +599,7 @@ function getBuildingImproveCost(buildingOrDef) {
     const seenResources = {};
     const resources = [];
 
-    (Array.isArray(def.resources) ? def.resources : []).forEach(function (requirement) {
+    getBuildingBuildRequirements(def).forEach(function (requirement) {
         if (!requirement || requirement.resourceId == null) return;
         const key = String(requirement.resourceId);
         if (seenResources[key]) return;
@@ -618,7 +729,7 @@ function getCurrentTileRoomSpace() {
 function getBuildingQuality(def) {
     if (!def) return RESOURCE_DEFAULT_QUALITY;
 
-    const requirements = Array.isArray(def.resources) ? def.resources : [];
+    const requirements = getBuildingBuildRequirements(def);
     let weightedQuality = 0;
     let totalAmount = 0;
 
@@ -654,6 +765,62 @@ function getBuildingQualityValue(buildingOrValue) {
     return Number.isFinite(quality) && quality > 0
         ? quality
         : RESOURCE_DEFAULT_QUALITY;
+}
+
+function getCurrentGameDayIndex() {
+    if (typeof gameTime === "undefined"
+        || !Number.isFinite(Number(gameTime.totalMinutes))) {
+        return 0;
+    }
+    return Math.floor(Number(gameTime.totalMinutes) / GAME_MINUTES_PER_DAY);
+}
+
+function getMapleExtractorYield(building) {
+    return Math.max(0, round2(getBuildingQualityValue(building)));
+}
+
+function processMapleExtractors(tile, dayIndex) {
+    const target = tile || (typeof currentTile !== "undefined" ? currentTile : null);
+    if (!target || !Array.isArray(target.buildings)) return 0;
+    if (typeof isTraveling === "function" && isTraveling()) return 0;
+
+    const today = Number.isFinite(Number(dayIndex))
+        ? Number(dayIndex)
+        : getCurrentGameDayIndex();
+    let total = 0;
+
+    target.buildings.forEach(function (building) {
+        if (!building
+            || building.defId !== BUILDING_IDS.MAPLE_EXTRACTOR
+            || !building.completed) {
+            return;
+        }
+
+        const rawLastDay = building.lastMapleDay;
+        const lastDay = Number(rawLastDay);
+        if (rawLastDay == null
+            || !Number.isFinite(lastDay)
+            || lastDay > today) {
+            building.lastMapleDay = today;
+            return;
+        }
+        if (today <= lastDay) return;
+
+        const days = today - lastDay;
+        const quality = getBuildingQualityValue(building);
+        const amount = round2(quality * days);
+        if (amount > 0) {
+            addResource(RESOURCE_IDS.MAPLE_SIRUP, amount, quality);
+            total += amount;
+        }
+        building.lastMapleDay = today;
+    });
+
+    if (total > 0 && typeof logMessage === "function") {
+        logMessage("Maple extractors produce " + round2(total) + " Maple sirup.");
+    }
+
+    return round2(total);
 }
 
 function getBuildingRoomSpaceReward(building, def) {
@@ -826,7 +993,7 @@ function canBuildBuilding(def) {
         return false;
     }
 
-    return def.resources.every(function (requirement) {
+    return getBuildingBuildRequirements(def).every(function (requirement) {
         return getBuildingResourceAmount(requirement.resourceId) >= requirement.amount;
     });
 }
@@ -1114,6 +1281,11 @@ function applyBuildingCompletion(building) {
     const def = building ? getBuildingDefinition(building.defId) : null;
     if (!def) return;
 
+    if (building.defId === BUILDING_IDS.MAPLE_EXTRACTOR
+        && !Number.isFinite(Number(building.lastMapleDay))) {
+        building.lastMapleDay = getCurrentGameDayIndex();
+    }
+
     // Effects are deliberately applied only here, after workPoints reach zero.
     // Campfire has none yet, so this is currently just the completion gate.
     const roomSpaceReward = getBuildingRoomSpaceReward(building, def);
@@ -1307,6 +1479,9 @@ function serializeBuildings() {
             completed: building.completed === true,
             quality: round2(building.quality),
             roomSpaceApplied: building.roomSpaceApplied === true,
+            lastMapleDay: Number.isFinite(Number(building.lastMapleDay))
+                ? Number(building.lastMapleDay)
+                : null,
         };
     });
 }
@@ -1347,6 +1522,9 @@ function restoreBuildings(savedBuildings) {
             completed: completed,
             quality: quality,
             roomSpaceApplied: saved.roomSpaceApplied === true || completed,
+            lastMapleDay: Number.isFinite(Number(saved.lastMapleDay))
+                ? Number(saved.lastMapleDay)
+                : null,
         };
 
         buildings.push(building);
@@ -2839,7 +3017,11 @@ function renderFurnitureResources() {
     const container = document.createElement("div");
     container.className = "craftresources";
 
-    def.resources.forEach(function (requirement) {
+    if (def.id === BUILDING_IDS.MAPLE_EXTRACTOR) {
+        panel.appendChild(createMapleMetalChoiceBox());
+    }
+
+    getBuildingBuildRequirements(def).forEach(function (requirement) {
         const row = createBuildResourceRow(def, requirement);
         if (row) container.appendChild(row);
     });
@@ -3100,7 +3282,7 @@ function refreshFurnitureAvailability() {
 
     const resourcesPanel = document.getElementById("furniturebuildingdescription");
     if (resourcesPanel) {
-        def.resources.forEach(function (requirement) {
+        getBuildingBuildRequirements(def).forEach(function (requirement) {
             const resourceRow = resourcesPanel.querySelector(
                 '[data-build-resource="' + requirement.resourceId + '"]'
             );
@@ -3720,7 +3902,7 @@ function performBuild(def) {
 
     const quality = getBuildingQuality(def);
 
-    def.resources.forEach(function (requirement) {
+    getBuildingBuildRequirements(def).forEach(function (requirement) {
         const stack = resources[requirement.resourceId];
         if (!stack) return;
         stack.amount = round2(Math.max(0, stack.amount - requirement.amount));

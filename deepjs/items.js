@@ -9,6 +9,7 @@ const INVENTORY_LOCK_ICON = "images/inv/ui/lock.png";
 const SPECIAL_RESOURCE_IMAGE_FOLDERS = Object.freeze({
     logs: "nature",
     rope: "tailoring",
+    maplesirup: "cooking",
 });
 
 function normalizeItemImageName(itemName) {

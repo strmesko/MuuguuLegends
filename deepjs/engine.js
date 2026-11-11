@@ -1088,6 +1088,9 @@ function simulateTimePassage(seconds, options) {
     updateAutoHungerEating();
     updateHungerStarvationTick(value);
     if (typeof advanceGameClock === "function") advanceGameClock(value);
+    if (typeof processMapleExtractors === "function") {
+        processMapleExtractors(currentTile);
+    }
     if (typeof updateDrama === "function") updateDrama(value);
     updateGUI();
     if (typeof refreshActionButtons === "function") refreshActionButtons(true);
@@ -3513,6 +3516,9 @@ function mainLoop(){
     updateHungerStarvationTick(diff);
     // One real second is one in-game minute, including catch-up ticks.
     if (typeof advanceGameClock === "function") advanceGameClock(diff);
+    if (typeof processMapleExtractors === "function") {
+        processMapleExtractors(currentTile);
+    }
     // DramaMeter grows every second and periodically rolls a world event.
     if (typeof updateDrama === "function") updateDrama(diff);
     // The catch-up tick right after a load is over; level-ups log normally
