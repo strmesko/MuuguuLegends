@@ -133,6 +133,8 @@
             foodStatBindings: Object.assign({}, foodStatBindings),
             buildings: typeof serializeBuildings === "function" ? serializeBuildings() : [],
             hearthfireFuelElapsed: round2(hearthfireFuelElapsed),
+            DramaMeter: typeof DramaMeter !== "undefined" ? DramaMeter : 0,
+            dramaEventTimer: typeof dramaEventTimer !== "undefined" ? dramaEventTimer : 0,
             mapSeed: window.mapView ? window.mapView.getSeed() : null,
         };
     }
@@ -466,6 +468,9 @@
         hearthfireStacks = 0;
         hearthfireFuelElapsed = Math.max(0, Number(saved.hearthfireFuelElapsed) || 0);
         hearthfireActiveCampfireUid = null;
+        if (typeof restoreDramaState === "function") {
+            restoreDramaState(saved.DramaMeter, saved.dramaEventTimer);
+        }
         restoreTechnologies(saved.technologies);
         minPotentialBonusPercent = saved.minPotentialBonusPercent
             ?? (NOT_SO_WORTHLESS_TECHNOLOGY.level * MIN_POTENTIAL_BONUS_PER_LEVEL);
