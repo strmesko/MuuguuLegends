@@ -2024,6 +2024,16 @@ ul.resource-tree li a:before {
   background-color: #ffbaba;
 }
 
+.sortbutton {
+  background-color: #d9ecff;
+  border-color: #4d86c9;
+  color: #163a5c;
+}
+
+.sortbutton:hover {
+  background-color: #c4e0ff;
+}
+
 .scrapbutton.active {
   background-color: #ff9a9a;
   border-color: #7a0000;

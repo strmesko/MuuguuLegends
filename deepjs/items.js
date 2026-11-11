@@ -588,6 +588,74 @@ function getItemRarityFilterIndex(item) {
     return SCRAP_RARITY_ORDER.indexOf(getItemRarityId(item));
 }
 
+function getInventorySortGroup(item) {
+    const definition = getItemDefinitionFor(item);
+    if (!definition) return 60;
+
+    if (definition.food || definition.kind === ITEM_KINDS.Consumable) return 10;
+    if (definition.kind === ITEM_KINDS.Equipment) {
+        const isTool = definition.slot === "arm1"
+            || definition.slot === "arm2"
+            || (Array.isArray(definition.toolPowers) && definition.toolPowers.length > 0);
+        return isTool ? 20 : 30;
+    }
+    if (definition.kind === ITEM_KINDS.Tool) return 40;
+    if (definition.kind === ITEM_KINDS.Trinket) return 50;
+    return 60;
+}
+
+function compareInventoryItemsByType(first, second) {
+    const groupDifference = getInventorySortGroup(first) - getInventorySortGroup(second);
+    if (groupDifference !== 0) return groupDifference;
+
+    const firstDefinition = getItemDefinitionFor(first);
+    const secondDefinition = getItemDefinitionFor(second);
+    const firstSlot = firstDefinition && firstDefinition.slot
+        ? String(firstDefinition.slot)
+        : "";
+    const secondSlot = secondDefinition && secondDefinition.slot
+        ? String(secondDefinition.slot)
+        : "";
+    const slotDifference = firstSlot.localeCompare(secondSlot);
+    if (slotDifference !== 0) return slotDifference;
+
+    const firstName = getInventoryItemName(first) || "";
+    const secondName = getInventoryItemName(second) || "";
+    const nameDifference = firstName.localeCompare(secondName, undefined, {
+        sensitivity: "base",
+    });
+    if (nameDifference !== 0) return nameDifference;
+
+    return (Number(first.itemId) || 0) - (Number(second.itemId) || 0);
+}
+
+function sortInventoryByType() {
+    if (!player || !Array.isArray(player.equipinventory)) return 0;
+
+    const capacity = Math.min(
+        player.equipinventory.length,
+        getEffectiveInventorySlots()
+    );
+    const freeSlotIndices = [];
+    const items = [];
+
+    for (let index = 0; index < capacity; index++) {
+        const item = player.equipinventory[index];
+        if (item && isInventoryItemLocked(item)) continue;
+        freeSlotIndices.push(index);
+        if (item) items.push(item);
+    }
+
+    if (items.length < 2) return 0;
+
+    items.sort(compareInventoryItemsByType);
+    freeSlotIndices.forEach(function (slotIndex, sortedIndex) {
+        player.equipinventory[slotIndex] = items[sortedIndex] || null;
+    });
+
+    return items.length;
+}
+
 function updateScrapToolbar() {
     const scrapButton = document.getElementById("scrapbutton");
     if (scrapButton) {
@@ -624,6 +692,21 @@ function ensureScrapToolbar() {
         toolbar.id = "scraptoolbar";
         toolbar.className = "scraptoolbar";
 
+        const sortButton = document.createElement("button");
+        sortButton.type = "button";
+        sortButton.id = "sortinventorybutton";
+        sortButton.className = "scrapbutton sortbutton";
+        sortButton.innerText = "Sort";
+        sortButton.setAttribute(
+            "data-tooltip",
+            "Sort unlocked inventory items by type. Locked items stay in their slots."
+        );
+        sortButton.addEventListener("click", function () {
+            const sorted = sortInventoryByType();
+            renderInventorySlots();
+            if (sorted > 0) logMessage("Inventory sorted by type.");
+        });
+
         const scrapButton = document.createElement("button");
         scrapButton.type = "button";
         scrapButton.id = "scrapbutton";
@@ -657,6 +740,7 @@ function ensureScrapToolbar() {
             scrapAllByRarity();
         });
 
+        toolbar.appendChild(sortButton);
         toolbar.appendChild(scrapButton);
         toolbar.appendChild(rarityButton);
         toolbar.appendChild(scrapAllButton);
@@ -894,7 +978,7 @@ function renderInventorySlots() {
                 + (propertiesHtml ? "<br>" + propertiesHtml : "")
                 + (description ? "<br>" + description : "")
                 + (locked
-                    ? "<br><span class=\"inventory-lock-note\">Locked: protected from Scrap all.</span>"
+                    ? "<br><span class=\"inventory-lock-note\">Locked: protected from Scrap all and sorting.</span>"
                     : "")
         );
     }
