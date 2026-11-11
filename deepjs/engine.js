@@ -575,6 +575,9 @@ function getActionEffectivenessMultiplier(action) {
             * (typeof getCatchedColdActionMultiplier === "function"
                 ? getCatchedColdActionMultiplier()
                 : 1)
+            * (typeof getEarthShakingActionMultiplier === "function"
+                ? getEarthShakingActionMultiplier()
+                : 1)
     );
 }
 
@@ -598,6 +601,9 @@ function getActionProductionMultiplier(actionId) {
             : 1)
         * (typeof getCatchedColdActionMultiplier === "function"
             ? getCatchedColdActionMultiplier()
+            : 1)
+        * (typeof getEarthShakingActionMultiplier === "function"
+            ? getEarthShakingActionMultiplier()
             : 1)
         * workBenchMultiplier;
 }
@@ -2831,7 +2837,11 @@ function runCutTreeProduction(diff) {
     const coldPowerMultiplier = typeof getCatchedColdActionMultiplier === "function"
         ? getCatchedColdActionMultiplier()
         : 1;
-    const power = getCutTreePower() * weatherPowerMultiplier * coldPowerMultiplier;
+    const shakingPowerMultiplier = typeof getEarthShakingActionMultiplier === "function"
+        ? getEarthShakingActionMultiplier()
+        : 1;
+    const power = getCutTreePower() * weatherPowerMultiplier
+        * coldPowerMultiplier * shakingPowerMultiplier;
     const quality = getCutTreeQuality(power);
     // ChopYield multiplies everything Cut Tree extracts from the tree, but
     // explicitly not the Fertile Soil left behind.

@@ -911,7 +911,11 @@ function getBuildingWorkPerSecond(buildingOrDef) {
     const coldMultiplier = typeof getCatchedColdActionMultiplier === "function"
         ? getCatchedColdActionMultiplier()
         : 1;
-    return Math.max(0, averageStat * skillLevel * weatherMultiplier * coldMultiplier);
+    const shakingMultiplier = typeof getEarthShakingActionMultiplier === "function"
+        ? getEarthShakingActionMultiplier()
+        : 1;
+    return Math.max(0, averageStat * skillLevel * weatherMultiplier
+        * coldMultiplier * shakingMultiplier);
 }
 
 function getBestCompletedBuildingQuality(defId, tile) {

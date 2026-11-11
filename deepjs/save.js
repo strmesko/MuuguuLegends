@@ -136,6 +136,7 @@
             DramaMeter: typeof DramaMeter !== "undefined" ? DramaMeter : 0,
             dramaEventTimer: typeof dramaEventTimer !== "undefined" ? dramaEventTimer : 0,
             catchedColdRemaining: typeof catchedColdRemaining !== "undefined" ? catchedColdRemaining : 0,
+            earthShakingRemaining: typeof earthShakingRemaining !== "undefined" ? earthShakingRemaining : 0,
             mapSeed: window.mapView ? window.mapView.getSeed() : null,
         };
     }
@@ -473,7 +474,8 @@
             restoreDramaState(
                 saved.DramaMeter,
                 saved.dramaEventTimer,
-                saved.catchedColdRemaining
+                saved.catchedColdRemaining,
+                saved.earthShakingRemaining
             );
         }
         restoreTechnologies(saved.technologies);
