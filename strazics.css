@@ -1,0 +1,2218 @@
+/* No text may render below 6px. */
+html{font: max(6px, 1.1em) "SimSun";}
+body{font-size:max(6px,1em);}
+.alert {
+    padding: 15px;
+    border: 1px solid #d6e9c6;
+    border-radius: 4px;
+    color: #3c763d;
+    background-color: #dff0d8;
+    z-index: 100;
+  }
+  .allblock {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    color:blue;
+    background-color: #d4ffd8;
+  }
+
+
+  .resbl {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 20%;
+    height: 100%;
+    display: flex;
+    border: 1px solid #abe2b1;
+    background-color: #e8ffea;
+    z-index: 1;
+  }
+
+  .topic {
+    position:absolute;
+    top: 0px;
+    left: 20%;
+    width: 80%;
+    height: 50px;
+    display: flex;
+    border: 1px solid #abe2b1;
+    background-color: #e8ffea;
+    z-index: 1;
+  }
+
+  .rightbar {
+    position: absolute;
+    top: 51px;
+    right: 0px;
+    width: calc(20% - 3px);
+    height: calc(100% - 51px);
+    display: block;
+    font: 1em "MS Gothic";
+    border: 1px solid #abe2b1;
+    background-color: #e8fff4;
+    overflow: hidden;
+    z-index: 1;
+
+  }
+
+  /* Scrolling happens inside the log. */
+  .logscroll {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* Buff / debuff icons sit at the left of the top bar, next to the
+     coordinates. They are a normal flex child so long coordinate text wraps
+     beside them instead of underneath. */
+  .statusicons {
+    display: flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: 2px;
+    order: -2;
+    margin: 4px 6px 0 4px;
+    z-index: 10;
+  }
+
+  /* In-game date, time, weather and night moon. It is a separate child of
+     the top bar and sits right after the status icons. */
+  .gameclock {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    align-self: flex-start;
+    order: -1;
+    margin: 4px 8px 0 2px;
+    padding: 1px 5px;
+    border: 1px solid #9fce4b;
+    border-radius: 3px;
+    background-color: #f4ffd9;
+    color: #31551a;
+    font: max(6px, 0.72em) "SimSun", "Segoe UI Emoji", "Segoe UI Symbol", sans-serif;
+    line-height: 1.4;
+    white-space: nowrap;
+    z-index: 1;
+  }
+
+  .mainmenutext {
+    pointer-events: none;
+  }
+
+  .statusicon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    font-size: 13px;
+    line-height: 1;
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.45);
+  }
+
+  .statusicon i {
+    /* The span must stay the mouse target so its tooltip works. */
+    pointer-events: none;
+  }
+
+  .logdiv{
+    width: 100%;
+    font-size: max(6px, .9em);
+    color: blue;
+    padding: 2px 4px;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    z-index: 1;
+
+  }
+
+  .logdiv-even {
+    background-color: #dfffdf;
+  }
+
+  .logdiv-odd {
+    background-color: #ddfff2;
+  }
+
+  .log-info {
+    color: #2244aa;
+  }
+
+  .log-debug {
+    color: #8a8a8a;
+    font-style: italic;
+  }
+
+  .rightbar.hide-debug .log-debug {
+    display: none;
+  }
+
+  .log-success {
+    color: #1a7a3a;
+  }
+
+  .log-warning {
+    color: #a85a00;
+  }
+
+  .log-levelup {
+    color: #7a2fa0;
+  }
+
+  .log-number {
+    color: #c0266a;
+    font-weight: bold;
+  }
+
+  .log-skill {
+    color: #7a2fa0;
+    font-weight: bold;
+  }
+
+  .log-resource {
+    color: #0f7a6a;
+    font-weight: bold;
+  }
+
+  .log-count {
+    color: #555;
+    font-size: max(6px, .8em);
+    margin-left: 4px;
+  }
+  .actionselect {
+    position: absolute;
+    top: 51px;
+    left: 20%;
+    width: calc(60%);
+    height: 30px;
+    display: flex;
+    border: 1px solid #abe2b1;
+    background-color: #e8ffea;
+
+    z-index: 1;
+  }
+
+  .actiontab {
+    background-color: #caf37d;
+    border: 3px double rgb(159, 206, 73);
+    border-radius: 4px;
+    margin: 1px;
+    font: 1em "MS Gothic";
+    font-size: max(6px, .9em);
+    
+    z-index: 1;
+  }
+  .actionplace {
+    position: absolute;
+    border: 1px solid #abe2b1;
+    background-color: #e8ffea;
+    left: 20%;
+    top: 82px;
+    width: 60%;
+    height: calc(100% - 82px);
+
+
+  }
+  .traveloperlay {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(96, 96, 96, 0.72);
+    color: #f0f0f0;
+    font-size: 1.6rem;
+    font-weight: bold;
+    cursor: wait;
+  }
+  .habitsplace {
+    background-color: #a8f0b8;
+    overflow: auto;
+  }
+  .habitcategories {
+    padding: 6px;
+  }
+  .habitcategory {
+    margin: 6px 0;
+    border: 1px solid #63c47a;
+    border-radius: 6px;
+    background-color: #c9ffd6;
+    overflow: hidden;
+  }
+  .habitcategorytitle {
+    padding: 4px 6px;
+    font: bold max(6px, 0.85em) "SimSun";
+    color: #1f5f2a;
+    background-color: #8fe0a3;
+    border-bottom: 1px solid #63c47a;
+  }
+  .habitlist {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .habititem {
+    box-sizing: border-box;
+    height: 14px;
+    padding: 0 6px;
+    display: flex;
+    align-items: center;
+    border-top: 1px dashed #a3e3b4;
+  }
+  .habititem:first-child {
+    border-top: none;
+  }
+  .habitswitch {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 14px;
+    line-height: 14px;
+    cursor: pointer;
+    user-select: none;
+    font: max(6px, 0.65em) "SimSun";
+  }
+  .habitswitch input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .habitslider {
+    position: relative;
+    box-sizing: content-box;
+    flex: 0 0 auto;
+    width: 26px;
+    height: 8px;
+    background-color: #caf37d;
+    border: 2px double rgb(159, 206, 73);
+    border-radius: 3px;
+    transition: background-color .15s, border-color .15s;
+  }
+  .habitslider::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 1px;
+    width: 8px;
+    height: 6px;
+    background-color: #f2ffe0;
+    border: 1px solid rgb(159, 206, 73);
+    border-radius: 1px;
+    transition: left .15s;
+  }
+  .habitswitch input:checked + .habitslider {
+    background-color: #fcf088;
+    border-color: rgb(190, 170, 40);
+  }
+  .habitswitch input:checked + .habitslider::after {
+    left: 15px;
+    border-color: rgb(190, 170, 40);
+  }
+  .habitname {
+    color: #1f5f2a;
+  }
+  .habititem.habititem-setting {
+    height: 22px;
+  }
+  .habitsetting {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    min-width: 0;
+    font: max(6px, 0.65em) "SimSun";
+    color: #1f5f2a;
+    user-select: none;
+  }
+  .habitsetting .habitname {
+    flex: 0 0 auto;
+  }
+  .habitrange {
+    flex: 1 1 auto;
+    min-width: 40px;
+    max-width: 120px;
+    height: 12px;
+    accent-color: #63c47a;
+    cursor: pointer;
+  }
+  .habitrangevalue {
+    flex: 0 0 auto;
+    min-width: 28px;
+    text-align: right;
+    font-weight: bold;
+  }
+  .habitselect {
+    flex: 0 1 auto;
+    min-width: 60px;
+    max-width: 120px;
+    height: 17px;
+    padding: 0 2px;
+    font: max(6px, 0.65em) "SimSun";
+    color: #1f5f2a;
+    background-color: #f2ffe0;
+    border: 1px solid #63c47a;
+    border-radius: 2px;
+    cursor: pointer;
+  }
+  .focuspoints {
+    margin: 4px;
+    padding: 4px;
+    font: max(6px, 0.8em) "SimSun";
+    color: #1f5f2a;
+    background-color: #c9ffd6;
+    border: 1px solid #63c47a;
+    border-radius: 4px;
+  }
+  .actiontext {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    font: 300;
+    background-color: #ecf5ed;
+    border: 1px solid #abe2b1;
+    
+  }
+  .charstate {
+    position: relative;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 117px;
+    background-color: #efffe0;
+    border: 1px solid #abe2b1;
+    text-align: center;
+    font-size: 1.3em;
+    font: 1.1em "Arial Black";
+    z-index: 1;
+  }
+  .charactername {
+    position: relative;
+    z-index: 2;
+    display: block;
+    box-sizing: border-box;
+    width: 70%;
+    margin: 1px auto 0;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    outline: none;
+    color: #2b5a36;
+    font: max(6px, 0.95em)/1.1 "SimSun";
+    font-weight: bold;
+    text-align: center;
+  }
+  .charactername:hover,
+  .charactername:focus {
+    background-color: transparent;
+    border: none;
+  }
+  .characterlevel {
+    position: relative;
+    z-index: 2;
+    display: block;
+    margin: 0;
+    color: #2b5a36;
+    font: max(6px, 0.8em)/1.1 "SimSun";
+    font-weight: bold;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+  .hpbar {
+    position:absolute;
+    top: 39px;
+    width: 50%;
+    font: 1.1em "SimSun";
+    font-size:max(6px, .9em);
+    background-image: linear-gradient(to right, orange , green);
+    z-index: 1;
+
+  }
+
+  .manabar {
+    position: absolute;
+    top: 59px;
+    width: 50%;
+    font: 1.1em "SimSun";
+    font-size:max(6px, .9em);
+    background-image: linear-gradient(to right, cyan, #0051ff);
+    z-index: 1;
+  }
+  .staminabar {
+    position: absolute;
+    top: 79px;
+    width: 50%;
+    font: 1.1em "SimSun";
+    font-size:max(6px, .9em);
+    background-image: linear-gradient(to right, orange, rgb(231, 231, 18));
+    z-index: 1;
+  }
+  .expbar {
+    position: absolute;
+    top: 99px;
+    width: 50%;
+    font: 1.1em "SimSun";
+    font-size:max(6px, .8em);
+    background-image: linear-gradient(to right, purple, magenta);
+    z-index: 1;
+  }
+  .hpbartext {
+    position:absolute;
+    top: 39px;
+    width: 100%;    
+    font: 1.1em "SimSun";
+    font-size:max(6px, .8em);
+    z-index: 1;
+  }
+  .manabartext {
+    position:absolute;
+    top: 59px;
+    width: 100%;    
+    font: 1.1em "SimSun";
+    font-size:max(6px, .8em);
+    z-index: 1;
+  }
+  .staminabartext {
+    position:absolute;
+    top: 79px;
+    width: 100%;    
+    font: 1.2em "SimSun";
+    font-size:max(6px, .8em);
+    z-index: 1;
+  }
+  .expbartext {
+    position:absolute;
+    top: 99px;
+    width: 100%;    
+    font: 1.1em "SimSun";
+    font-size:max(6px, .8em);
+    z-index: 1;
+  }
+  .leftselector{
+    position: absolute;
+    top: 118px;
+    width: calc(100% - 1px);
+    height: 22px;
+    background-color: #ddfff2;
+    border: 1px solid #abe2b1;
+    z-index: 1;
+  }
+  .restab{
+    width: calc(50% - 2px);
+    background-color: #caf37d;
+    border: 2px solid rgb(159, 206, 73);
+    border-radius: 2px;
+    margin-left: 1px;
+    font: max(6px, 0.7em) "SimSun";
+    z-index: 1;
+  }
+  .lefttabs{
+    position: absolute;
+    background-color: #e8fff4;
+    border: 1px solid #abe2b1;
+    top: 140px;
+    height: calc(100% - 140px);
+    width: calc(100% - 1px);
+    overflow:auto;
+    font: max(6px, 0.7em) "SimSun";
+    z-index: 1;
+  }
+  .actionbutton{
+    width: calc(20% - 9px);
+    height: 40px;
+    box-sizing: border-box;
+    vertical-align: top;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    padding: 0;
+    line-height: 1.05;
+    background-color: #caf37d;
+    border: 4px double #9fce49;
+    border-radius: 4px;
+    visibility: hidden;
+    margin: 4px;
+  }
+  .actionbutton.action-harvest {
+    background-color: #ffc27a;
+    border-color: #d98a3a;
+  }
+  .actionbutton.action-restoration {
+    background-color: #b9e2ff;
+    border-color: #5aa6d6;
+  }
+  .actionbutton.action-magic {
+    background-color: #f0dcff;
+    border-color: #b98ee0;
+  }
+  .actionbutton.action-production {
+    background-color: #b7e3a1;
+    border-color: #7fb86a;
+  }
+  .actionbutton.action-moverment {
+    background-color: #d9f7c0;
+    border-color: #8fc76a;
+  }
+  .actionbutton-label {
+    font-weight: normal;
+  }
+  .actionbutton-tags {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: max(5px, 0.68em);
+    color: #1c4a66;
+    opacity: 0.85;
+  }
+  .actionbutton.action-harvest .actionbutton-tags {
+    color: #6b3a0c;
+  }
+  .actiontooltip-tags {
+    color: #7aa7c7;
+  }
+  .optionsbutton.active {
+    background-color: #f5e663;
+    border-color: rgb(190, 170, 40);
+  }
+  .optionsbutton {
+    width: calc(50% - 9px);
+    height: 40px;
+    background-color: #caf37d;
+    border: 4px double rgb(159, 206, 73);
+    border-radius: 4px;
+    margin: 4px;
+  }
+  .saveslot {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 4px;
+  }
+  .saveslotlabel {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: max(6px, 0.7em) "SimSun";
+  }
+  .saveslot .optionsbutton {
+    flex: 0 0 auto;
+    width: 44px;
+    height: 32px;
+    margin: 0;
+  }
+ .skillsbar{
+  width: calc(100% - 2px);
+  background-color: #ddfff2;
+  border: 1px solid;
+  border-color: #9fffda;
+
+ }
+ .skillsbar-even {
+  background-color: #dfffdf;
+ }
+ .skillsbar-odd {
+  background-color: #ddfff2;
+ }
+ .skillsbar-skill-even {
+  background-color: #d9e9ff;
+ }
+ .skillsbar-skill-odd {
+  background-color: #c9e0ff;
+ }
+ .statprogress{
+  width: calc(100% - 10px);
+  height: 4px;
+  background-color: #ddfff2;
+  border: 1px solid;
+  border-color: #6b1780;
+  font-size:max(6px, .5em);
+ }
+.statprogressbar{
+  height: 4px;
+  width: 50%;
+  background-image: linear-gradient(to right, rgb(77, 169, 255), rgb(255, 126, 255));
+
+
+}
+.skills-divider {
+  width: 100%;
+  box-sizing: border-box;
+  height: 11px;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: center;
+  font: max(6px, 0.9em)/11px "Segoe UI Symbol", "MS Gothic", monospace;
+  letter-spacing: 2px;
+  color: #7a56c8;
+  background-image: linear-gradient(90deg, #6a3fb8, #c25cff, #3d8fe8, #6a3fb8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 0 8px rgba(122, 86, 200, .28);
+  user-select: none;
+  pointer-events: none;
+}
+.toolpowers-title,
+.housepowers-title {
+  margin: 3px 2px 1px;
+  padding-top: 3px;
+  border-top: 1px dashed #a3e3b4;
+  font: max(6px, 0.78em) "SimSun";
+  font-weight: bold;
+  color: #1f5f2a;
+}
+.toolpower-row,
+.housepower-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px;
+  width: calc(100% - 2px);
+  box-sizing: border-box;
+  padding: 1px 3px;
+  background-color: #ddfff2;
+  border: 1px solid #9fffda;
+  font: max(6px, 0.7em) "SimSun";
+  color: #1f5f2a;
+}
+.toolpower-label,
+.housepower-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.toolpower-value,
+.housepower-value {
+  flex: 0 0 auto;
+  font-weight: bold;
+  color: #2d6b3a;
+}
+ .tooltip {
+  position: fixed;
+  padding: 2px 4px;
+  border: 1px solid #ebcb73;
+  text-align: center;
+  font: max(6px, 0.7em) "SimSun";
+  color: rgb(82, 56, 7);
+  background: rgb(225, 238, 149);
+  box-shadow: 3px 3px 3px rgba(65, 39, 5, 0.3);
+  /* Tooltips must stay above every overlay, including the travel overlay. */
+  z-index: 1000;
+}
+
+.itemrarity,
+.itemname {
+  display: inline-block;
+  padding: 0 1px;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--rarity-color);
+  text-shadow:
+    -1px -1px 0 var(--rarity-outline),
+     0   -1px 0 var(--rarity-outline),
+     1px -1px 0 var(--rarity-outline),
+    -1px  0   0 var(--rarity-outline),
+     1px  0   0 var(--rarity-outline),
+    -1px  1px 0 var(--rarity-outline),
+     0    1px 0 var(--rarity-outline),
+     1px  1px 0 var(--rarity-outline);
+}
+
+.itemrarity.rarity-epic,
+.itemname.rarity-epic {
+  text-shadow:
+    -2px -2px 0 var(--rarity-outline),
+    -1px -2px 0 var(--rarity-outline),
+     0   -2px 0 var(--rarity-outline),
+     1px -2px 0 var(--rarity-outline),
+     2px -2px 0 var(--rarity-outline),
+    -2px -1px 0 var(--rarity-outline),
+     2px -1px 0 var(--rarity-outline),
+    -2px  0   0 var(--rarity-outline),
+     2px  0   0 var(--rarity-outline),
+    -2px  1px 0 var(--rarity-outline),
+     2px  1px 0 var(--rarity-outline),
+    -2px  2px 0 var(--rarity-outline),
+    -1px  2px 0 var(--rarity-outline),
+     0    2px 0 var(--rarity-outline),
+     1px  2px 0 var(--rarity-outline),
+     2px  2px 0 var(--rarity-outline),
+    -1px -1px 0 var(--rarity-outline),
+     0   -1px 0 var(--rarity-outline),
+     1px -1px 0 var(--rarity-outline),
+    -1px  0   0 var(--rarity-outline),
+     1px  0   0 var(--rarity-outline),
+    -1px  1px 0 var(--rarity-outline),
+     0    1px 0 var(--rarity-outline),
+     1px  1px 0 var(--rarity-outline);
+}
+
+.itemrarity.rarity-galaxic,
+.itemname.rarity-galaxic {
+  font-weight: 900;
+  text-shadow: 0 0 3px #b026ff, 0 0 7px #8a2be2, 0 0 12px #6a0dad;
+}
+
+/* Automatic "when equipped" bonus lines. Only the outline colour (lime) and
+   weight are changed; size, family and text colour stay inherited. */
+.itembonus {
+  font-weight: 700;
+  text-shadow:
+    -1px -1px 0 #8cff42,
+     0   -1px 0 #8cff42,
+     1px -1px 0 #8cff42,
+    -1px  0   0 #8cff42,
+     1px  0   0 #8cff42,
+    -1px  1px 0 #8cff42,
+     0    1px 0 #8cff42,
+     1px  1px 0 #8cff42;
+}
+
+/* Random item properties shown under the equip bonuses. */
+.itemproperties-title {
+  font-weight: bold;
+  color: #1f5f2a;
+}
+
+.itemproperty {
+  color: #1a7a3a;
+  text-shadow: 0 0 2px #8cff42, 0 0 4px #8cff42;
+}
+
+ul.tree li {
+  list-style-type: none;
+  position: relative;
+}
+
+ul.tree li ul {
+  display: none;
+}
+
+ul.tree li.open > ul {
+  display: block;
+}
+
+ul.tree li a {
+  color: black;
+  text-decoration: none;
+}
+
+ul.tree li a:before {
+  height: 1em;
+  padding:0 .1em;
+  font-size: max(6px, .8em);
+  display: block;
+  position: absolute;
+  left: -1.3em;
+  top: .2em;
+}
+
+ul.tree li > a:not(:last-child):before {
+  content: '+';
+}
+
+ul.tree li.open > a:not(:last-child):before {
+  content: '-';
+}
+
+.res{
+  border: 1px solid #abe2b1;
+  margin: 0px;
+  padding-left: 18px;
+
+  list-style-image: url("images/test.png");
+  position: relative;
+  
+}
+
+.resource-tree {
+  margin: 0;
+  /* Root offset and every nesting level below it use exactly one character
+     cell (1ch), so each indent step is one symbol wide. */
+  padding: 2px 0 0 1ch;
+  list-style: none;
+}
+
+.resource-tree ul {
+  margin: 0;
+  padding-left: 1ch;
+  list-style: none;
+}
+
+ul.resource-tree li a:before {
+  /* The +/- marker lives inside the one-character indent gutter. */
+  left: -1ch;
+  width: 1ch;
+  padding: 0;
+  text-align: center;
+}
+
+.resource-tree .resource-branch {
+  list-style-type: none;
+}
+
+.resource-tree [hidden] {
+  display: none !important;
+}
+
+.resource-tree .resource-branch > a {
+  display: block;
+  padding: 1px 0;
+  color: inherit;
+  font: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid #abe2b1;
+}
+
+.resource-tree .resource-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 1px 0;
+  color: inherit;
+  font: inherit;
+  list-style: none;
+  border-bottom: 1px dotted #abe2b1;
+}
+
+.resource-tree .resource-item img {
+  flex: 0 0 auto;
+}
+
+.resource-tree .resource-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.map-view {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #1a1a2e;
+}
+
+.map-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  outline: none;
+}
+
+.map-canvas.dragging {
+  cursor: grabbing;
+}
+
+.map-coordinates {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  padding: 6px 10px;
+  border: 1px solid #4cc9f0;
+  border-radius: 8px;
+  background: rgba(26, 26, 46, 0.9);
+  color: #ffd166;
+  font-size: max(6px, 0.8rem);
+  font-weight: bold;
+  pointer-events: none;
+}
+
+.map-travel-dialog {
+  position: absolute;
+  z-index: 6;
+  transform: translate(-50%, -50%);
+  min-width: 210px;
+  max-width: min(320px, calc(100% - 12px));
+  padding: 10px 12px;
+  border: 2px solid #4cc9f0;
+  border-radius: 8px;
+  background: rgba(26, 26, 46, 0.97);
+  color: #ffd166;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+  text-align: center;
+  font-size: max(6px, 0.8rem);
+}
+
+.map-travel-dialog-text {
+  margin-bottom: 8px;
+  line-height: 1.25;
+}
+
+.map-travel-dialog-actions {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.map-travel-dialog-actions button {
+  padding: 4px 8px;
+  border: 2px solid #9fce49;
+  border-radius: 4px;
+  background: #caf37d;
+  color: #1a1a2e;
+  cursor: pointer;
+  font: inherit;
+}
+
+.map-travel-dialog-actions button:hover {
+  background: #dff9a8;
+}
+
+.map-travel-dialog-actions .map-travel-dialog-no {
+  border-color: #d98a3a;
+  background: #ffc27a;
+}
+
+.map-travel-dialog-actions .map-travel-dialog-no:hover {
+  background: #ffd5a3;
+}
+
+.livemap{
+
+  position:absolute;
+  border: 1px solid  #ff9203;
+  background-color: rgb(0, 0, 0);
+  outline: none;
+  overflow: hidden;
+}
+.tile{
+
+  position:absolute;
+  width: 30px;
+  height: 30px;
+  z-index: 1;
+  outline: none;
+  background-color: red;
+  overflow: visible;
+  visibility: visible;
+  clear:both;
+  overflow: hidden;
+}
+.tileImage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+@keyframes spin1 {
+  0%{transform: rotate(0deg);}
+  100%{transform: rotate(360deg);}
+  }
+  @keyframes spin2{
+  0%{transform: rotate(0deg);}
+  100%{transform: rotate(-360deg);}
+  }
+  .preloader {
+    position: relative;
+  }
+  .preloader-disc {
+    border: 1px solid #f00;
+    display: grid;
+    place-items: center;
+    left: -7rem;
+    width: 28rem;
+    height: 28rem;
+    position: absolute;
+    animation: spin 9s cubic-bezier(0.49, 0.48, 0.51, 0.51) infinite;
+    background: #987a7a;
+    filter: sepia(1);
+    border-radius: 100%;
+    box-shadow: inset 0 0 5px -1px;
+  }
+  .preloader-orb {
+    background-image: url(https://cdn.discordapp.com/attachments/723092573601660969/818804824938250240/Myasko-2.png);
+    width: 2rem;
+    top: 6px;
+    right: 104px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    position: relative;
+  }
+  .orb-1 {
+    animation: spin1 4s cubic-bezier(0.50, 0.50, 0.50, 0.50) infinite;
+    top: -2px;
+    left: 3px;
+    filter: blur(15px) contrast(52.5) sepia(6);
+  }
+  .orb-2 {
+    animation: spin2 4s cubic-bezier(0.50, 0.50, 0.50, 0.50) infinite;
+    top: 13px;
+    right: 14px;
+    filter: blur(11px) contrast(59.5) sepia(6);
+  }
+  .orb-3 {
+    animation: spin1 4s cubic-bezier(0.50, 0.50, 0.50, 0.50) infinite;
+    top: -40px;
+    right: 63px;
+    filter: blur(11px) contrast(70.5) sepia(6);
+  }
+  .orb-4 {
+    animation: spin1 4s cubic-bezier(0.50, 0.50, 0.50, 0.50) infinite;
+    top: 60px;
+    right: 123px;
+    filter: blur(11px) contrast(59.5) sepia(6);
+  }
+  .orb-5 {
+    animation: spin1 10s cubic-bezier(0.50, 0.50, 0.50, 0.50) infinite;
+    top: 9px;
+    right: 255px;
+    width: 24rem;
+    height: 26rem;
+    mix-blend-mode: color-dodge;
+    filter: blur(1px) contrast(45.5) sepia(6) drop-shadow(0 0 0 black);
+  }
+  .craftsub,
+  .researchsub {
+    height: 27px;
+    background-color: #f3eb7d;
+    border: 3px double rgb(197, 206, 73);
+    border-radius: 4px;
+    margin: 1px;
+    font: 1em "MS Gothic";
+    font-size: max(6px, .9em);
+    
+    z-index: 1;
+  }
+  .buildsub {
+    height: 27px;
+    background-color: #f3eb7d;
+    border: 3px double rgb(197, 206, 73);
+    border-radius: 4px;
+    margin: 2px;
+    font: 1em "MS Gothic";
+    font-size: max(6px, .9em);
+
+    z-index: 1;
+  }
+  .buildsub.active {
+    background-color: #caf37d;
+    border-color: rgb(159, 206, 73);
+  }
+  .buildingicon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    margin-right: 8px;
+    color: #d86522;
+    font-size: 24px;
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.25);
+  }
+  .buildingtitle {
+    font-weight: bold;
+    font-size: 1.05em;
+    color: #2f4d23;
+  }
+  .buildinginstances {
+    margin: 6px 0;
+  }
+  .buildinginstance {
+    padding: 4px 2px;
+    border-top: 1px dashed #b6d6a8;
+  }
+  .buildinginstance-name {
+    font-weight: bold;
+    color: #355c27;
+  }
+  .buildinginstance-status {
+    font-size: max(6px, .9em);
+    color: #4d6b3d;
+  }
+  .buildinginstance.completed .buildinginstance-name,
+  .buildinginstance.completed .buildinginstance-status {
+    color: #1a7a3a;
+  }
+  .buildinginstance.completed .buildinginstance-status {
+    font-weight: bold;
+  }
+  .craftsubplace,
+  .researchsubplace {
+    display: none;
+    left: 2px;
+    top: 30px;
+    width: calc(100% - 3px);
+    height: calc(100% - 33px);
+    background-color: #ebffe8;
+    border: 1px solid rgb(199, 224, 141);
+    margin: 1px;
+    font: 1em "MS Gothic";
+    font-size: max(6px, .9em);
+    
+    z-index: 1;
+  }
+  .craftsubplace {
+    position: absolute;
+  }
+  .craftsub.active {
+    background-color: #caf37d;
+    border-color: rgb(159, 206, 73);
+  }
+  .researchsub {
+    background-color: #8fb8ff;
+    border: 3px double rgb(70, 120, 200);
+    color: #08214a;
+  }
+  #habitsplace {
+    background-color: #e3d4ff;
+    border: 1px solid rgb(150, 110, 210);
+  }
+  #knowledgeplace {
+    background-color: #dcecff;
+    border: 1px solid rgb(90, 140, 210);
+  }
+  .habit-tree {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 34px 18px 42px;
+    overflow: auto;
+    list-style: none;
+    background-color: #e3d4ff;
+    background-image:
+      linear-gradient(rgba(110, 80, 170, .10) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(110, 80, 170, .10) 1px, transparent 1px),
+      radial-gradient(circle at 50% 0%, rgba(180, 156, 240, .42), transparent 62%);
+    background-size: 24px 24px, 24px 24px, 100% 100%;
+    --habit-branch-gap: 22px;
+    --habit-branch-color: #8b68d4;
+    --habit-branch-glow: rgba(110, 80, 170, .65);
+  }
+  #knowledgetree {
+    background-color: #dcecff;
+    background-image:
+      linear-gradient(rgba(70, 120, 200, .10) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(70, 120, 200, .10) 1px, transparent 1px),
+      radial-gradient(circle at 50% 0%, rgba(140, 190, 255, .50), transparent 62%);
+    --habit-branch-color: #4d86c9;
+    --habit-branch-glow: rgba(60, 120, 190, .65);
+  }
+  .habit-node {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    list-style-type: none;
+    margin: 0;
+  }
+  .habit-children {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    gap: var(--habit-branch-gap);
+    margin: 0;
+    padding: 56px 0 0;
+    list-style: none;
+  }
+  ul.tree li.open > ul.habit-children {
+    display: flex;
+  }
+  .habit-children::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 2px;
+    height: 22px;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, var(--habit-branch-color), #b49cf0);
+    box-shadow: 0 0 7px var(--habit-branch-glow);
+  }
+  .habit-children > .habit-node::before {
+    content: "";
+    position: absolute;
+    top: -34px;
+    left: 50%;
+    width: 2px;
+    height: 34px;
+    transform: translateX(-50%);
+    background: linear-gradient(180deg, #b49cf0, var(--habit-branch-color));
+    box-shadow: 0 0 6px var(--habit-branch-glow);
+  }
+  .habit-children > .habit-node::after {
+    content: "";
+    position: absolute;
+    top: -34px;
+    left: -11px;
+    right: -11px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--habit-branch-color), #c9b6ff, var(--habit-branch-color));
+    box-shadow: 0 0 6px var(--habit-branch-glow);
+  }
+  .habit-children > .habit-node:first-child::after {
+    left: 50%;
+  }
+  .habit-children > .habit-node:last-child::after {
+    right: 50%;
+  }
+  .habit-children > .habit-node:only-child::after {
+    display: none;
+  }
+  .habit-skill {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    box-sizing: border-box;
+    min-width: 168px;
+    max-width: 210px;
+    height: 40px;
+    padding: 0 28px 0 10px;
+    background-color: #caf37d;
+    border: 4px double #9fce49;
+    border-radius: 4px;
+    color: #1f3d12;
+    font: 1em "MS Gothic";
+    font-size: max(6px, .95em);
+    cursor: pointer;
+    box-shadow: none;
+    transition: filter .15s ease;
+  }
+  .habit-skill::after {
+    content: "Lv " attr(data-level) "/" attr(data-max-level);
+    position: absolute;
+    top: -9px;
+    right: -7px;
+    z-index: 2;
+    padding: 1px 6px;
+    background: #2f4d23;
+    border: 1px solid #9fce49;
+    border-radius: 8px;
+    color: #eaffd6;
+    font-size: 9px;
+    line-height: 1.25;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(30, 50, 20, .35);
+  }
+  .research-node-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 0;
+    background: transparent;
+    color: #1f3d12;
+    font-size: 13px;
+    text-shadow: none;
+  }
+  .research-node-image {
+    display: block;
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+  .research-node-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    text-align: left;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+  .habit-skill:hover {
+    filter: brightness(1.04);
+  }
+  .habit-skill.researching {
+    background-color: #fcf088;
+    border-color: #9fce49;
+    color: #3d3300;
+  }
+  .habit-skill.researching::after {
+    background: #5a4700;
+    border-color: #f5e663;
+    color: #fff8c4;
+  }
+  .habit-skill.completed {
+    filter: grayscale(0.85);
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .habit-skill.completed:hover {
+    filter: grayscale(0.85);
+  }
+  /* Research buttons follow their tab background:
+     lavender in Habits, sky blue in Knowledge. */
+  #habitsplace .habit-skill {
+    background-color: #d6c0ff;
+    border-color: #7a55c4;
+    color: #2f1a55;
+  }
+  #habitsplace .habit-skill .research-node-icon {
+    background: transparent;
+    color: #2f1a55;
+  }
+  #habitsplace .habit-skill::after {
+    background: #3b2566;
+    border-color: #b99ae8;
+    color: #f0e6ff;
+    box-shadow: 0 1px 3px rgba(60, 35, 105, .35);
+  }
+  #habitsplace .habit-skill.researching {
+    background-color: #fcf088;
+    border-color: #d9c94a;
+    color: #3d3300;
+  }
+  #knowledgeplace .habit-skill {
+    background-color: #bcdcff;
+    border-color: #4d86c9;
+    color: #103457;
+  }
+  #knowledgeplace .habit-skill .research-node-icon {
+    background: transparent;
+    color: #103457;
+  }
+  #knowledgeplace .habit-skill::after {
+    background: #17405f;
+    border-color: #8cc2ff;
+    color: #e3f1ff;
+    box-shadow: 0 1px 3px rgba(20, 55, 90, .35);
+  }
+  #knowledgeplace .habit-skill.researching {
+    background-color: #fcf088;
+    border-color: #d9c94a;
+    color: #3d3300;
+  }
+  .craftlist {
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: calc(30% - 4px);
+    height: calc(100% - 4px);
+    background-color: #ebffe8;
+    border: 1px solid rgb(199, 224, 141);
+    margin: 1px;
+    font: 1em "MS Gothic";
+    font-size: max(6px, .9em);
+    box-sizing: border-box;
+    padding: 2px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    
+    z-index: 1;
+  }
+  .craftdescription {
+    position: absolute;
+    left: calc(30% + 3px);
+    top: 2px;
+    width: calc(70% - 5px);
+    height: calc(40% - 4px);
+    background-color: #ebffe8;
+    border: 1px solid rgb(199, 224, 141);
+    margin: 1px;
+    font: 1em "MS Gothic";
+    font-size: max(6px, .9em);
+    box-sizing: border-box;
+    padding: 3px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    
+    z-index: 1;
+  }
+  .craftdetails {
+    position: absolute;
+    left: calc(30% + 3px);
+    top: calc(40% + 1px);
+    width: calc(70% - 5px);
+    height: calc(60% - 3px);
+    background-color: #ebffe8;
+    border: 1px solid rgb(199, 224, 141);
+    margin: 1px;
+    font: 1em "MS Gothic";
+    font-size: max(6px, .9em);
+    box-sizing: border-box;
+    padding: 3px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    
+    z-index: 1;
+  }
+  .craftcategory {
+    margin: 0;
+    border: none;
+    background: transparent;
+  }
+  .craftrecipe {
+    cursor: pointer;
+    height: auto;
+    min-height: 16px;
+    padding: 1px 4px;
+    border-top: 1px dashed #a3e3b4;
+  }
+  .craftrecipe:first-child {
+    border-top: none;
+  }
+  .craftrecipe:hover {
+    background-color: #d6ffdf;
+  }
+  .craftrecipe.selected {
+    background-color: #fcf088;
+  }
+  .craftrecipe.selected .habitslider {
+    background-color: #fcf088;
+    border-color: rgb(190, 170, 40);
+  }
+  .craftrecipe.selected .habitslider::after {
+    left: 15px;
+    border-color: rgb(190, 170, 40);
+  }
+  .craftrecipe.unavailable .habitname {
+    color: #8f9a90;
+  }
+  .craftempty {
+    padding: 5px;
+    font: max(6px, 0.7em) "SimSun";
+    color: #4a6b4f;
+  }
+  .craftpanel-title {
+    margin-bottom: 3px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid #a3e3b4;
+    font: bold max(6px, 0.75em) "SimSun";
+    color: #1f5f2a;
+  }
+  .craftresources {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .craftresource {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font: max(6px, 0.7em) "SimSun";
+    color: #1f5f2a;
+  }
+  .craftresource-name {
+    flex: 1;
+  }
+  .craftresource.enough .craftresource-amount {
+    color: #1a7a3a;
+    font-weight: bold;
+  }
+  .craftresource.missing .craftresource-amount {
+    color: #b03030;
+    font-weight: bold;
+  }
+  .craftresourceicon {
+    width: 14px;
+    height: 14px;
+    image-rendering: pixelated;
+  }
+  .craftskillrow {
+    margin-top: 4px;
+    padding-top: 3px;
+    border-top: 1px dashed #a3e3b4;
+    font: max(6px, 0.7em) "SimSun";
+    color: #1f5f2a;
+  }
+  .craftskillrow.missing {
+    color: #b03030;
+    font-weight: bold;
+  }
+  .craftchoice {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 0 0 5px;
+    padding-bottom: 5px;
+    border-bottom: 1px dashed #a3e3b4;
+    font: max(8px, 0.9em) "SimSun";
+    color: #1f5f2a;
+  }
+  .craftchoice-label {
+    font-weight: bold;
+  }
+  .craftchoice-bonus-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .craftchoice-slot-label {
+    flex: 0 0 auto;
+    min-width: 42px;
+    font: max(8px, 0.9em) "SimSun";
+  }
+  .craftchoice-select {
+    width: 100%;
+    box-sizing: border-box;
+    background-color: #ebffe8;
+    border: 1px solid #9fd8ac;
+    color: #1f5f2a;
+    font: max(8px, 0.9em) "SimSun";
+    padding: 1px 2px;
+  }
+  .craftchoice-bonus-row .craftchoice-select {
+    width: auto;
+    flex: 1 1 auto;
+  }
+  .craftingredient-select {
+    position: relative;
+    width: 100%;
+    font: max(8px, 0.9em) "SimSun";
+  }
+  .craftchoice-bonus-row .craftingredient-select {
+    width: auto;
+    flex: 1 1 auto;
+  }
+  .craftingredient-current {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 1px 2px;
+    background-color: #ebffe8;
+    border: 1px solid #9fd8ac;
+    color: #1f5f2a;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .craftingredient-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .craftingredient-arrow {
+    flex: 0 0 auto;
+    font-size: 0.8em;
+    color: #4a6b4f;
+  }
+  .craftingredient-icon {
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    min-height: 14px;
+    object-fit: contain;
+    image-rendering: pixelated;
+  }
+  .craftingredient-icon.empty {
+    display: inline-block;
+    background: transparent;
+  }
+  .craftingredient-menu {
+    display: none;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: calc(100% + 1px);
+    z-index: 30;
+    max-height: 220px;
+    overflow-y: auto;
+    background-color: #f4fff2;
+    border: 1px solid #7fbf8e;
+    box-shadow: 2px 2px 4px rgba(31, 95, 42, 0.25);
+  }
+  .craftingredient-select.open .craftingredient-menu {
+    display: block;
+  }
+  .craftingredient-option {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 2px 3px;
+    border: 0;
+    background: transparent;
+    color: #1f5f2a;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .craftingredient-option:hover {
+    background-color: #d6f5dd;
+  }
+  .craftingredient-option-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .craftnote {
+    margin-top: 2px;
+    font: max(6px, 0.68em) "SimSun";
+    color: #4a6b4f;
+  }
+  .craftnote.craftwarn {
+    color: #a85a00;
+    font-weight: bold;
+  }
+  .craftdetailsitem {
+    font: max(6px, 0.72em) "SimSun";
+    line-height: 1.25;
+    color: #1f5f2a;
+  }
+  .craftitemicon {
+    display: block;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    max-width: none;
+    max-height: none;
+    object-fit: fill;
+    image-rendering: pixelated;
+    margin-bottom: 2px;
+  }
+  .craftitemdescription {
+    margin-top: 2px;
+    color: #4a6b4f;
+  }
+  .craftbutton {
+    margin-top: 4px;
+    padding: 2px 10px;
+    background-color: #caf37d;
+    border: 2px double rgb(159, 206, 73);
+    border-radius: 4px;
+    font: max(6px, 0.75em) "SimSun";
+    color: #1f5f2a;
+    cursor: pointer;
+  }
+  .craftbutton:hover:not(:disabled) {
+    background-color: #dcffa0;
+  }
+  .craftbutton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  #charcontent {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 4px;
+    padding: 2px;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .equipDisplay {
+    position: relative;
+    flex: 0 0 29%;
+    max-width: 320px;
+    min-width: 0;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 3px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background-color: #ebffe8;
+    border: 1px solid rgb(199, 224, 141);
+    border-radius: 3px;
+    font: max(6px, 0.9em) "MS Gothic";
+    z-index: 1;
+  }
+
+  .equipheader {
+    margin-bottom: 3px;
+    padding: 2px 3px;
+    border: 1px solid #4f9a5d;
+    border-radius: 3px;
+    background-color: #b7ebc2;
+    font: bold max(6px, 0.7em) "SimSun";
+    color: #1f5f2a;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .equipgroup {
+    margin-bottom: 4px;
+  }
+
+  .equipgrouptitle {
+    padding: 1px 4px;
+    margin-bottom: 2px;
+    border: 1px solid #63c47a;
+    border-radius: 3px;
+    background-color: #8fe0a3;
+    font: bold max(6px, 0.65em) "SimSun";
+    color: #1f5f2a;
+  }
+
+  .equipgrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 34px), 1fr));
+    gap: 3px;
+  }
+
+  .ringgrid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 38px), 1fr));
+  }
+
+  .armgrid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 30px), 1fr));
+  }
+
+  .equipgroup.collapsible .equipgrouptitle {
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .equipgroup.collapsible .equipgrouptitle::after {
+    content: " [-]";
+  }
+
+  .equipgroup.collapsible.collapsed .equipgrouptitle::after {
+    content: " [+]";
+  }
+
+  .equipgroup.collapsible.collapsed .equipgrid {
+    display: none;
+  }
+
+  .equipgroup.collapsible .equipgrouptitle:focus-visible {
+    outline: 1px solid #1f5f2a;
+    outline-offset: 1px;
+  }
+
+  .pounchgrid {
+    grid-template-columns: repeat(auto-fill, 34px);
+  }
+
+  .equipslot.pounch-slot-inactive {
+    display: none;
+  }
+
+  .equipslot {
+    position: relative;
+    box-sizing: border-box;
+    min-height: 34px;
+    aspect-ratio: 1 / 1;
+    padding: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+    border: 1px dashed #8fbf7a;
+    border-radius: 3px;
+    background-color: #d2e2d0;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .equipslot:hover {
+    border-style: solid;
+    border-color: #4a8a4a;
+    background-color: #e4f4df;
+  }
+
+  .equipslotlabel {
+    font: max(6px, 0.55em) "SimSun";
+    line-height: 1.1;
+    color: #33552f;
+    word-break: break-word;
+  }
+
+  .equipslot.filled {
+    border-style: solid;
+    border-color: #5f9e63;
+    background-color: #cfe8c8;
+  }
+
+  .equipslot.filled .equipslotlabel {
+    display: none;
+  }
+
+  /* Rarity palette: one shared source for slot outlines and tooltip text. */
+  [data-rarity="junk"],
+  .rarity-junk {
+    --rarity-color: #a3a3a3;
+    --rarity-outline: #000000;
+    --rarity-outline-width: 1px;
+  }
+
+  [data-rarity="common"],
+  .rarity-common {
+    --rarity-color: #ffffff;
+    --rarity-outline: #000000;
+    --rarity-outline-width: 1px;
+  }
+
+  [data-rarity="uncommon"],
+  .rarity-uncommon {
+    --rarity-color: #4fc45c;
+    --rarity-outline: #145c22;
+    --rarity-outline-width: 1px;
+  }
+
+  [data-rarity="somewhat-rare"],
+  .rarity-somewhat-rare {
+    --rarity-color: #8fd8ff;
+    --rarity-outline: #1f5fa8;
+    --rarity-outline-width: 1px;
+  }
+
+  [data-rarity="rare"],
+  .rarity-rare {
+    --rarity-color: #3b82f6;
+    --rarity-outline: #102b6b;
+    --rarity-outline-width: 1px;
+  }
+
+  [data-rarity="rare-rare"],
+  .rarity-rare-rare {
+    --rarity-color: #b45cff;
+    --rarity-outline: #15236b;
+    --rarity-outline-width: 1px;
+  }
+
+  [data-rarity="unique"],
+  .rarity-unique {
+    --rarity-color: #ffd700;
+    --rarity-outline: #ff8c00;
+    --rarity-outline-width: 1px;
+  }
+
+  [data-rarity="more-uniq"],
+  .rarity-more-uniq {
+    --rarity-color: #ff9a1f;
+    --rarity-outline: #8b0000;
+    --rarity-outline-width: 1px;
+  }
+
+  [data-rarity="epic"],
+  .rarity-epic {
+    --rarity-color: #ff2020;
+    --rarity-outline: #7a0000;
+    --rarity-outline-width: 2px;
+  }
+
+  [data-rarity="galaxic"],
+  .rarity-galaxic {
+    --rarity-color: #0a0a0a;
+    --rarity-outline: #b026ff;
+    --rarity-outline-width: 1px;
+  }
+
+  .invslot[data-rarity],
+  .equipslot[data-rarity] {
+    border-style: solid;
+    border-color: var(--rarity-color);
+    outline: var(--rarity-outline-width) solid var(--rarity-outline);
+    outline-offset: 0;
+  }
+
+  .invslot[data-rarity="galaxic"],
+  .equipslot[data-rarity="galaxic"] {
+    filter: drop-shadow(0 0 4px #b026ff);
+  }
+
+  .equipslot.equipment-drop {
+    border-style: solid;
+    border-color: #2f7d3a;
+    background-color: #d8f5cf;
+    box-shadow: inset 0 0 0 1px #8ed49a;
+  }
+
+  .equipslotimg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    image-rendering: pixelated;
+    pointer-events: none;
+  }
+
+  .invslot.dragging,
+  .equipslot.dragging {
+    opacity: 0.4;
+  }
+
+  .invslot[draggable="true"],
+  .equipslot[draggable="true"] {
+    cursor: grab;
+  }
+
+  .invslot[draggable="true"]:active,
+  .equipslot[draggable="true"]:active {
+    cursor: grabbing;
+  }
+
+  .invslot.drop-target,
+  .equipslot.drop-target {
+    outline: 2px solid #2f7d3a;
+    outline-offset: -2px;
+    background-color: #dff5d3;
+  }
+
+.inventoryPlace {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(30px, 1fr));
+  grid-auto-rows: auto;
+  align-content: start;
+  gap: 3px;
+  padding: 4px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background-color: #ebffe8;
+  border: 1px solid rgb(199, 224, 141);
+  border-radius: 3px;
+  font: max(6px, 0.9em) "MS Gothic";
+}
+
+.invslot {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  margin: 0;
+  position: relative;
+  user-select: none;
+  background-color: #d2e2d0;
+  border: 1px solid rgb(190, 214, 135);
+  border-radius: 3px;
+  font: max(6px, 0.9em) "MS Gothic";
+  background-size: cover;
+  background-image: url("images/inv/empty1.gif");
+}
+
+.scraptoolbar {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px;
+  margin-bottom: 2px;
+}
+
+.scrapbutton {
+  box-sizing: border-box;
+  padding: 2px 10px;
+  background-color: #ffd0d0;
+  border: 2px double #b03030;
+  border-radius: 4px;
+  font: max(6px, 0.8em) "MS Gothic";
+  color: #6a1010;
+  cursor: pointer;
+}
+
+.scrapbutton:hover {
+  background-color: #ffbaba;
+}
+
+.scrapbutton.active {
+  background-color: #ff9a9a;
+  border-color: #7a0000;
+  box-shadow: 0 0 6px rgba(176, 48, 48, 0.55);
+}
+
+.scrapraritybutton {
+  background-color: #fff3b8;
+  border-color: #b08a30;
+  color: #5a4400;
+}
+
+.scrapraritybutton:hover {
+  background-color: #ffe98a;
+}
+
+.inventoryPlace.scrap-mode .invslot.has-item {
+  outline: 2px solid #c62828;
+  outline-offset: -2px;
+  background-color: #ffd6d6;
+  cursor: crosshair;
+}
+
+.inventoryPlace.scrap-mode .invslot.has-item:hover {
+  background-color: #ffb0b0;
+  box-shadow: inset 0 0 0 2px #8e1010;
+}
+
+@media (max-width: 900px) {
+  .equipDisplay {
+    flex-basis: 38%;
+  }
+
+  .equipslotlabel {
+    font-size: max(6px, 0.5em);
+  }
+}
+.invslotimg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  display: block;
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.invslot .inventory-lock {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  width: 50%;
+  max-width: 12px;
+  height: auto;
+  image-rendering: pixelated;
+  pointer-events: none;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.85));
+}
+
+.invslot.locked {
+  box-shadow: inset 0 0 0 1px rgba(160, 110, 20, 0.45);
+}
+
+.inventory-lock-note {
+  color: #8a5a00;
+  font-weight: bold;
+}
+.itemimage {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  image-rendering: pixelated;
+}
+
+/* --- debug cheat menu ---------------------------------------------------- */
+.cheatmenu {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  width: min(680px, calc(100vw - 36px));
+  max-height: calc(100vh - 36px);
+  display: flex;
+  flex-direction: column;
+  background: #1d1f27;
+  color: #e7e7e7;
+  border: 2px solid #6f5bd6;
+  border-radius: 6px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+  z-index: 900;
+  font: max(6px, 0.78em) "SimSun";
+}
+.cheatmenu[hidden] {
+  display: none;
+}
+.cheatmenu-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #2b2550;
+  border-bottom: 1px solid #6f5bd6;
+  border-radius: 4px 4px 0 0;
+  font-weight: bold;
+}
+.cheatmenu-header small {
+  color: #b8b0e6;
+  font-weight: normal;
+  margin-left: 6px;
+}
+.cheatmenu-close {
+  width: 28px;
+  height: 26px;
+  padding: 0;
+  font-size: 1.1em;
+}
+.cheatmenu-body {
+  padding: 8px 10px 10px;
+  overflow: auto;
+}
+.cheatmenu-section {
+  padding: 6px 0;
+  border-top: 1px solid #363a4d;
+}
+.cheatmenu-section:first-child {
+  border-top: none;
+}
+.cheatmenu h3 {
+  margin: 2px 0 6px;
+  color: #c7bfff;
+  font-size: 0.95em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.cheatrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 5px 0;
+}
+.cheatmenu select,
+.cheatmenu input {
+  min-height: 24px;
+  padding: 2px 4px;
+  background: #12141a;
+  color: #ededed;
+  border: 1px solid #4b4f63;
+  border-radius: 3px;
+  font: inherit;
+}
+.cheatmenu select {
+  max-width: 260px;
+}
+.cheatmenu input[type="number"] {
+  width: 76px;
+}
+.cheatmenu button {
+  min-height: 26px;
+  padding: 3px 8px;
+  background: #3a3363;
+  color: #ffffff;
+  border: 1px solid #7b68c9;
+  border-radius: 3px;
+  cursor: pointer;
+  font: inherit;
+}
+.cheatmenu button:hover {
+  background: #4b4180;
+}
+.cheatmenu button:active {
+  background: #2c2650;
+}
+.cheatmenu-note {
+  color: #9aa0b5;
+}
+.cheatmenu-status {
+  min-height: 1.3em;
+  margin-top: 6px;
+  color: #a9e58a;
+  white-space: pre-wrap;
+}
+
+/* Actions that are visible but currently unusable (for example Focus). */
+.actionbutton:disabled {
+  filter: grayscale(0.85);
+  opacity: 0.45;
+  cursor: not-allowed;
+}

@@ -1,0 +1,21 @@
+/.vs
+/23.html
+/test.html
+
+# Windows binaries and build artifacts
+*.exe
+*.dll
+*.pdb
+*.msi
+
+# Dependencies and local tooling
+/node_modules/
+/.vscode/
+
+# Local backup and session notes
+/retardship-backup/
+/SESSION_CONTEXT_*.md
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
