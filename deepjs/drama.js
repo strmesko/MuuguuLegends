@@ -83,7 +83,7 @@ const DRAMA_EVENTS = Object.freeze([
         apply: function () {
             const damage = Math.max(0.01, round2(Number(player.maxhp) / 10));
             player.hp = Math.max(0, round2(Number(player.hp) - damage));
-            logMessage("Wrong_Step: " + this.message);
+            logMessage(this.message);
         },
     }),
 ]);
