@@ -314,6 +314,32 @@ const ACTIONS = [
         run: runMiningProduction,
     },
     {
+        id: "grindflour",
+        label: "Grind Flour",
+        tags: ["Production"],
+        description: "Grind every seed resource into flour with a Big Grinding stone.<br>Every 10 seconds, 1 of each seed becomes 1 flour. Trains Milling and Vitality.",
+        kind: ACTION_KIND.Timed,
+        initialState: Activity.Idle,
+        startMessage: "You start grinding flour",
+        stopMessage: "You stop grinding flour",
+        isVisible: function () {
+            return typeof hasBigGrindingStone === "function"
+                && hasBigGrindingStone()
+                && getEffectiveLevel("milling") >= 1
+                && typeof hasSeedResources === "function"
+                && hasSeedResources()
+                && player.stamina >= getGrindStaminaPerSecond();
+        },
+        isComplete: function () {
+            return typeof hasBigGrindingStone !== "function"
+                || !hasBigGrindingStone()
+                || typeof hasSeedResources !== "function"
+                || !hasSeedResources();
+        },
+        completeMessage: "You have no seeds left to grind",
+        run: runGrindFlourProduction,
+    },
+    {
         id: "makefibers",
         label: "Make fibers",
         tags: ["Production"],

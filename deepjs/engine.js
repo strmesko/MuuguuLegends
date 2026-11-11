@@ -23,6 +23,7 @@ const LEARNED_SKILLS = [
     { barId: 'skillsplacemining', key: 'mining', label: 'Mining', descriptionKey: 'mining' },
     { barId: 'skillsplacesmithing', key: 'smithing', label: 'Smithing', descriptionKey: 'smithing' },
     { barId: 'skillsplacecooking', key: 'cooking', label: 'Cooking', descriptionKey: 'cooking' },
+    { barId: 'skillsplacemilling', key: 'milling', label: 'Milling', descriptionKey: 'milling' },
 ];
 
 function updateCharacterHeader() {
@@ -3303,6 +3304,125 @@ function runMiningProduction(diff) {
     if (foundParts.length) {
         logMessage("You mine " + foundParts.join(", "));
     }
+}
+
+const GRIND_STAMINA_PER_SECOND = 1.75;
+const GRIND_SECONDS_PER_BATCH = 10;
+const GRIND_MAX_SECONDS_PER_LOOP = 60;
+const grindFlourState = { progress: 0 };
+
+function getSeedResourceIds() {
+    return typeof CROP_RESOURCE_IDS !== "undefined"
+        ? CROP_RESOURCE_IDS
+        : [];
+}
+
+function hasSeedResources() {
+    return getSeedResourceIds().some(function (seedId) {
+        const stack = resources[seedId];
+        return !!stack && Number(stack.amount) >= 1;
+    });
+}
+
+// Grinding uses Milling and Vitality. The stamina formula mirrors Digging:
+// 1.75 * (1 + power), with power built from the relevant skill and stat.
+function getGrindPower() {
+    const milling = Math.max(1, getEffectiveLevel("milling") || 0);
+    const vitality = Math.max(1, getEffectiveLevel("vit") || 0);
+    return 1 + Math.sqrt(milling * vitality);
+}
+
+function getGrindQualityMultiplier(power) {
+    if (power == null) {
+        power = getGrindPower() * getActionProductionMultiplier("grindflour");
+    }
+    return 1 + power;
+}
+
+function getGrindStaminaPerSecond() {
+    return GRIND_STAMINA_PER_SECOND * getGrindQualityMultiplier();
+}
+
+function getGrindFlourQuality(seedId) {
+    const seedStack = resources[seedId];
+    const seedQuality = seedStack && Number.isFinite(seedStack.quality)
+        ? seedStack.quality
+        : RESOURCE_DEFAULT_QUALITY;
+
+    return applyWellFedActionQuality(
+        (getEffectiveLevel("milling") + seedQuality) / 2
+    );
+}
+
+function runGrindFlourProduction(diff) {
+    if (actionStates.grindflour !== Activity.Active) return;
+
+    if (typeof hasBigGrindingStone !== "function" || !hasBigGrindingStone()) {
+        logMessage("You need a completed Big Grinding stone to grind flour");
+        stopTimedAction(getAction("grindflour"));
+        return;
+    }
+
+    if (!hasSeedResources()) {
+        stopTimedAction(getAction("grindflour"));
+        return;
+    }
+
+    const seconds = Math.min(
+        Math.max(0, Number(diff) || 0),
+        GRIND_MAX_SECONDS_PER_LOOP
+    );
+    if (seconds <= 0) return;
+
+    const staminaPerSecond = getGrindStaminaPerSecond();
+    if (player.stamina < staminaPerSecond) {
+        logMessage("You are too tired to grind flour");
+        stopTimedAction(getAction("grindflour"));
+        return;
+    }
+
+    const actualSeconds = Math.min(
+        seconds,
+        player.stamina / staminaPerSecond
+    );
+    player.stamina = round2(Math.max(
+        0,
+        player.stamina - actualSeconds * staminaPerSecond
+    ));
+    trackHungerSpending("stamina", actualSeconds * staminaPerSecond);
+
+    grindFlourState.progress += actualSeconds;
+    let batches = Math.floor(
+        grindFlourState.progress / GRIND_SECONDS_PER_BATCH
+    );
+    grindFlourState.progress -= batches * GRIND_SECONDS_PER_BATCH;
+
+    let produced = 0;
+    const seedIds = getSeedResourceIds();
+    for (let batch = 0; batch < batches; batch++) {
+        seedIds.forEach(function (seedId) {
+            const seedStack = resources[seedId];
+            if (!seedStack || Number(seedStack.amount) < 1) return;
+
+            const flourId = typeof getFlourResourceIdForSeed === "function"
+                ? getFlourResourceIdForSeed(seedId)
+                : null;
+            if (!flourId) return;
+
+            const quality = getGrindFlourQuality(seedId);
+            seedStack.amount = round2(Math.max(0, Number(seedStack.amount) - 1));
+            addResource(flourId, 1, quality);
+            produced += 1;
+        });
+    }
+
+    if (produced > 0) {
+        logMessage("You grind " + produced
+            + (produced === 1 ? " portion" : " portions") + " of flour.");
+    }
+
+    if (player.milling) player.milling.addexp(0.5 * actualSeconds);
+    if (player.vit) player.vit.addexp(0.5 * actualSeconds);
 }
 
 function staminaRegen(timeAmount){

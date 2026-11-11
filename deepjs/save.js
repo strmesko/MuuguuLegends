@@ -26,6 +26,7 @@
         "mining",
         "smithing",
         "cooking",
+        "milling",
         "lumberjack",
     ];
     const RESTORABLE_PLAYER_STATS = [
@@ -650,6 +651,7 @@
             ['mining', player.mining.lvl > 1 || player.mining.exp != BASE_EXP],
             ['smithing', player.smithing.lvl > 1 || player.smithing.exp != BASE_EXP],
             ['cooking', player.cooking.lvl > 1 || player.cooking.exp != BASE_EXP],
+            ['milling', player.milling.lvl > 1 || player.milling.exp != BASE_EXP],
             ['lumberjack', player.lumberjack.lvl > 1 || player.lumberjack.exp != BASE_EXP],
         ];
 

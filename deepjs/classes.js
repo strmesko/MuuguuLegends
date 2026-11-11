@@ -140,6 +140,7 @@ const RESOURCE_CATEGORIES = Object.freeze({
 // directly, independently of the storage category it is shown in.
 const RESOURCE_TAGS = Object.freeze({
     Edible: "Edible",
+    Seed: "seed",
 });
 
 const POUNCH_SLOT_IDS = Object.freeze(Array.from(
@@ -1068,6 +1069,7 @@ function registerFoodPlant(id, plant, kind, resourceIds, description, tastymeter
         unitType: "kg",
         description: description,
         category: RESOURCE_CATEGORIES.Food,
+        tags: kind === "crop" ? [RESOURCE_TAGS.Seed] : [],
         plantKind: kind,
         plantBiomes: definition.biomes,
         plantTempMin: definition.tempMin,
@@ -1212,6 +1214,34 @@ CROP_DEFS.forEach(function (plant, index) {
     );
 });
 
+// Flour is generated for every seed crop. It is Food so it remains edible and
+// receives the usual food stat binding, but the resource panel groups it under
+// Intermediate -> Cooking -> Flour.
+const FLOUR_RESOURCE_ID_BASE = 6001;
+const FLOUR_RESOURCE_IDS = [];
+const FLOUR_RESOURCE_IDS_BY_SEED = {};
+
+CROP_DEFS.forEach(function (plant, index) {
+    const seedResourceId = 4101 + index;
+    const flourResourceId = FLOUR_RESOURCE_ID_BASE + index;
+
+    RESOURCE_DEFS[flourResourceId] = {
+        name: plant.name + " flour",
+        weight: 0.01,
+        unitType: "kg",
+        description: "Stone-ground " + plant.name.toLowerCase() + " flour. Edible and useful for cooking.",
+        category: RESOURCE_CATEGORIES.Food,
+        flour: true,
+        seedResourceId: seedResourceId,
+        Tastymeter: 3,
+    };
+
+    FLOUR_RESOURCE_IDS.push(flourResourceId);
+    FLOUR_RESOURCE_IDS_BY_SEED[seedResourceId] = flourResourceId;
+});
+
+Object.freeze(FLOUR_RESOURCE_IDS);
+Object.freeze(FLOUR_RESOURCE_IDS_BY_SEED);
 Object.freeze(VEGETABLE_RESOURCE_IDS);
 Object.freeze(CROP_RESOURCE_IDS);
 
@@ -1221,6 +1251,20 @@ function isVegetableResource(resourceId) {
 
 function isCropResource(resourceId) {
     return CROP_RESOURCE_IDS.indexOf(Number(resourceId)) !== -1;
+}
+
+function isSeedResource(resourceId) {
+    return isCropResource(resourceId)
+        && typeof hasResourceTag === "function"
+        && hasResourceTag(resourceId, RESOURCE_TAGS.Seed);
+}
+
+function isFlourResource(resourceId) {
+    return FLOUR_RESOURCE_IDS.indexOf(Number(resourceId)) !== -1;
+}
+
+function getFlourResourceIdForSeed(seedResourceId) {
+    return FLOUR_RESOURCE_IDS_BY_SEED[Number(seedResourceId)] || null;
 }
 
 function getPlantDefinition(resourceId) {
@@ -1568,7 +1612,7 @@ function getResourceMultiplier(tile, resourceId) {
 const PERCENT = 100;
 const CORE_STAT_COUNT = 9;
 const CORE_STAT_NAMES = ["str", "agi", "vit", "per", "int", "ins", "sou", "luck", "speed"];
-const LEARNABLE_SKILL_KEYS = ["exploration", "forage", "rest", "focus", "wizardy", "alchemy", "masonry", "pottery", "regeneration", "autism", "science", "traveling", "dreammastery", "survival", "ropemaking", "tailoring", "carpentry", "architecture", "gardening", "digging", "lumberjack", "mining", "smithing", "cooking"];
+const LEARNABLE_SKILL_KEYS = ["exploration", "forage", "rest", "focus", "wizardy", "alchemy", "masonry", "pottery", "regeneration", "autism", "science", "traveling", "dreammastery", "survival", "ropemaking", "tailoring", "carpentry", "architecture", "gardening", "digging", "lumberjack", "mining", "smithing", "cooking", "milling"];
 
 // Every edible resource is bound to one core stat for the whole playthrough.
 // The binding is rolled once when a new game starts and is stored in saves.
@@ -1857,6 +1901,7 @@ class Character {
         this.mining = new Skill("Mining", "The art of breaking stone and extracting ore from the earth.");
         this.smithing = new Skill("Smithing", "The art of smelting ore and working refined metal into bars.");
         this.cooking = new Skill("Cooking", "The art of turning raw ingredients into proper meals.");
+    this.milling = new Skill("Milling", "The art of grinding grain into flour with a stone.");
         this.lumberjack = new Skill("Lumberjack", "The art of felling trees and turning them into useful timber.");
         this.str = new Stat("Strengh", "Be stronk, smash hard");
         this.agi = new Stat("Agility", "I AM SICK **CK A LIKE A QUICK **CK");

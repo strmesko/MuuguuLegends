@@ -64,6 +64,10 @@ function getResourceImageFolder(itemName) {
             && CROP_RESOURCE_IDS.indexOf(resourceId) !== -1) {
             return "crops";
         }
+        if (typeof FLOUR_RESOURCE_IDS !== "undefined"
+            && FLOUR_RESOURCE_IDS.indexOf(resourceId) !== -1) {
+            return "flour";
+        }
         if (definition.category === RESOURCE_CATEGORIES.Food) {
             return "berries";
         }

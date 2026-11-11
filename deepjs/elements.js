@@ -356,6 +356,10 @@
       return !!resource && typeof isCropResource === 'function'
         && isCropResource(resource.id);
     }
+    function isFlourFoodResource(resource){
+      return !!resource && typeof isFlourResource === 'function'
+        && isFlourResource(resource.id);
+    }
     function getResourceTree(){
       let tree = document.getElementById('resourcetree');
       if (tree) return tree;
@@ -427,6 +431,11 @@
       ensureResourceBranch('resourcetree', 'intermediate-resources', 'Intermediate', 'Processed and intermediate resources');
       ensureResourceBranch('intermediate-resources-items', 'masonry', 'Masonry', 'Sand, clay and mortar for construction');
       ensureResourceBranch('intermediate-resources-items', 'smithing', 'smithing', 'Heat units and refined metal bars for smithing');
+      ensureResourceBranch('intermediate-resources-items', 'cooking', 'Cooking', 'Flour and other cooking intermediates');
+      ensureResourceBranch('cooking-items', 'flour', 'Flour', 'Stone-ground flour made with a Big Grinding stone');
+      if (isFlourFoodResource(resource)) {
+        return document.getElementById('flour-items');
+      }
       if (resource && typeof SMITHING_RESOURCE_IDS !== 'undefined'
           && SMITHING_RESOURCE_IDS.indexOf(resource.id) !== -1) {
         return document.getElementById('smithing-items');
@@ -452,6 +461,7 @@
       if (isVegetableFoodResource(resource) || isCropFoodResource(resource)) {
         return getRawResourceContainer(resource);
       }
+      if (isFlourFoodResource(resource)) return getIntermediateResourceContainer(resource);
       if (isFoodResource(resource)) return getFoodResourceContainer(resource);
       if (isRawResource(resource)) return getRawResourceContainer(resource);
       if (isIntermediateResource(resource)) return getIntermediateResourceContainer(resource);
@@ -683,6 +693,7 @@ const SKILL_DISPLAY_NAMES = Object.freeze({
     mining: "Mining",
     smithing: "Smithing",
     cooking: "Cooking",
+    milling: "Milling",
 });
 
 function createSkillBar(skillName){

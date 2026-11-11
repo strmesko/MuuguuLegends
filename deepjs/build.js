@@ -20,6 +20,7 @@ const BUILDING_IDS = Object.freeze({
     HAMMOCK: "hammock",
     STUMP_CHAIR: "stump-chair",
     SMELTER: "smelter",
+    BIG_GRINDING_STONE: "big-grinding-stone",
 });
 
 const BUILDING_CATEGORY = Object.freeze({
@@ -383,6 +384,23 @@ const BUILDING_DEFS = Object.freeze({
         effects: Object.freeze([]),
         iconClass: "fa-industry",
         effectText: "Provides 3 + 1 * BuildingQuality Smelt power and 1 + 0.5 * BuildingQuality Cooking power while you are on this tile.",
+    }),
+    [BUILDING_IDS.BIG_GRINDING_STONE]: Object.freeze({
+        id: BUILDING_IDS.BIG_GRINDING_STONE,
+        name: "Big Grinding stone",
+        category: FURNITURE_CATEGORY.id,
+        description: "A massive stone wheel for grinding grain into flour. Its steady rotation turns every seed into flour.",
+        resources: Object.freeze([
+            Object.freeze({ resourceId: RESOURCE_IDS.ROCKS, amount: 500 }),
+            Object.freeze({ resourceId: RESOURCE_IDS.WOODEN_LOGS, amount: 2 }),
+            Object.freeze({ resourceId: RESOURCE_IDS.FLINT, amount: 200 }),
+        ]),
+        workPoints: 5000,
+        roomSpace: 2,
+        skill: "masonry",
+        effects: Object.freeze([]),
+        iconClass: "fa-circle-o-notch",
+        effectText: "Enables Grind Flour on this tile. Grinds every seed resource into flour while you stay here.",
     }),
 });
 
@@ -937,6 +955,17 @@ function getBestCompletedBuildingQuality(defId, tile) {
     });
 
     return bestQuality;
+}
+
+function getBigGrindingStoneQuality(tile) {
+    return getBestCompletedBuildingQuality(
+        BUILDING_IDS.BIG_GRINDING_STONE,
+        tile
+    );
+}
+
+function hasBigGrindingStone(tile) {
+    return getBigGrindingStoneQuality(tile) !== null;
 }
 
 // Any completed building tagged SleepingPlace can improve sleep quality.
