@@ -604,9 +604,26 @@ function getInventorySortGroup(item) {
     return 60;
 }
 
+function getInventoryItemSortQuality(item) {
+    if (!item) return 0;
+
+    const quality = Number(item.quality);
+    if (Number.isFinite(quality) && quality >= 0) return quality;
+
+    const definition = getItemDefinitionFor(item);
+    const definitionQuality = definition ? Number(definition.quality) : 0;
+    return Number.isFinite(definitionQuality) && definitionQuality >= 0
+        ? definitionQuality
+        : 0;
+}
+
 function compareInventoryItemsByType(first, second) {
     const groupDifference = getInventorySortGroup(first) - getInventorySortGroup(second);
     if (groupDifference !== 0) return groupDifference;
+
+    const qualityDifference = getInventoryItemSortQuality(second)
+        - getInventoryItemSortQuality(first);
+    if (qualityDifference !== 0) return qualityDifference;
 
     const firstDefinition = getItemDefinitionFor(first);
     const secondDefinition = getItemDefinitionFor(second);
@@ -699,12 +716,12 @@ function ensureScrapToolbar() {
         sortButton.innerText = "Sort";
         sortButton.setAttribute(
             "data-tooltip",
-            "Sort unlocked inventory items by type. Locked items stay in their slots."
+            "Sort unlocked inventory items by type and quality. Locked items stay in their slots."
         );
         sortButton.addEventListener("click", function () {
             const sorted = sortInventoryByType();
             renderInventorySlots();
-            if (sorted > 0) logMessage("Inventory sorted by type.");
+            if (sorted > 0) logMessage("Inventory sorted by type and quality.");
         });
 
         const scrapButton = document.createElement("button");
