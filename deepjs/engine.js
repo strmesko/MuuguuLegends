@@ -3318,7 +3318,11 @@ function getSeedResourceIds() {
 }
 
 function hasSeedResources() {
-    return getSeedResourceIds().some(function (seedId) {
+    return getAvailableSeedResourceIds().length > 0;
+}
+
+function getAvailableSeedResourceIds() {
+    return getSeedResourceIds().filter(function (seedId) {
         const stack = resources[seedId];
         return !!stack && Number(stack.amount) >= 1;
     });
@@ -3398,8 +3402,10 @@ function runGrindFlourProduction(diff) {
     grindFlourState.progress -= batches * GRIND_SECONDS_PER_BATCH;
 
     let produced = 0;
-    const seedIds = getSeedResourceIds();
     for (let batch = 0; batch < batches; batch++) {
+        const seedIds = getAvailableSeedResourceIds();
+        if (!seedIds.length) break;
+
         seedIds.forEach(function (seedId) {
             const seedStack = resources[seedId];
             if (!seedStack || Number(seedStack.amount) < 1) return;

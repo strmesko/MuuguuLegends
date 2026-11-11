@@ -317,7 +317,7 @@ const ACTIONS = [
         id: "grindflour",
         label: "Grind Flour",
         tags: ["Production"],
-        description: "Grind every seed resource into flour with a Big Grinding stone.<br>Every 10 seconds, 1 of each seed becomes 1 flour. Trains Milling and Vitality.",
+        description: "Grind every seed resource into flour with a Big Grinding stone.<br>Every 10 seconds, 1 of each available seed becomes 1 flour. Only seed types you currently have are processed. Trains Milling and Vitality.",
         kind: ACTION_KIND.Timed,
         initialState: Activity.Idle,
         startMessage: "You start grinding flour",
