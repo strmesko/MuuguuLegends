@@ -41,7 +41,7 @@ const TRAVEL_EXP_PER_SECOND = 1;
 // bonus slots and for items from older saves, so reducing the visible capacity
 // never destroys stored items.
 const INVENTORY_SLOTS = 5;
-const MAX_INVENTORY_STORAGE = 100;
+const MAX_INVENTORY_STORAGE = 1000;
 const MAX_POUNCH_SLOTS = 100;
 const EQUIPMENT_SLOTS = MAX_INVENTORY_STORAGE; // legacy alias for saved characters
 const DEFAULT_MAX_ACTIONS = 1;
