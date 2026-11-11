@@ -352,8 +352,8 @@
         restoredPlayer.sleepyness = clampSleepyness(savedPlayer && savedPlayer.sleepyness);
         // Old saves do not have hunger yet either; it is always hidden.
         const savedHunger = Number(savedPlayer && savedPlayer.hunger);
-        restoredPlayer.hunger = Number.isFinite(savedHunger) && savedHunger > 0
-            ? savedHunger
+        restoredPlayer.hunger = Number.isFinite(savedHunger)
+            ? Math.max(-100, savedHunger)
             : 0;
         restoredPlayer.autoEatActive = savedPlayer
             && savedPlayer.autoEatActive === true;

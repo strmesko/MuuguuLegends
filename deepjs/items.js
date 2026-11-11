@@ -493,10 +493,16 @@ function consumeInventoryFood(index) {
     const item = player.equipinventory[index];
     if (!item || !isConsumableFoodItem(item)) return false;
 
+    const currentHunger = Number(player.hunger);
+    if (Number.isFinite(currentHunger) && currentHunger <= -100) {
+        logMessage("you are too stuffed");
+        return false;
+    }
+
     const name = getInventoryItemName(item) || "food";
     const hungerRestore = getItemFoodHungerRestore(item);
-    const hungerBefore = typeof getHungerValue === "function" ? getHungerValue() : 0;
-    const hungerAfter = Math.max(0, hungerBefore - hungerRestore);
+    const hungerBefore = Number.isFinite(currentHunger) ? currentHunger : 0;
+    const hungerAfter = Math.max(-100, hungerBefore - hungerRestore);
 
     if (typeof player !== "undefined" && player) {
         player.hunger = round2(hungerAfter);

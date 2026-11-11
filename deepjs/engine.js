@@ -134,6 +134,9 @@ const HUNGER_MAX_BASE = 1000;
 const HUNGER_MAX_PER_VIT = 5;
 const HUNGER_MAX_PER_SOU = 3;
 const HUNGER_POINTS_PER_SPEND = 10;
+const WELL_FED_HUNGER_THRESHOLD = 100;
+const WELL_FED_REGEN_MULTIPLIER = 1.15;
+const WELL_FED_ACTION_QUALITY_MULTIPLIER = 1.10;
 
 const HUNGER_TIERS = Object.freeze([
     {
@@ -227,6 +230,47 @@ function getHungerManaRegenMultiplier() {
     return tier && tier.id === "starving" ? 0 : 1;
 }
 
+function getRawHungerValue() {
+    const hunger = Number(player && player.hunger);
+    return Number.isFinite(hunger) ? hunger : 0;
+}
+
+function isWellFedActive() {
+    return getRawHungerValue() < WELL_FED_HUNGER_THRESHOLD;
+}
+
+function getWellFedRegenMultiplier() {
+    return isWellFedActive() ? WELL_FED_REGEN_MULTIPLIER : 1;
+}
+
+function getWellFedActionQualityMultiplier() {
+    return isWellFedActive() ? WELL_FED_ACTION_QUALITY_MULTIPLIER : 1;
+}
+
+function applyWellFedActionQuality(value) {
+    const numeric = Number(value);
+    return round2((Number.isFinite(numeric) ? numeric : 0)
+        * getWellFedActionQualityMultiplier());
+}
+
+function getWellFedStatus() {
+    if (!isWellFedActive()) return null;
+
+    return {
+        id: "well-fed",
+        name: "Well fed",
+        kind: "buff",
+        color: "#5fbf4f",
+        icon: "fa-cutlery",
+        tooltip: [
+            "<b>Well fed</b>",
+            "+15% HP, mana and stamina regeneration",
+            "+10% action quality",
+            "Hunger is below 100.",
+        ].join("<br>"),
+    };
+}
+
 const hungerSpendRemainders = { stamina: 0, mana: 0 };
 
 function addHunger(amount) {
@@ -236,7 +280,7 @@ function addHunger(amount) {
     const gained = numeric * getHungerUseMultiplier();
     player.hunger = Math.min(
         getHungerMax(),
-        round2(getHungerValue() + gained)
+        round2(getRawHungerValue() + gained)
     );
 }
 
@@ -1340,7 +1384,7 @@ function getMakeFibersQuality() {
         ? grassStack.quality
         : RESOURCE_DEFAULT_QUALITY;
 
-    return round2((
+    return applyWellFedActionQuality((
         getEffectiveLevel("survival")
         + getEffectiveLevel("ropemaking")
         + getEffectiveLevel("tailoring")
@@ -1414,7 +1458,7 @@ function getMakeShaftsQuality() {
         ? stickStack.quality
         : RESOURCE_DEFAULT_QUALITY;
 
-    return round2((getEffectiveLevel("carpentry") + stickQuality) / 2);
+    return applyWellFedActionQuality((getEffectiveLevel("carpentry") + stickQuality) / 2);
 }
 
 function runMakeShaftsProduction(diff) {
@@ -1482,7 +1526,7 @@ function getMakeHandlesQuality() {
         ? shaftStack.quality
         : RESOURCE_DEFAULT_QUALITY;
 
-    return round2((getEffectiveLevel("carpentry") + shaftQuality) / 2);
+    return applyWellFedActionQuality((getEffectiveLevel("carpentry") + shaftQuality) / 2);
 }
 
 function runMakeHandlesProduction(diff) {
@@ -1551,7 +1595,7 @@ function getMakePlanksQuality() {
         ? logStack.quality
         : RESOURCE_DEFAULT_QUALITY;
 
-    return round2((getEffectiveLevel("carpentry") + logQuality) / 2);
+    return applyWellFedActionQuality((getEffectiveLevel("carpentry") + logQuality) / 2);
 }
 
 function runMakePlanksProduction(diff) {
@@ -1626,7 +1670,7 @@ function getMakeWoodenBeamsQuality() {
         ? logStack.quality
         : RESOURCE_DEFAULT_QUALITY;
 
-    return round2((getEffectiveLevel("carpentry") + logQuality) / 2);
+    return applyWellFedActionQuality((getEffectiveLevel("carpentry") + logQuality) / 2);
 }
 
 function runMakeWoodenBeamsProduction(diff) {
@@ -1727,7 +1771,7 @@ function getMakeMortarQuality() {
         ? clayStack.quality
         : RESOURCE_DEFAULT_QUALITY;
 
-    return round2(
+    return applyWellFedActionQuality(
         (getEffectiveLevel("alchemy") + (sandQuality + clayQuality) / 2) / 2
     );
 }
@@ -1816,7 +1860,7 @@ function getSmeltingQuality(oreId) {
         ? oreStack.quality
         : RESOURCE_DEFAULT_QUALITY;
 
-    return round2(
+    return applyWellFedActionQuality(
         (getEffectiveLevel("smithing") + oreQuality) / 2
     );
 }
@@ -1957,9 +2001,10 @@ function performBurnFuel(fuel) {
         return false;
     }
 
-    const quality = Number.isFinite(stack.quality) && stack.quality > 0
+    const rawQuality = Number.isFinite(stack.quality) && stack.quality > 0
         ? stack.quality
         : RESOURCE_DEFAULT_QUALITY;
+    const quality = applyWellFedActionQuality(rawQuality);
     const heat = getBurnScaledAmount(fuel.baseHeat);
     const ash = getBurnScaledAmount(fuel.baseAsh);
 
@@ -2320,7 +2365,7 @@ function foragePlantRoll() {
 // that drives processing speed, not the per-resource roll power, so quality
 // depends on the player and the tile and not on which resource was rolled.
 function getForageResourceQuality() {
-    return 1 + getForagePower();
+    return applyWellFedActionQuality(1 + getForagePower());
 }
 
 function forageRoll(difficulty, resourceId, profitAmount){
@@ -2395,7 +2440,7 @@ function getTreeHarvestAmountPerSecond() {
 // Quality uses the same harvesting formula, offset like forage quality so it
 // starts above 1 and grows smoothly with the relevant stats.
 function getTreeHarvestQuality() {
-    return round2(1 + getTreeHarvestPower());
+    return applyWellFedActionQuality(1 + getTreeHarvestPower());
 }
 
 function getHarvestedTreeCount(tile, speciesName) {
@@ -2741,7 +2786,7 @@ function getCutTreeStaminaPerSecond() {
 }
 
 function getCutTreeQuality(power) {
-    return round2(1 + power);
+    return applyWellFedActionQuality(1 + power);
 }
 
 function runCutTreeProduction(diff) {
@@ -2977,8 +3022,9 @@ function runDigProduction(diff) {
     }
 
     const power = getDigPower() * getActionProductionMultiplier("dig");
-    const quality = getDigQualityMultiplier(power);
-    const staminaPerSecond = DIG_STAMINA_PER_SECOND * quality;
+    const staminaQuality = getDigQualityMultiplier(power);
+    const quality = applyWellFedActionQuality(staminaQuality);
+    const staminaPerSecond = DIG_STAMINA_PER_SECOND * staminaQuality;
 
     if (player.stamina < staminaPerSecond) {
         logMessage("You are too tired to dig");
@@ -3188,8 +3234,9 @@ function runMiningProduction(diff) {
     }
 
     const basePower = getMiningPower() * getActionProductionMultiplier("mining");
-    const quality = getMiningQualityMultiplier(basePower);
-    const staminaPerSecond = MINING_STAMINA_PER_SECOND * quality;
+    const staminaQuality = getMiningQualityMultiplier(basePower);
+    const quality = applyWellFedActionQuality(staminaQuality);
+    const staminaPerSecond = MINING_STAMINA_PER_SECOND * staminaQuality;
     // Completed Mine entrances on this tile multiply the mined output without
     // changing stamina cost or resource quality.
     const mineMultiplier = typeof getMineEntranceMiningMultiplier === "function"
@@ -3239,7 +3286,7 @@ function runMiningProduction(diff) {
 }
 
 function staminaRegen(timeAmount){
-    var regenAmount = round2(Math.pow((getEffectiveLevel("vit") * getEffectiveLevel("rest") * (getEffectiveLevel("sou")* 0.01)), 1/2) * timeAmount * getStaminaRegenMultiplier() * getSleepRegenMultiplier() * getGlobalPropertyMultiplier("spregen") * getHearthfireRegenMultiplier() * getHungerRegenMultiplier());
+    var regenAmount = round2(Math.pow((getEffectiveLevel("vit") * getEffectiveLevel("rest") * (getEffectiveLevel("sou")* 0.01)), 1/2) * timeAmount * getStaminaRegenMultiplier() * getSleepRegenMultiplier() * getGlobalPropertyMultiplier("spregen") * getHearthfireRegenMultiplier() * getHungerRegenMultiplier() * getWellFedRegenMultiplier());
     if (player.stamina == player.maxstamina) {}
     else if (player.stamina + regenAmount > player.maxstamina){
         player.rest.addexp(round2((player.maxstamina - player.stamina)/ regenAmount * timeAmount));
@@ -3255,7 +3302,7 @@ function staminaRegen(timeAmount){
     player.stamina = round2(player.stamina);
 }
 function hpRegen(timeAmount){
-    var regenAmount = round2(Math.pow((getEffectiveLevel("vit") * getEffectiveLevel("regeneration") * (getEffectiveLevel("sou")* 0.01))/5, 1/2) * timeAmount * getSleepRegenMultiplier() * getGlobalPropertyMultiplier("hpregen") * getHearthfireRegenMultiplier() * getHungerRegenMultiplier());
+    var regenAmount = round2(Math.pow((getEffectiveLevel("vit") * getEffectiveLevel("regeneration") * (getEffectiveLevel("sou")* 0.01))/5, 1/2) * timeAmount * getSleepRegenMultiplier() * getGlobalPropertyMultiplier("hpregen") * getHearthfireRegenMultiplier() * getHungerRegenMultiplier() * getWellFedRegenMultiplier());
     if (player.hp == player.maxhp) {}
     else if (player.hp + regenAmount > player.maxhp){
         player.regeneration.addexp(round2((player.maxhp - player.hp)/ regenAmount * timeAmount));
@@ -3271,7 +3318,7 @@ function hpRegen(timeAmount){
     player.hp = round2(player.hp);
 }
 function manaRegen(timeAmount){
-    var regenAmount = round2(Math.pow((getEffectiveLevel("int") * getEffectiveLevel("focus") * (getEffectiveLevel("sou")* 0.01)), 1/2) * timeAmount * getSleepRegenMultiplier() * getGlobalPropertyMultiplier("manaregen") * getHearthfireRegenMultiplier() * (typeof getDarkManaRegenMultiplier === "function" ? getDarkManaRegenMultiplier() : 1) * getHungerManaRegenMultiplier());
+    var regenAmount = round2(Math.pow((getEffectiveLevel("int") * getEffectiveLevel("focus") * (getEffectiveLevel("sou")* 0.01)), 1/2) * timeAmount * getSleepRegenMultiplier() * getGlobalPropertyMultiplier("manaregen") * getHearthfireRegenMultiplier() * (typeof getDarkManaRegenMultiplier === "function" ? getDarkManaRegenMultiplier() : 1) * getHungerManaRegenMultiplier() * getWellFedRegenMultiplier());
     if (player.mana == player.maxmana) {}
     else if (player.mana + regenAmount > player.maxmana){
         player.focus.addexp(round2((player.maxmana - player.mana)/ regenAmount * timeAmount));

@@ -952,10 +952,14 @@ function renderStatusIcons() {
     const hungerStatus = typeof getHungerStatus === 'function'
         ? getHungerStatus()
         : null;
+    const wellFedStatus = typeof getWellFedStatus === 'function'
+        ? getWellFedStatus()
+        : null;
     const statuses = sleepyStatuses.slice();
     if (hearthfireStatus) statuses.push(hearthfireStatus);
     if (darkStatus) statuses.push(darkStatus);
     if (hungerStatus) statuses.push(hungerStatus);
+    if (wellFedStatus) statuses.push(wellFedStatus);
 
     const key = statuses.map(function (status) {
         return status.id + (status.stacks != null ? ':' + round2(status.stacks) : '');
@@ -1006,6 +1010,14 @@ function renderStatusIcons() {
             || icon.dataset.statusId === 'starving') {
             const status = typeof getHungerStatus === 'function'
                 ? getHungerStatus()
+                : null;
+            if (status) icon.setAttribute('data-tooltip', status.tooltip);
+            return;
+        }
+
+        if (icon.dataset.statusId === 'well-fed') {
+            const status = typeof getWellFedStatus === 'function'
+                ? getWellFedStatus()
                 : null;
             if (status) icon.setAttribute('data-tooltip', status.tooltip);
             return;
