@@ -53,8 +53,11 @@ function getDramaEventChance(event) {
     const chance = event.type === DRAMA_EVENT_TYPES.Negative
         ? baseChance / luckMultiplier
         : baseChance * luckMultiplier;
+    const situationalMultiplier = typeof event.getChanceMultiplier === "function"
+        ? Math.max(0, Number(event.getChanceMultiplier(event)) || 0)
+        : 1;
 
-    return Math.max(0, Math.min(1, chance));
+    return Math.max(0, Math.min(1, chance * situationalMultiplier));
 }
 
 function hasBootsEquipped() {
@@ -73,6 +76,9 @@ const DRAMA_EVENTS = Object.freeze([
         message: "You tripped over a stone and lost 1/10 of your health.",
         getChance: function () {
             return hasBootsEquipped() ? 0.10 : 0.90;
+        },
+        getChanceMultiplier: function () {
+            return typeof isTraveling === "function" && isTraveling() ? 2 : 1;
         },
         condition: function () {
             return !!(typeof player !== "undefined"
