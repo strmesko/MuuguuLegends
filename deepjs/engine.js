@@ -1384,6 +1384,49 @@ function runForageGenerationTick(powerPerSecond) {
     if (forageBatches > 0) forage(forageBatches);
 }
 
+function getProductionResourceQuality(resourceId) {
+    const stack = resources[resourceId];
+    return stack && Number.isFinite(stack.quality)
+        ? stack.quality
+        : RESOURCE_DEFAULT_QUALITY;
+}
+
+// Recipe quality is the average of the involved skill levels and input
+// resource qualities. This one formula covers fibers, woodworking, mortar and
+// smelting, which previously repeated the same averaging by hand.
+function getProductionQuality(skillKeys, inputResourceIds) {
+    const values = [];
+
+    (skillKeys || []).forEach(function (skillKey) {
+        values.push(getEffectiveLevel(skillKey));
+    });
+    (inputResourceIds || []).forEach(function (resourceId) {
+        values.push(getProductionResourceQuality(resourceId));
+    });
+
+    if (!values.length) return applyWellFedActionQuality(RESOURCE_DEFAULT_QUALITY);
+
+    return applyWellFedActionQuality(
+        values.reduce(function (sum, value) { return sum + value; }, 0) / values.length
+    );
+}
+
+// Common woodworking formula: sqrt(stat * skill), optionally increased by a
+// tool power type.
+function getCraftingEffectiveness(statKey, skillKey, toolPowerType, powerSpeed) {
+    const base = Math.sqrt(
+        getEffectiveLevel(statKey) * getEffectiveLevel(skillKey)
+    );
+
+    if (!toolPowerType) return base;
+
+    const power = typeof getCharacterToolPower === "function"
+        ? Math.max(0, getCharacterToolPower(toolPowerType) || 0)
+        : 0;
+
+    return base * (1 + power * (Number(powerSpeed) || 0));
+}
+
 // "Make fibers": each effectiveness unit processes 10 grass into 0.1 fibers.
 // Agility is used as the dexterity value in the formula.
 function getMakeFibersEffectiveness() {
@@ -1398,349 +1441,366 @@ function getMakeFibersEffectiveness() {
 }
 
 function getMakeFibersQuality() {
-    const grassStack = resources[RESOURCE_IDS.GRASS];
-    const grassQuality = grassStack && Number.isFinite(grassStack.quality)
-        ? grassStack.quality
-        : RESOURCE_DEFAULT_QUALITY;
-
-    return applyWellFedActionQuality((
-        getEffectiveLevel("survival")
-        + getEffectiveLevel("ropemaking")
-        + getEffectiveLevel("tailoring")
-        + grassQuality
-    ) / 4);
+    return getProductionQuality(
+        ["survival", "ropemaking", "tailoring"],
+        [RESOURCE_IDS.GRASS]
+    );
 }
 
-function runMakeFibersProduction(diff) {
-    if (actionStates.makefibers !== Activity.Active) return;
+// Shared Production action loop. A recipe only describes its inputs, outputs,
+// stamina cost, skill/stat formula and experience rewards.
+function runBatchProduction(diff, recipe) {
+    if (!recipe) return;
 
-    const grassStack = resources[RESOURCE_IDS.GRASS];
-    if (!grassStack || grassStack.amount <= 0) return;
+    const actionId = recipe.actionId;
+    if (actionStates[actionId] !== Activity.Active) return;
 
-    const effectiveness = getMakeFibersEffectiveness() * getActionProductionMultiplier("makefibers");
-    if (effectiveness <= 0) return;
+    const seconds = Math.max(0, Number(diff) || 0);
+    if (seconds <= 0) return;
 
-    const batchesByStamina = player.stamina / FIBER_STAMINA_PER_BATCH;
-    const batches = Math.min(
-        effectiveness * diff,
-        grassStack.amount / FIBER_GRASS_PER_BATCH,
-        batchesByStamina
-    );
+    const action = typeof getAction === "function" ? getAction(actionId) : null;
+    const stopAction = function () {
+        if (action) stopTimedAction(action);
+    };
+
+    if (typeof recipe.validate === "function") {
+        const error = recipe.validate();
+        if (error) {
+            logMessage(error);
+            stopAction();
+            return;
+        }
+    }
+
+    const inputs = (recipe.inputs || []).map(function (requirement) {
+        return {
+            requirement: requirement,
+            stack: resources[requirement.resourceId],
+        };
+    });
+
+    for (let index = 0; index < inputs.length; index++) {
+        const input = inputs[index];
+        if (!input.stack || Number(input.stack.amount) <= 0) return;
+    }
+
+    if (typeof recipe.validateAfterInputs === "function") {
+        const error = recipe.validateAfterInputs();
+        if (error) {
+            logMessage(error);
+            stopAction();
+            return;
+        }
+    }
+
+    const effectiveness = recipe.getEffectiveness()
+        * getActionProductionMultiplier(actionId);
+    if (!(effectiveness > 0)) return;
+
+    const staminaPerBatch = Math.max(0, Number(recipe.staminaPerBatch) || 0);
+    const limits = [effectiveness * seconds];
+
+    if (staminaPerBatch > 0) {
+        limits.push(player.stamina / staminaPerBatch);
+    }
+
+    inputs.forEach(function (input) {
+        const perBatch = Number(input.requirement.amountPerBatch) || 0;
+        if (perBatch > 0) limits.push(input.stack.amount / perBatch);
+    });
+
+    const batches = Math.min.apply(Math, limits);
 
     if (batches <= 0) {
-        if (player.stamina < FIBER_STAMINA_PER_BATCH) {
-            logMessage("You are too tired to make fibers");
-            stopTimedAction(getAction("makefibers"));
+        if (staminaPerBatch > 0 && player.stamina < staminaPerBatch) {
+            logMessage(recipe.tiredMessage || "You are too tired");
+            stopAction();
         }
         return;
     }
 
-    grassStack.amount = round2(Math.max(
-        0,
-        grassStack.amount - batches * FIBER_GRASS_PER_BATCH
-    ));
-    const staminaBefore = player.stamina;
-    player.stamina = round2(Math.max(
-        0,
-        player.stamina - batches * FIBER_STAMINA_PER_BATCH
-    ));
-    trackHungerSpending("stamina", staminaBefore - player.stamina);
+    const precision = Number.isInteger(recipe.precision) ? recipe.precision : 2;
+    const factor = Math.pow(10, precision);
+    const roundAmount = function (value) {
+        return Math.round(value * factor) / factor;
+    };
 
-    addResource(
-        RESOURCE_IDS.FIBERS,
-        round2(batches * FIBER_OUTPUT_PER_BATCH),
-        getMakeFibersQuality()
-    );
+    inputs.forEach(function (input) {
+        const rawConsumed = batches * input.requirement.amountPerBatch;
+        const consumed = recipe.roundConsumed
+            ? roundAmount(rawConsumed)
+            : rawConsumed;
+        input.stack.amount = recipe.roundConsumed
+            ? Math.max(0, input.stack.amount - consumed)
+            : roundAmount(Math.max(0, input.stack.amount - consumed));
+    });
 
-    player.survival.addexp(batches * FIBER_SURVIVAL_EXP);
-    player.ropemaking.addexp(batches * FIBER_ROPEMAKING_EXP);
-    player.tailoring.addexp(batches * FIBER_TAILORING_EXP);
+    if (staminaPerBatch > 0) {
+        const staminaBefore = player.stamina;
+        player.stamina = round2(Math.max(
+            0,
+            player.stamina - batches * staminaPerBatch
+        ));
+        trackHungerSpending("stamina", staminaBefore - player.stamina);
+    }
+
+    const quality = typeof recipe.getQuality === "function"
+        ? recipe.getQuality()
+        : RESOURCE_DEFAULT_QUALITY;
+
+    (recipe.outputs || []).forEach(function (output) {
+        addResource(
+            output.resourceId,
+            roundAmount(batches * output.amountPerBatch),
+            quality
+        );
+    });
+
+    (recipe.experience || []).forEach(function (reward) {
+        const entry = player[reward.key];
+        if (entry && typeof entry.addexp === "function") {
+            entry.addexp(batches * reward.amountPerBatch);
+        }
+    });
+
+    if (typeof recipe.afterApply === "function") {
+        recipe.afterApply(batches);
+    }
+}
+
+const PRODUCTION_RECIPES = Object.freeze({
+    makefibers: Object.freeze({
+        actionId: "makefibers",
+        inputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.GRASS,
+                amountPerBatch: FIBER_GRASS_PER_BATCH,
+            }),
+        ]),
+        outputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.FIBERS,
+                amountPerBatch: FIBER_OUTPUT_PER_BATCH,
+            }),
+        ]),
+        staminaPerBatch: FIBER_STAMINA_PER_BATCH,
+        getEffectiveness: getMakeFibersEffectiveness,
+        getQuality: getMakeFibersQuality,
+        experience: Object.freeze([
+            Object.freeze({ key: "survival", amountPerBatch: FIBER_SURVIVAL_EXP }),
+            Object.freeze({ key: "ropemaking", amountPerBatch: FIBER_ROPEMAKING_EXP }),
+            Object.freeze({ key: "tailoring", amountPerBatch: FIBER_TAILORING_EXP }),
+        ]),
+        tiredMessage: "You are too tired to make fibers",
+        precision: 2,
+    }),
+    makeshafts: Object.freeze({
+        actionId: "makeshafts",
+        inputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.STICKS,
+                amountPerBatch: SHAFT_STICKS_PER_BATCH,
+            }),
+        ]),
+        outputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.SHAFTS,
+                amountPerBatch: SHAFT_OUTPUT_PER_BATCH,
+            }),
+        ]),
+        staminaPerBatch: SHAFT_STAMINA_PER_BATCH,
+        getEffectiveness: getMakeShaftsEffectiveness,
+        getQuality: getMakeShaftsQuality,
+        experience: Object.freeze([
+            Object.freeze({ key: "carpentry", amountPerBatch: SHAFT_CARPENTRY_EXP }),
+            Object.freeze({ key: "agi", amountPerBatch: SHAFT_AGI_EXP }),
+        ]),
+        tiredMessage: "You are too tired to make shafts",
+        precision: 2,
+    }),
+    makehandles: Object.freeze({
+        actionId: "makehandles",
+        inputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.SHAFTS,
+                amountPerBatch: HANDLE_SHAFTS_PER_BATCH,
+            }),
+        ]),
+        outputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.HANDLES,
+                amountPerBatch: HANDLE_OUTPUT_PER_BATCH,
+            }),
+        ]),
+        staminaPerBatch: HANDLE_STAMINA_PER_BATCH,
+        getEffectiveness: getMakeHandlesEffectiveness,
+        getQuality: getMakeHandlesQuality,
+        experience: Object.freeze([
+            Object.freeze({ key: "carpentry", amountPerBatch: HANDLE_CARPENTRY_EXP }),
+            Object.freeze({ key: "agi", amountPerBatch: HANDLE_AGI_EXP }),
+        ]),
+        tiredMessage: "You are too tired to make handles",
+        precision: 2,
+    }),
+    makeplanks: Object.freeze({
+        actionId: "makeplanks",
+        inputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.WOODEN_LOGS,
+                amountPerBatch: PLANK_LOGS_PER_BATCH,
+            }),
+        ]),
+        outputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.WOODEN_PLANK,
+                amountPerBatch: PLANK_OUTPUT_PER_BATCH,
+            }),
+        ]),
+        staminaPerBatch: PLANK_STAMINA_PER_BATCH,
+        getEffectiveness: getMakePlanksEffectiveness,
+        getQuality: getMakePlanksQuality,
+        experience: Object.freeze([
+            Object.freeze({ key: "carpentry", amountPerBatch: PLANK_CARPENTRY_EXP }),
+            Object.freeze({ key: "agi", amountPerBatch: PLANK_AGI_EXP }),
+        ]),
+        tiredMessage: "You are too tired to make planks",
+        precision: 4,
+        roundConsumed: true,
+    }),
+    makewoodenbeams: Object.freeze({
+        actionId: "makewoodenbeams",
+        inputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.WOODEN_LOGS,
+                amountPerBatch: BEAM_LOGS_PER_BATCH,
+            }),
+        ]),
+        outputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.WOODEN_BEAMS,
+                amountPerBatch: BEAM_OUTPUT_PER_BATCH,
+            }),
+        ]),
+        staminaPerBatch: BEAM_STAMINA_PER_BATCH,
+        getEffectiveness: getMakeWoodenBeamsEffectiveness,
+        getQuality: getMakeWoodenBeamsQuality,
+        experience: Object.freeze([
+            Object.freeze({ key: "carpentry", amountPerBatch: BEAM_CARPENTRY_EXP }),
+            Object.freeze({ key: "agi", amountPerBatch: BEAM_AGI_EXP }),
+        ]),
+        tiredMessage: "You are too tired to make wooden beams",
+        precision: 4,
+        roundConsumed: true,
+    }),
+    makemortar: Object.freeze({
+        actionId: "makemortar",
+        inputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.SAND,
+                amountPerBatch: MORTAR_SAND_PER_BATCH,
+            }),
+            Object.freeze({
+                resourceId: RESOURCE_IDS.CLAY,
+                amountPerBatch: MORTAR_CLAY_PER_BATCH,
+            }),
+        ]),
+        outputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.MORTAR,
+                amountPerBatch: MORTAR_OUTPUT_PER_BATCH,
+            }),
+        ]),
+        staminaPerBatch: MORTAR_STAMINA_PER_BATCH,
+        getEffectiveness: getMakeMortarEffectiveness,
+        getQuality: getMakeMortarQuality,
+        experience: Object.freeze([
+            Object.freeze({ key: "alchemy", amountPerBatch: MORTAR_ALCHEMY_EXP }),
+            Object.freeze({ key: "agi", amountPerBatch: MORTAR_AGI_EXP }),
+        ]),
+        validate: function () {
+            return hasWaterOnCurrentTile()
+                ? null
+                : "You need water to make mortar";
+        },
+        tiredMessage: "You are too tired to make mortar",
+        precision: 4,
+        roundConsumed: true,
+    }),
+});
+
+function runProductionRecipe(diff, recipeId) {
+    const recipe = PRODUCTION_RECIPES[recipeId];
+    if (recipe) runBatchProduction(diff, recipe);
+}
+
+function runMakeFibersProduction(diff) {
+    runProductionRecipe(diff, "makefibers");
 }
 
 // "Make shafts": each effectiveness unit turns 1 stick into 1 shaft.
 // Carpentry replaces Survival, and Cutting power speeds the work up.
 function getMakeShaftsEffectiveness() {
-    const dexterity = getEffectiveLevel("agi");
-    const carpentry = getEffectiveLevel("carpentry");
-
-    const base = Math.sqrt(dexterity * carpentry);
-    const cuttingPower = typeof getCharacterToolPower === "function"
-        ? Math.max(0, getCharacterToolPower("cutting") || 0)
-        : 0;
-
-    return base * (1 + cuttingPower * SHAFT_CUTTING_POWER_SPEED);
+    return getCraftingEffectiveness(
+        "agi", "carpentry", "cutting", SHAFT_CUTTING_POWER_SPEED
+    );
 }
 
 function getMakeShaftsQuality() {
-    const stickStack = resources[RESOURCE_IDS.STICKS];
-    const stickQuality = stickStack && Number.isFinite(stickStack.quality)
-        ? stickStack.quality
-        : RESOURCE_DEFAULT_QUALITY;
-
-    return applyWellFedActionQuality((getEffectiveLevel("carpentry") + stickQuality) / 2);
+    return getProductionQuality(["carpentry"], [RESOURCE_IDS.STICKS]);
 }
 
 function runMakeShaftsProduction(diff) {
-    if (actionStates.makeshafts !== Activity.Active) return;
-
-    const stickStack = resources[RESOURCE_IDS.STICKS];
-    if (!stickStack || stickStack.amount <= 0) return;
-
-    const effectiveness = getMakeShaftsEffectiveness() * getActionProductionMultiplier("makeshafts");
-    if (effectiveness <= 0) return;
-
-    const batchesByStamina = player.stamina / SHAFT_STAMINA_PER_BATCH;
-    const batches = Math.min(
-        effectiveness * diff,
-        stickStack.amount / SHAFT_STICKS_PER_BATCH,
-        batchesByStamina
-    );
-
-    if (batches <= 0) {
-        if (player.stamina < SHAFT_STAMINA_PER_BATCH) {
-            logMessage("You are too tired to make shafts");
-            stopTimedAction(getAction("makeshafts"));
-        }
-        return;
-    }
-
-    stickStack.amount = round2(Math.max(
-        0,
-        stickStack.amount - batches * SHAFT_STICKS_PER_BATCH
-    ));
-    const staminaBefore = player.stamina;
-    player.stamina = round2(Math.max(
-        0,
-        player.stamina - batches * SHAFT_STAMINA_PER_BATCH
-    ));
-    trackHungerSpending("stamina", staminaBefore - player.stamina);
-
-    addResource(
-        RESOURCE_IDS.SHAFTS,
-        round2(batches * SHAFT_OUTPUT_PER_BATCH),
-        getMakeShaftsQuality()
-    );
-
-    player.carpentry.addexp(batches * SHAFT_CARPENTRY_EXP);
-    player.agi.addexp(batches * SHAFT_AGI_EXP);
+    runProductionRecipe(diff, "makeshafts");
 }
 
 // "Make handle": each effectiveness unit turns 0.4 shafts into 1 handle.
 // Everything else works exactly like Make shafts.
 function getMakeHandlesEffectiveness() {
-    const dexterity = getEffectiveLevel("agi");
-    const carpentry = getEffectiveLevel("carpentry");
-
-    const base = Math.sqrt(dexterity * carpentry);
-    const cuttingPower = typeof getCharacterToolPower === "function"
-        ? Math.max(0, getCharacterToolPower("cutting") || 0)
-        : 0;
-
-    return base * (1 + cuttingPower * HANDLE_CUTTING_POWER_SPEED);
+    return getCraftingEffectiveness(
+        "agi", "carpentry", "cutting", HANDLE_CUTTING_POWER_SPEED
+    );
 }
 
 function getMakeHandlesQuality() {
-    const shaftStack = resources[RESOURCE_IDS.SHAFTS];
-    const shaftQuality = shaftStack && Number.isFinite(shaftStack.quality)
-        ? shaftStack.quality
-        : RESOURCE_DEFAULT_QUALITY;
-
-    return applyWellFedActionQuality((getEffectiveLevel("carpentry") + shaftQuality) / 2);
+    return getProductionQuality(["carpentry"], [RESOURCE_IDS.SHAFTS]);
 }
 
 function runMakeHandlesProduction(diff) {
-    if (actionStates.makehandles !== Activity.Active) return;
-
-    const shaftStack = resources[RESOURCE_IDS.SHAFTS];
-    if (!shaftStack || shaftStack.amount <= 0) return;
-
-    const effectiveness = getMakeHandlesEffectiveness() * getActionProductionMultiplier("makehandles");
-    if (effectiveness <= 0) return;
-
-    const batchesByStamina = player.stamina / HANDLE_STAMINA_PER_BATCH;
-    const batches = Math.min(
-        effectiveness * diff,
-        shaftStack.amount / HANDLE_SHAFTS_PER_BATCH,
-        batchesByStamina
-    );
-
-    if (batches <= 0) {
-        if (player.stamina < HANDLE_STAMINA_PER_BATCH) {
-            logMessage("You are too tired to make handles");
-            stopTimedAction(getAction("makehandles"));
-        }
-        return;
-    }
-
-    shaftStack.amount = round2(Math.max(
-        0,
-        shaftStack.amount - batches * HANDLE_SHAFTS_PER_BATCH
-    ));
-    const staminaBefore = player.stamina;
-    player.stamina = round2(Math.max(
-        0,
-        player.stamina - batches * HANDLE_STAMINA_PER_BATCH
-    ));
-    trackHungerSpending("stamina", staminaBefore - player.stamina);
-
-    addResource(
-        RESOURCE_IDS.HANDLES,
-        round2(batches * HANDLE_OUTPUT_PER_BATCH),
-        getMakeHandlesQuality()
-    );
-
-    player.carpentry.addexp(batches * HANDLE_CARPENTRY_EXP);
-    player.agi.addexp(batches * HANDLE_AGI_EXP);
+    runProductionRecipe(diff, "makehandles");
 }
 
 // "Make planks": each effectiveness unit consumes 0.01 Wooden logs and turns
 // them into 0.1 Wooden Plank. Carpentry and Agility drive the work, and
 // Chopping power speeds it up.
 function getMakePlanksEffectiveness() {
-    const dexterity = getEffectiveLevel("agi");
-    const carpentry = getEffectiveLevel("carpentry");
-
-    const base = Math.sqrt(dexterity * carpentry);
-    const choppingPower = typeof getCharacterToolPower === "function"
-        ? Math.max(0, getCharacterToolPower("chopping") || 0)
-        : 0;
-
-    return base * (1 + choppingPower * PLANK_CHOPPING_POWER_SPEED);
+    return getCraftingEffectiveness(
+        "agi", "carpentry", "chopping", PLANK_CHOPPING_POWER_SPEED
+    );
 }
 
 function getMakePlanksQuality() {
-    const logStack = resources[RESOURCE_IDS.WOODEN_LOGS];
-    const logQuality = logStack && Number.isFinite(logStack.quality)
-        ? logStack.quality
-        : RESOURCE_DEFAULT_QUALITY;
-
-    return applyWellFedActionQuality((getEffectiveLevel("carpentry") + logQuality) / 2);
+    return getProductionQuality(["carpentry"], [RESOURCE_IDS.WOODEN_LOGS]);
 }
 
 function runMakePlanksProduction(diff) {
-    if (actionStates.makeplanks !== Activity.Active) return;
-
-    const logStack = resources[RESOURCE_IDS.WOODEN_LOGS];
-    if (!logStack || logStack.amount <= 0) return;
-
-    const effectiveness = getMakePlanksEffectiveness() * getActionProductionMultiplier("makeplanks");
-    if (effectiveness <= 0) return;
-
-    const batchesByStamina = player.stamina / PLANK_STAMINA_PER_BATCH;
-    const batches = Math.min(
-        effectiveness * diff,
-        logStack.amount / PLANK_LOGS_PER_BATCH,
-        batchesByStamina
-    );
-
-    if (batches <= 0) {
-        if (player.stamina < PLANK_STAMINA_PER_BATCH) {
-            logMessage("You are too tired to make planks");
-            stopTimedAction(getAction("makeplanks"));
-        }
-        return;
-    }
-
-    // Keep four decimals so the 0.01 log -> 0.1 plank ratio stays exact even
-    // when Chopping power makes the processing faster than one batch per tick.
-    const consumedLogs = Math.round(
-        batches * PLANK_LOGS_PER_BATCH * 10000
-    ) / 10000;
-    const producedPlanks = Math.round(
-        batches * PLANK_OUTPUT_PER_BATCH * 10000
-    ) / 10000;
-    logStack.amount = Math.max(0, logStack.amount - consumedLogs);
-
-    const staminaBefore = player.stamina;
-    player.stamina = round2(Math.max(
-        0,
-        player.stamina - batches * PLANK_STAMINA_PER_BATCH
-    ));
-    trackHungerSpending("stamina", staminaBefore - player.stamina);
-
-    addResource(
-        RESOURCE_IDS.WOODEN_PLANK,
-        producedPlanks,
-        getMakePlanksQuality()
-    );
-
-    player.carpentry.addexp(batches * PLANK_CARPENTRY_EXP);
-    player.agi.addexp(batches * PLANK_AGI_EXP);
+    runProductionRecipe(diff, "makeplanks");
 }
 
 // "Make wooden beams": each effectiveness unit consumes 0.1 Wooden logs and
 // turns them into 0.01 Wooden Beams. Carpentry and Agility drive the work, and
 // Chopping power speeds it up.
 function getMakeWoodenBeamsEffectiveness() {
-    const dexterity = getEffectiveLevel("agi");
-    const carpentry = getEffectiveLevel("carpentry");
-
-    const base = Math.sqrt(dexterity * carpentry);
-    const choppingPower = typeof getCharacterToolPower === "function"
-        ? Math.max(0, getCharacterToolPower("chopping") || 0)
-        : 0;
-
-    return base * (1 + choppingPower * BEAM_CHOPPING_POWER_SPEED);
+    return getCraftingEffectiveness(
+        "agi", "carpentry", "chopping", BEAM_CHOPPING_POWER_SPEED
+    );
 }
 
 function getMakeWoodenBeamsQuality() {
-    const logStack = resources[RESOURCE_IDS.WOODEN_LOGS];
-    const logQuality = logStack && Number.isFinite(logStack.quality)
-        ? logStack.quality
-        : RESOURCE_DEFAULT_QUALITY;
-
-    return applyWellFedActionQuality((getEffectiveLevel("carpentry") + logQuality) / 2);
+    return getProductionQuality(["carpentry"], [RESOURCE_IDS.WOODEN_LOGS]);
 }
 
 function runMakeWoodenBeamsProduction(diff) {
-    if (actionStates.makewoodenbeams !== Activity.Active) return;
-
-    const logStack = resources[RESOURCE_IDS.WOODEN_LOGS];
-    if (!logStack || logStack.amount <= 0) return;
-
-    const effectiveness = getMakeWoodenBeamsEffectiveness() * getActionProductionMultiplier("makewoodenbeams");
-    if (effectiveness <= 0) return;
-
-    const batchesByStamina = player.stamina / BEAM_STAMINA_PER_BATCH;
-    const batches = Math.min(
-        effectiveness * diff,
-        logStack.amount / BEAM_LOGS_PER_BATCH,
-        batchesByStamina
-    );
-
-    if (batches <= 0) {
-        if (player.stamina < BEAM_STAMINA_PER_BATCH) {
-            logMessage("You are too tired to make wooden beams");
-            stopTimedAction(getAction("makewoodenbeams"));
-        }
-        return;
-    }
-
-    // Keep four decimals so the 0.1 log -> 0.01 beam ratio stays exact even
-    // when Chopping power makes the processing faster than one batch per tick.
-    const consumedLogs = Math.round(
-        batches * BEAM_LOGS_PER_BATCH * 10000
-    ) / 10000;
-    const producedBeams = Math.round(
-        batches * BEAM_OUTPUT_PER_BATCH * 10000
-    ) / 10000;
-    logStack.amount = Math.max(0, logStack.amount - consumedLogs);
-
-    const staminaBefore = player.stamina;
-    player.stamina = round2(Math.max(
-        0,
-        player.stamina - batches * BEAM_STAMINA_PER_BATCH
-    ));
-    trackHungerSpending("stamina", staminaBefore - player.stamina);
-
-    addResource(
-        RESOURCE_IDS.WOODEN_BEAMS,
-        producedBeams,
-        getMakeWoodenBeamsQuality()
-    );
-
-    player.carpentry.addexp(batches * BEAM_CARPENTRY_EXP);
-    player.agi.addexp(batches * BEAM_AGI_EXP);
+    runProductionRecipe(diff, "makewoodenbeams");
 }
 
 // Water may come from the tile's generated space, a river, searched land or a
@@ -1775,88 +1835,18 @@ function hasWaterOnCurrentTile() {
 // "Make mortar": each effectiveness unit consumes 20 Sand and 20 Clay and
 // produces 1 Mortar. Agility and Alchemy drive the work.
 function getMakeMortarEffectiveness() {
-    const agility = getEffectiveLevel("agi");
-    const alchemy = getEffectiveLevel("alchemy");
-    return Math.sqrt(agility * alchemy);
+    return getCraftingEffectiveness("agi", "alchemy");
 }
 
 function getMakeMortarQuality() {
-    const sandStack = resources[RESOURCE_IDS.SAND];
-    const clayStack = resources[RESOURCE_IDS.CLAY];
-    const sandQuality = sandStack && Number.isFinite(sandStack.quality)
-        ? sandStack.quality
-        : RESOURCE_DEFAULT_QUALITY;
-    const clayQuality = clayStack && Number.isFinite(clayStack.quality)
-        ? clayStack.quality
-        : RESOURCE_DEFAULT_QUALITY;
-
-    return applyWellFedActionQuality(
-        (getEffectiveLevel("alchemy") + (sandQuality + clayQuality) / 2) / 2
+    return getProductionQuality(
+        ["alchemy"],
+        [RESOURCE_IDS.SAND, RESOURCE_IDS.CLAY]
     );
 }
 
 function runMakeMortarProduction(diff) {
-    if (actionStates.makemortar !== Activity.Active) return;
-
-    if (!hasWaterOnCurrentTile()) {
-        logMessage("You need water to make mortar");
-        stopTimedAction(getAction("makemortar"));
-        return;
-    }
-
-    const sandStack = resources[RESOURCE_IDS.SAND];
-    const clayStack = resources[RESOURCE_IDS.CLAY];
-    if (!sandStack || !clayStack || sandStack.amount <= 0 || clayStack.amount <= 0) {
-        return;
-    }
-
-    const effectiveness = getMakeMortarEffectiveness() * getActionProductionMultiplier("makemortar");
-    if (effectiveness <= 0) return;
-
-    const batchesByStamina = player.stamina / MORTAR_STAMINA_PER_BATCH;
-    const batches = Math.min(
-        effectiveness * diff,
-        sandStack.amount / MORTAR_SAND_PER_BATCH,
-        clayStack.amount / MORTAR_CLAY_PER_BATCH,
-        batchesByStamina
-    );
-
-    if (batches <= 0) {
-        if (player.stamina < MORTAR_STAMINA_PER_BATCH) {
-            logMessage("You are too tired to make mortar");
-            stopTimedAction(getAction("makemortar"));
-        }
-        return;
-    }
-
-    const consumedSand = Math.round(
-        batches * MORTAR_SAND_PER_BATCH * 10000
-    ) / 10000;
-    const consumedClay = Math.round(
-        batches * MORTAR_CLAY_PER_BATCH * 10000
-    ) / 10000;
-    const producedMortar = Math.round(
-        batches * MORTAR_OUTPUT_PER_BATCH * 10000
-    ) / 10000;
-
-    sandStack.amount = Math.max(0, sandStack.amount - consumedSand);
-    clayStack.amount = Math.max(0, clayStack.amount - consumedClay);
-
-    const staminaBefore = player.stamina;
-    player.stamina = round2(Math.max(
-        0,
-        player.stamina - batches * MORTAR_STAMINA_PER_BATCH
-    ));
-    trackHungerSpending("stamina", staminaBefore - player.stamina);
-
-    addResource(
-        RESOURCE_IDS.MORTAR,
-        producedMortar,
-        getMakeMortarQuality()
-    );
-
-    player.alchemy.addexp(batches * MORTAR_ALCHEMY_EXP);
-    player.agi.addexp(batches * MORTAR_AGI_EXP);
+    runProductionRecipe(diff, "makemortar");
 }
 
 // "Smelt ore" actions: Vitality, Smithing and the current tile's Smelt power
@@ -1874,14 +1864,7 @@ function getSmithingEffectiveness() {
 }
 
 function getSmeltingQuality(oreId) {
-    const oreStack = resources[oreId];
-    const oreQuality = oreStack && Number.isFinite(oreStack.quality)
-        ? oreStack.quality
-        : RESOURCE_DEFAULT_QUALITY;
-
-    return applyWellFedActionQuality(
-        (getEffectiveLevel("smithing") + oreQuality) / 2
-    );
+    return getProductionQuality(["smithing"], [oreId]);
 }
 
 function canSmeltOre(oreId, requiredPower) {
@@ -1911,63 +1894,35 @@ function isSmeltComplete(oreId, requiredPower) {
 }
 
 function runSmeltProduction(diff, actionId, oreId, barId, requiredPower) {
-    if (actionStates[actionId] !== Activity.Active) return;
-
-    const oreStack = resources[oreId];
-    const heatStack = resources[RESOURCE_IDS.HEAT_UNITS];
-    if (!oreStack || !heatStack) return;
-
-    if (typeof getCharacterHousePower !== "function"
-        || getCharacterHousePower("smelt") < requiredPower) {
-        logMessage("You need at least " + requiredPower + " Smelt power");
-        stopTimedAction(getAction(actionId));
-        return;
-    }
-
-    const effectiveness = getSmithingEffectiveness()
-        * getActionProductionMultiplier(actionId);
-    if (effectiveness <= 0) return;
-
-    const batchesByStamina = player.stamina / SMELT_STAMINA_PER_BATCH;
-    const batches = Math.min(
-        effectiveness * diff,
-        oreStack.amount / SMELT_ORE_PER_BATCH,
-        heatStack.amount / SMELT_HEAT_PER_BATCH,
-        batchesByStamina
-    );
-
-    if (batches <= 0) {
-        if (player.stamina < SMELT_STAMINA_PER_BATCH) {
-            logMessage("You are too tired to smelt metal");
-            stopTimedAction(getAction(actionId));
-        }
-        return;
-    }
-
-    const consumedOre = Math.round(
-        batches * SMELT_ORE_PER_BATCH * 10000
-    ) / 10000;
-    const consumedHeat = Math.round(
-        batches * SMELT_HEAT_PER_BATCH * 10000
-    ) / 10000;
-    const producedBars = Math.round(
-        batches * SMELT_OUTPUT_PER_BATCH * 10000
-    ) / 10000;
-
-    oreStack.amount = Math.max(0, oreStack.amount - consumedOre);
-    heatStack.amount = Math.max(0, heatStack.amount - consumedHeat);
-
-    const staminaBefore = player.stamina;
-    player.stamina = round2(Math.max(
-        0,
-        player.stamina - batches * SMELT_STAMINA_PER_BATCH
-    ));
-    trackHungerSpending("stamina", staminaBefore - player.stamina);
-
-    addResource(barId, producedBars, getSmeltingQuality(oreId));
-
-    player.smithing.addexp(batches * SMELT_SMITHING_EXP);
-    player.vit.addexp(batches * SMELT_VIT_EXP);
+    runBatchProduction(diff, {
+        actionId: actionId,
+        inputs: [
+            { resourceId: oreId, amountPerBatch: SMELT_ORE_PER_BATCH },
+            { resourceId: RESOURCE_IDS.HEAT_UNITS, amountPerBatch: SMELT_HEAT_PER_BATCH },
+        ],
+        outputs: [
+            { resourceId: barId, amountPerBatch: SMELT_OUTPUT_PER_BATCH },
+        ],
+        staminaPerBatch: SMELT_STAMINA_PER_BATCH,
+        getEffectiveness: getSmithingEffectiveness,
+        getQuality: function () {
+            return getSmeltingQuality(oreId);
+        },
+        experience: [
+            { key: "smithing", amountPerBatch: SMELT_SMITHING_EXP },
+            { key: "vit", amountPerBatch: SMELT_VIT_EXP },
+        ],
+        validateAfterInputs: function () {
+            if (typeof getCharacterHousePower !== "function"
+                || getCharacterHousePower("smelt") < requiredPower) {
+                return "You need at least " + requiredPower + " Smelt power";
+            }
+            return null;
+        },
+        tiredMessage: "You are too tired to smelt metal",
+        precision: 4,
+        roundConsumed: true,
+    });
 }
 
 // Burning fuel is an instant Production action. WorkPower(STR, Smithing)
@@ -2985,13 +2940,17 @@ function getDigPower() {
     return 1 + Math.sqrt(digging * ((strength + vitality) / 2)) + toolPower;
 }
 
+function getExtractionStaminaQuality(power) {
+    return 1 + (Number(power) || 0);
+}
+
 // Dig quality is 1 + power. The same multiplier scales stamina drain, so
 // stronger digging also costs more stamina per second.
 function getDigQualityMultiplier(power) {
     if (power == null) {
         power = getDigPower() * getActionProductionMultiplier("dig");
     }
-    return 1 + power;
+    return getExtractionStaminaQuality(power);
 }
 
 function getDigStaminaPerSecond() {
@@ -3025,36 +2984,44 @@ function rollDigResources(power, seconds, quality, foundTotals) {
     });
 }
 
-function runDigProduction(diff) {
-    if (actionStates.dig !== Activity.Active) return;
+function runExtractionProduction(diff, config) {
+    if (!config) return;
+
+    const actionId = config.actionId;
+    if (actionStates[actionId] !== Activity.Active) return;
 
     const seconds = Math.min(
         Math.max(0, Number(diff) || 0),
-        DIG_MAX_SECONDS_PER_LOOP
+        config.maxSeconds
     );
     if (seconds <= 0) return;
 
+    const action = typeof getAction === "function" ? getAction(actionId) : null;
+    const stopAction = function () {
+        if (action) stopTimedAction(action);
+    };
+
     if (typeof getCharacterToolPower !== "function"
-        || getCharacterToolPower("digging") < 1) {
-        logMessage("You need at least 1 Digging power to dig");
-        stopTimedAction(getAction("dig"));
+        || getCharacterToolPower(config.toolPowerType) < 1) {
+        logMessage(config.toolPowerMessage);
+        stopAction();
         return;
     }
 
-    if (!hasDigSpace()) {
-        logMessage("There is no soil here that you can dig up");
-        stopTimedAction(getAction("dig"));
+    if (typeof config.hasSpace === "function" && !config.hasSpace()) {
+        logMessage(config.noSpaceMessage);
+        stopAction();
         return;
     }
 
-    const power = getDigPower() * getActionProductionMultiplier("dig");
-    const staminaQuality = getDigQualityMultiplier(power);
+    const power = config.getPower() * getActionProductionMultiplier(actionId);
+    const staminaQuality = getExtractionStaminaQuality(power);
     const quality = applyWellFedActionQuality(staminaQuality);
-    const staminaPerSecond = DIG_STAMINA_PER_SECOND * staminaQuality;
+    const staminaPerSecond = config.baseStaminaPerSecond * staminaQuality;
 
     if (player.stamina < staminaPerSecond) {
-        logMessage("You are too tired to dig");
-        stopTimedAction(getAction("dig"));
+        logMessage(config.tiredMessage);
+        stopAction();
         return;
     }
 
@@ -3073,16 +3040,20 @@ function runDigProduction(diff) {
 
     const wholeSeconds = Math.floor(actualSeconds);
     for (let second = 0; second < wholeSeconds; second++) {
-        rollDigResources(power, 1, quality, foundTotals);
+        config.rollResources(power, 1, quality, foundTotals);
     }
 
     const partialSecond = actualSeconds - wholeSeconds;
     if (partialSecond > 0.0001) {
-        rollDigResources(power, partialSecond, quality, foundTotals);
+        config.rollResources(power, partialSecond, quality, foundTotals);
     }
 
-    player.str.addexp(0.5 * actualSeconds);
-    player.digging.addexp(0.5 * actualSeconds);
+    (config.experience || []).forEach(function (reward) {
+        const entry = player[reward.key];
+        if (entry && typeof entry.addexp === "function") {
+            entry.addexp(actualSeconds * reward.amountPerSecond);
+        }
+    });
 
     const foundParts = Object.keys(foundTotals).map(function (resourceId) {
         const definition = RESOURCE_DEFS[resourceId];
@@ -3091,14 +3062,36 @@ function runDigProduction(diff) {
     });
 
     if (foundParts.length) {
-        logMessage("You dig up " + foundParts.join(", "));
+        logMessage(config.foundPrefix + foundParts.join(", "));
     }
 }
 
+const DIG_EXTRACTION = Object.freeze({
+    actionId: "dig",
+    maxSeconds: DIG_MAX_SECONDS_PER_LOOP,
+    baseStaminaPerSecond: DIG_STAMINA_PER_SECOND,
+    toolPowerType: "digging",
+    toolPowerMessage: "You need at least 1 Digging power to dig",
+    hasSpace: hasDigSpace,
+    noSpaceMessage: "There is no soil here that you can dig up",
+    getPower: getDigPower,
+    rollResources: rollDigResources,
+    experience: Object.freeze([
+        Object.freeze({ key: "str", amountPerSecond: 0.5 }),
+        Object.freeze({ key: "digging", amountPerSecond: 0.5 }),
+    ]),
+    tiredMessage: "You are too tired to dig",
+    foundPrefix: "You dig up ",
+});
+
+function runDigProduction(diff) {
+    runExtractionProduction(diff, DIG_EXTRACTION);
+}
+
 // --- Mining action -------------------------------------------------------
-// Mining copies the Dig loop, but uses the character's Mining power (the best
-// carried or equipped mining tool) and rolls ore, stone, ice and coral
-// resources tied to the tile's space composition.
+// Mining uses the shared extraction loop with Mining power (the best carried
+// or equipped mining tool) and rolls ore, stone, ice and coral resources tied
+// to the tile's space composition.
 const MINING_STAMINA_PER_SECOND = 6.25;
 const MINING_MAX_SECONDS_PER_LOOP = 60;
 const MINING_BASE_CHANCE_PER_SECOND = 0.2;
@@ -3157,7 +3150,7 @@ function getMiningQualityMultiplier(power) {
     if (power == null) {
         power = getMiningPower() * getActionProductionMultiplier("mining");
     }
-    return 1 + power;
+    return getExtractionStaminaQuality(power);
 }
 
 function getMiningStaminaPerSecond() {
@@ -3237,78 +3230,31 @@ function rollMiningResources(power, seconds, quality, foundTotals, yieldMultipli
     });
 }
 
+const MINING_EXTRACTION = Object.freeze({
+    actionId: "mining",
+    maxSeconds: MINING_MAX_SECONDS_PER_LOOP,
+    baseStaminaPerSecond: MINING_STAMINA_PER_SECOND,
+    toolPowerType: "mining",
+    toolPowerMessage: "You need at least 1 Mining power to mine",
+    hasSpace: hasMiningSpace,
+    noSpaceMessage: "There is no stone or ore here that you can mine",
+    getPower: getMiningPower,
+    rollResources: function (power, seconds, quality, foundTotals) {
+        const mineMultiplier = typeof getMineEntranceMiningMultiplier === "function"
+            ? Math.max(0, getMineEntranceMiningMultiplier(currentTile))
+            : 1;
+        rollMiningResources(power, seconds, quality, foundTotals, mineMultiplier);
+    },
+    experience: Object.freeze([
+        Object.freeze({ key: "str", amountPerSecond: 0.5 }),
+        Object.freeze({ key: "mining", amountPerSecond: 0.5 }),
+    ]),
+    tiredMessage: "You are too tired to mine",
+    foundPrefix: "You mine ",
+});
+
 function runMiningProduction(diff) {
-    if (actionStates.mining !== Activity.Active) return;
-
-    const seconds = Math.min(
-        Math.max(0, Number(diff) || 0),
-        MINING_MAX_SECONDS_PER_LOOP
-    );
-    if (seconds <= 0) return;
-
-    if (typeof getCharacterToolPower !== "function"
-        || getCharacterToolPower("mining") < 1) {
-        logMessage("You need at least 1 Mining power to mine");
-        stopTimedAction(getAction("mining"));
-        return;
-    }
-
-    if (!hasMiningSpace()) {
-        logMessage("There is no stone or ore here that you can mine");
-        stopTimedAction(getAction("mining"));
-        return;
-    }
-
-    const basePower = getMiningPower() * getActionProductionMultiplier("mining");
-    const staminaQuality = getMiningQualityMultiplier(basePower);
-    const quality = applyWellFedActionQuality(staminaQuality);
-    const staminaPerSecond = MINING_STAMINA_PER_SECOND * staminaQuality;
-    // Completed Mine entrances on this tile multiply the mined output without
-    // changing stamina cost or resource quality.
-    const mineMultiplier = typeof getMineEntranceMiningMultiplier === "function"
-        ? Math.max(0, getMineEntranceMiningMultiplier(currentTile))
-        : 1;
-
-    if (player.stamina < staminaPerSecond) {
-        logMessage("You are too tired to mine");
-        stopTimedAction(getAction("mining"));
-        return;
-    }
-
-    const actualSeconds = Math.min(
-        seconds,
-        player.stamina / staminaPerSecond
-    );
-    player.stamina = round2(Math.max(
-        0,
-        player.stamina - actualSeconds * staminaPerSecond
-    ));
-    trackHungerSpending("stamina", actualSeconds * staminaPerSecond);
-
-    const foundTotals = Object.create(null);
-
-    const wholeSeconds = Math.floor(actualSeconds);
-    for (let second = 0; second < wholeSeconds; second++) {
-        rollMiningResources(basePower, 1, quality, foundTotals, mineMultiplier);
-    }
-
-    const partialSecond = actualSeconds - wholeSeconds;
-    if (partialSecond > 0.0001) {
-        rollMiningResources(basePower, partialSecond, quality, foundTotals, mineMultiplier);
-    }
-
-    player.str.addexp(0.5 * actualSeconds);
-    player.mining.addexp(0.5 * actualSeconds);
-
-    const foundParts = Object.keys(foundTotals).map(function (resourceId) {
-        const definition = RESOURCE_DEFS[resourceId];
-        return (definition ? definition.name : resourceId)
-            + " x" + round2(foundTotals[resourceId]);
-    });
-
-    if (foundParts.length) {
-        logMessage("You mine " + foundParts.join(", "));
-    }
+    runExtractionProduction(diff, MINING_EXTRACTION);
 }
 
 const GRIND_STAMINA_PER_SECOND = 1.75;
