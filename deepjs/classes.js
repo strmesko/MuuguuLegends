@@ -524,6 +524,7 @@ const RESOURCE_IDS = Object.freeze({
     STEEL_CHAIN: 126,
     GOLD_CHAIN: 127,
     MAPLE_SIRUP: 6101,
+    BUG_MEAT: 6102,
 });
 
 const RESOURCE_DEFS = {
@@ -594,6 +595,7 @@ const RESOURCE_DEFS = {
     [RESOURCE_IDS.ACORNS]: { name: "Acorns", weight: 4, unitType: "kg", description: "Bitter nuts from oak trees. Edible when prepared.", category: RESOURCE_CATEGORIES.Food },
     [RESOURCE_IDS.PINE_NUTS]: { name: "Pine Nuts", weight: 4, unitType: "kg", description: "Small seeds from pine cones.", category: RESOURCE_CATEGORIES.Food },
     [RESOURCE_IDS.MAPLE_SIRUP]: { name: "Maple sirup", weight: 0.5, unitType: "kg", description: "Sweet golden sirup collected from a tapped maple tree.", category: RESOURCE_CATEGORIES.Food, Tastymeter: 8 },
+    [RESOURCE_IDS.BUG_MEAT]: { name: "Bug meat", weight: 0.5, unitType: "kg", description: "A fresh chunk of bug meat. It twitches faintly.", category: RESOURCE_CATEGORIES.Food, Tastymeter: 6, meat: true },
     [RESOURCE_IDS.ROCKS]: { name: "Rocks", weight: 2, unitType: "", description: "Common rocks which can be founded everywhere. Yeah it's somewhat heavy", category: RESOURCE_CATEGORIES.Raw },
     [RESOURCE_IDS.BRANCHES]: { name: "Branches", weight: 0.5, unitType: "", description: "just light version of branch", category: RESOURCE_CATEGORIES.Raw },
     [RESOURCE_IDS.STICKS]: { name: "Sticks", weight: 2, unitType: "", description: "A big stick", category: RESOURCE_CATEGORIES.Raw },

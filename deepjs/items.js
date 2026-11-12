@@ -10,6 +10,7 @@ const SPECIAL_RESOURCE_IMAGE_FOLDERS = Object.freeze({
     logs: "nature",
     rope: "tailoring",
     maplesirup: "cooking",
+    bugmeat: "meat",
 });
 
 function normalizeItemImageName(itemName) {

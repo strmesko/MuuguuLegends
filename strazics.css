@@ -342,20 +342,6 @@ body{font-size:max(6px,1em);}
     font-weight: bold;
     text-shadow: 0 0 8px rgba(255, 80, 80, 0.7);
   }
-  .combatlog {
-    height: 78px;
-    margin-top: 10px;
-    overflow: auto;
-    box-sizing: border-box;
-    padding: 6px 8px;
-    border: 1px solid rgba(180, 150, 230, 0.3);
-    border-radius: 4px;
-    background: rgba(0, 0, 0, 0.3);
-    color: #cfc5e6;
-    font-size: max(6px, 0.72rem);
-    line-height: 1.35;
-    white-space: pre-line;
-  }
   .combatresult {
     min-height: 1.5em;
     margin-top: 8px;

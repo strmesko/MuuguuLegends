@@ -11,6 +11,7 @@ const COMBAT_SKILL_KEYS = Object.freeze([
 ]);
 const COMBAT_ATTACK_SPEED_BASE_MS = 5000;
 const COMBAT_ATTACK_SPEED_FACTOR = 0.03;
+const COMBAT_AUTO_CLOSE_DELAY_MS = 2500;
 
 const MOBS = Object.freeze({
     catterpuwa: Object.freeze({
@@ -306,11 +307,6 @@ function ensureCombatOverlay() {
 
     panel.appendChild(arena);
 
-    const log = document.createElement("div");
-    log.id = "combatlog";
-    log.className = "combatlog";
-    panel.appendChild(log);
-
     const result = document.createElement("div");
     result.id = "combatresult";
     result.className = "combatresult";
@@ -365,9 +361,6 @@ function renderCombatOverlay() {
     document.getElementById("combatenemyhp").style.width =
         Math.max(0, Math.min(100, enemyHp * 100)) + "%";
 
-    document.getElementById("combatlog").textContent =
-        activeCombat.log.join("\n");
-
     const result = document.getElementById("combatresult");
     if (activeCombat.finished) {
         result.textContent = activeCombat.result
@@ -384,9 +377,8 @@ function renderCombatOverlay() {
 }
 
 function logCombat(message) {
-    if (!activeCombat) return;
-    activeCombat.log.push(message);
-    if (activeCombat.log.length > 10) activeCombat.log.shift();
+    if (typeof logMessage !== "function") return;
+    logMessage(message);
 }
 
 function finishCombat(victory) {
@@ -397,22 +389,28 @@ function finishCombat(victory) {
 
     if (victory) {
         logCombat(activeCombat.enemy.name + " is defeated. You win!");
-        if (typeof logMessage === "function") {
-            logMessage("You defeated " + activeCombat.enemy.name + ".");
-        }
         addCombatSkillExp("tactics", 5);
         addCombatSkillExp("anatomy", 5);
         addCombatSkillExp("dodging", 2);
         addCombatSkillExp("bullseye", 2);
-    } else {
-        logCombat("You are defeated.");
-        if (typeof logMessage === "function") {
-            logMessage("You were defeated by " + activeCombat.enemy.name + ".");
+
+        if (activeCombat.enemy.id === "catterpuwa"
+            && typeof addResource === "function") {
+            addResource(RESOURCE_IDS.BUG_MEAT, 1, RESOURCE_DEFAULT_QUALITY);
+            logCombat("You gather Bug meat x1.");
         }
+    } else {
+        logCombat("You were defeated by " + activeCombat.enemy.name + ".");
     }
 
     renderCombatOverlay();
     if (typeof refreshActionButtons === "function") refreshActionButtons();
+
+    const combatSnapshot = activeCombat;
+    if (combatSnapshot.autoCloseTimer) clearTimeout(combatSnapshot.autoCloseTimer);
+    combatSnapshot.autoCloseTimer = setTimeout(function () {
+        if (activeCombat === combatSnapshot) exitCombat();
+    }, COMBAT_AUTO_CLOSE_DELAY_MS);
 }
 
 function performCombatAttack(attacker, defender) {
@@ -523,23 +521,23 @@ function enterCombat(mobId) {
     activeCombat = {
         player: createPlayerCombatant(),
         enemy: createMobCombatant(mobId),
-        log: [],
         finished: false,
         result: false,
+        autoCloseTimer: null,
     };
 
     logCombat("You enter combat with " + activeCombat.enemy.name + ".");
     ensureCombatOverlay();
     renderCombatOverlay();
     if (typeof refreshActionButtons === "function") refreshActionButtons();
-    if (typeof logMessage === "function") {
-        logMessage("You enter combat with " + activeCombat.enemy.name + ".");
-    }
     return true;
 }
 
 function exitCombat() {
     if (!activeCombat) return;
+    if (activeCombat.autoCloseTimer) {
+        clearTimeout(activeCombat.autoCloseTimer);
+    }
     activeCombat = null;
 
     const overlay = document.getElementById("combatoverlay");
