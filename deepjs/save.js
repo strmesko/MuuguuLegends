@@ -108,6 +108,8 @@
                 space: Object.assign({}, currentTile.space),
                 harvestedTrees: Object.assign({}, currentTile.harvestedTrees || {}),
             },
+            startX: getStartCoordinates().x,
+            startY: getStartCoordinates().y,
             // Exploration and search progress for every generated tile.
             tileStates: window.mapView
                 && typeof window.mapView.collectTileStates === "function"
@@ -272,6 +274,8 @@
             player: saveData.player ?? saveData.you,
             name: saveData.name ?? (saveData.player ? saveData.player.name : null) ?? "You",
             currentTile: saveData.currentTile ?? saveData.herezone,
+            startX: saveData.startX ?? saveData.startx ?? null,
+            startY: saveData.startY ?? saveData.starty ?? null,
             maxInventory: saveData.maxInventory ?? saveData.maxinventory,
             scrapRarityFilter: saveData.scrapRarityFilter,
             lastUpdate: saveData.lastUpdate ?? saveData.lastupdate,
@@ -519,6 +523,9 @@
             window.mapView.setTileStates(saved.tileStates || {});
         }
         restoreCurrentTile(saved.currentTile);
+        if (typeof restoreStartCoordinates === "function") {
+            restoreStartCoordinates(saved.startX, saved.startY);
+        }
         if (typeof attachBuildingsToCurrentTile === "function") {
             attachBuildingsToCurrentTile();
         }

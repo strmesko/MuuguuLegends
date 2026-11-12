@@ -12,6 +12,8 @@ const COMBAT_SKILL_KEYS = Object.freeze([
 const COMBAT_ATTACK_SPEED_BASE_MS = 5000;
 const COMBAT_ATTACK_SPEED_FACTOR = 0.03;
 const COMBAT_AUTO_CLOSE_DELAY_MS = 2500;
+const MOB_LEVEL_TILES = 5;
+const MOB_LEVEL_STAT_MULTIPLIER = 1.05;
 
 const MOBS = Object.freeze({
     catterpuwa: Object.freeze({
@@ -38,6 +40,21 @@ const MOBS = Object.freeze({
         attackSpeedMs: COMBAT_ATTACK_SPEED_BASE_MS,
     }),
 });
+
+function getMobLevelForTile(x, y) {
+    const start = typeof getStartCoordinates === "function"
+        ? getStartCoordinates()
+        : { x: 0, y: 0 };
+    const dx = (Number(x) || 0) - start.x;
+    const dy = (Number(y) || 0) - start.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    return 1 + Math.max(0, Math.floor(distance / MOB_LEVEL_TILES));
+}
+
+function getMobLevelMultiplier(level) {
+    const normalized = Math.max(1, Math.floor(Number(level) || 1));
+    return Math.pow(MOB_LEVEL_STAT_MULTIPLIER, normalized - 1);
+}
 
 function isCombatActive() {
     return !!activeCombat;
@@ -179,13 +196,23 @@ function createPlayerCombatant() {
     };
 }
 
-function createMobCombatant(mobId) {
+function createMobCombatant(mobId, level) {
     const def = MOBS[mobId] || MOBS.catterpuwa;
+    const tileX = typeof currentTile !== "undefined" && currentTile
+        ? currentTile.x
+        : 0;
+    const tileY = typeof currentTile !== "undefined" && currentTile
+        ? currentTile.y
+        : 0;
+    const mobLevel = Number.isFinite(Number(level))
+        ? Math.max(1, Math.floor(Number(level)))
+        : getMobLevelForTile(tileX, tileY);
+    const multiplier = getMobLevelMultiplier(mobLevel);
     const stats = {};
     const skills = {};
 
     COMBAT_STAT_KEYS.forEach(function (key) {
-        stats[key] = Number(def.stats[key]) || 0;
+        stats[key] = (Number(def.stats[key]) || 0) * multiplier;
     });
     COMBAT_SKILL_KEYS.forEach(function (key) {
         skills[key] = Number(def.skills && def.skills[key]) || 0;
@@ -194,19 +221,22 @@ function createMobCombatant(mobId) {
     return {
         kind: "mob",
         id: def.id,
-        name: def.name,
+        name: def.name + " Lv " + mobLevel,
+        baseName: def.name,
+        level: mobLevel,
+        levelMultiplier: multiplier,
         description: def.description,
         image: def.image,
         stats: stats,
         skills: skills,
-        hp: Math.max(0, Number(def.hp) || 0),
-        maxHp: Math.max(0, Number(def.hp) || 0),
-        mana: Math.max(0, Number(def.mana) || 0),
-        maxMana: Math.max(0, Number(def.mana) || 0),
-        sp: Math.max(0, Number(def.sp) || 0),
-        maxSp: Math.max(0, Number(def.sp) || 0),
-        attack: Math.max(0, Number(def.attack) || 0),
-        armor: Math.max(0, Number(def.armor) || 0),
+        hp: Math.max(0, (Number(def.hp) || 0) * multiplier),
+        maxHp: Math.max(0, (Number(def.hp) || 0) * multiplier),
+        mana: Math.max(0, (Number(def.mana) || 0) * multiplier),
+        maxMana: Math.max(0, (Number(def.mana) || 0) * multiplier),
+        sp: Math.max(0, (Number(def.sp) || 0) * multiplier),
+        maxSp: Math.max(0, (Number(def.sp) || 0) * multiplier),
+        attack: Math.max(0, (Number(def.attack) || 0) * multiplier),
+        armor: Math.max(0, (Number(def.armor) || 0) * multiplier),
         attackSpeedMs: Math.max(100, Number(def.attackSpeedMs) || COMBAT_ATTACK_SPEED_BASE_MS),
         attackTimerMs: 0,
     };
@@ -227,8 +257,13 @@ function getCombatStatsText(combatant) {
         ? activeCombat.enemy
         : activeCombat.player);
     const crit = getCombatCritChance(combatant) * 100;
+    const lines = [];
 
-    return [
+    if (Number.isFinite(Number(combatant.level)) && combatant.level > 0) {
+        lines.push("Level: " + combatant.level);
+    }
+
+    lines.push(
         "HP: " + formatCombatStat(combatant.hp) + " / " + formatCombatStat(combatant.maxHp),
         "Mana: " + formatCombatStat(combatant.mana) + " / " + formatCombatStat(combatant.maxMana),
         "SP: " + formatCombatStat(combatant.sp) + " / " + formatCombatStat(combatant.maxSp),
@@ -236,8 +271,10 @@ function getCombatStatsText(combatant) {
         "Defence: " + formatCombatStat(defence),
         "Attack speed: " + formatCombatSeconds(interval),
         "Hit: " + formatCombatStat(hit) + "%",
-        "Crit: " + formatCombatStat(crit) + "%",
-    ].join("\n");
+        "Crit: " + formatCombatStat(crit) + "%"
+    );
+
+    return lines.join("\n");
 }
 
 function ensureCombatOverlay() {

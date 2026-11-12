@@ -714,6 +714,9 @@ function initMapView() {
     const mapContent = document.getElementById('mapcontent');
     if (!mapContent || window.mapView) return;
     window.mapView = new MapView(mapContent);
+    if (typeof ensureStartCoordinates === "function") {
+        ensureStartCoordinates();
+    }
 }
 
 if (document.readyState === 'loading') {

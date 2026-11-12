@@ -212,6 +212,56 @@ var currentTile = {
     },
     harvestedTrees: {},
 };
+var startX = null;
+var startY = null;
+
+function ensureStartCoordinates(x, y) {
+    const nextX = Number(x);
+    const nextY = Number(y);
+    if (Number.isFinite(nextX) && Number.isFinite(nextY)) {
+        startX = nextX;
+        startY = nextY;
+        return;
+    }
+    if (Number.isFinite(startX) && Number.isFinite(startY)) return;
+    if (typeof currentTile !== "undefined" && currentTile) {
+        const tileX = Number(currentTile.x);
+        const tileY = Number(currentTile.y);
+        if (Number.isFinite(tileX) && Number.isFinite(tileY)) {
+            startX = tileX;
+            startY = tileY;
+        }
+    }
+}
+
+function getStartCoordinates() {
+    ensureStartCoordinates();
+    return {
+        x: Number.isFinite(startX) ? startX : 0,
+        y: Number.isFinite(startY) ? startY : 0,
+    };
+}
+
+function restoreStartCoordinates(savedX, savedY) {
+    const nextX = Number(savedX);
+    const nextY = Number(savedY);
+    if (Number.isFinite(nextX) && Number.isFinite(nextY)) {
+        startX = nextX;
+        startY = nextY;
+        return;
+    }
+    if (typeof currentTile !== "undefined" && currentTile) {
+        const tileX = Number(currentTile.x);
+        const tileY = Number(currentTile.y);
+        if (Number.isFinite(tileX) && Number.isFinite(tileY)) {
+            startX = tileX;
+            startY = tileY;
+            return;
+        }
+    }
+    startX = 0;
+    startY = 0;
+}
 logLength = DEFAULT_LOG_LENGTH;
 maxActions = DEFAULT_MAX_ACTIONS;
 actionsCount = maxActions;
