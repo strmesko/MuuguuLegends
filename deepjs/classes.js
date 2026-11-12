@@ -1614,7 +1614,7 @@ function getResourceMultiplier(tile, resourceId) {
 const PERCENT = 100;
 const CORE_STAT_COUNT = 9;
 const CORE_STAT_NAMES = ["str", "agi", "vit", "per", "int", "ins", "sou", "luck", "speed"];
-const LEARNABLE_SKILL_KEYS = ["exploration", "forage", "rest", "focus", "wizardy", "alchemy", "masonry", "pottery", "regeneration", "autism", "science", "traveling", "dreammastery", "survival", "ropemaking", "tailoring", "carpentry", "architecture", "gardening", "digging", "lumberjack", "mining", "smithing", "cooking", "milling"];
+const LEARNABLE_SKILL_KEYS = ["exploration", "forage", "rest", "focus", "meditation", "wizardy", "alchemy", "masonry", "pottery", "regeneration", "autism", "science", "traveling", "dreammastery", "survival", "ropemaking", "tailoring", "carpentry", "architecture", "gardening", "digging", "lumberjack", "mining", "smithing", "cooking", "milling"];
 
 // Every edible resource is bound to one core stat for the whole playthrough.
 // The binding is rolled once when a new game starts and is stored in saves.
@@ -1888,6 +1888,7 @@ class Character {
         this.forage = new Skill("forage", "Gather the garbage things like a vacuum sucker");
         this.rest = new Skill("rest", "The art of sloth. Poor way to regain stamina");
         this.focus = new Skill("Focus", "The art of concentrating the mind and bending time around a running task.");
+        this.meditation = new Skill("Meditation", "The art of quieting the mind and restoring mana through stillness.");
         this.wizardy = new Skill("Wizardy", "The art of channeling spent mana into arcane understanding.");
         this.alchemy = new Skill("Alchemy", "The art of mixing minerals, ash and water into useful compounds.");
         this.masonry = new Skill("Masonry", "The art of raising durable stone structures from rocks, mortar and timber.");

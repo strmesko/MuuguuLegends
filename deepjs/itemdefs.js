@@ -1164,11 +1164,10 @@ function normalizeItemProperty(property, rarityId, quality) {
     if (typeof property.key !== "string" || !property.key) return null;
 
     // Old items may still carry the removed Meditation skill property or the
-    // old meditation* global modifier keys.
+    // old meditation* global modifier keys. Meditation is a skill again, so
+    // the skill property is kept; only Focus action globals are renamed.
     let propertyKey = property.key;
-    if (property.type === "skill" && propertyKey === "meditation") {
-        propertyKey = "focus";
-    } else if (property.type === "global") {
+    if (property.type === "global") {
         if (propertyKey === "meditationTimeskip") propertyKey = "focusTimeskip";
         if (propertyKey === "meditationCost") propertyKey = "focusCost";
     }

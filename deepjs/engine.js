@@ -4,6 +4,7 @@ const LEARNED_SKILLS = [
     { barId: 'skillsplacerest', key: 'rest', label: 'rest', descriptionKey: 'rest' },
     { barId: 'skillsplaceregeneration', key: 'regeneration', label: 'Regeneration', descriptionKey: 'regeneration' },
     { barId: 'skillsplacefocus', key: 'focus', label: 'Focus', descriptionKey: 'focus' },
+    { barId: 'skillsplacemeditation', key: 'meditation', label: 'Meditation', descriptionKey: 'meditation' },
     { barId: 'skillsplacewizardy', key: 'wizardy', label: 'Wizardy', descriptionKey: 'wizardy' },
     { barId: 'skillsplacealchemy', key: 'alchemy', label: 'Alchemy', descriptionKey: 'alchemy' },
     { barId: 'skillsplacemasonry', key: 'masonry', label: 'Masonry', descriptionKey: 'masonry' },
@@ -3467,10 +3468,10 @@ function hpRegen(timeAmount){
     player.hp = round2(player.hp);
 }
 function manaRegen(timeAmount){
-    var regenAmount = round2(Math.pow((getEffectiveLevel("int") * getEffectiveLevel("focus") * (getEffectiveLevel("sou")* 0.01)), 1/2) * timeAmount * getSleepRegenMultiplier() * getGlobalPropertyMultiplier("manaregen") * getHearthfireRegenMultiplier() * (typeof getDarkManaRegenMultiplier === "function" ? getDarkManaRegenMultiplier() : 1) * getHungerManaRegenMultiplier() * getWellFedRegenMultiplier());
+    var regenAmount = round2(Math.pow((getEffectiveLevel("int") * getEffectiveLevel("meditation") * (getEffectiveLevel("sou")* 0.01)), 1/2) * timeAmount * getSleepRegenMultiplier() * getGlobalPropertyMultiplier("manaregen") * getHearthfireRegenMultiplier() * (typeof getDarkManaRegenMultiplier === "function" ? getDarkManaRegenMultiplier() : 1) * getHungerManaRegenMultiplier() * getWellFedRegenMultiplier());
     if (player.mana == player.maxmana) {}
     else if (player.mana + regenAmount > player.maxmana){
-        player.focus.addexp(round2((player.maxmana - player.mana)/ regenAmount * timeAmount));
+        player.meditation.addexp(round2((player.maxmana - player.mana)/ regenAmount * timeAmount));
         player.int.addexp(round2((player.maxmana - player.mana)/ regenAmount / 10 * timeAmount));
         player.sou.addexp(round2((player.maxmana - player.mana)/ regenAmount / 50 * timeAmount));
         player.mana = player.maxmana;
@@ -3478,7 +3479,7 @@ function manaRegen(timeAmount){
     } else {
         player.int.addexp(0.1);
         player.sou.addexp(0.02);
-        player.focus.addexp(1);
+        player.meditation.addexp(1);
         player.mana += regenAmount;
         
     }

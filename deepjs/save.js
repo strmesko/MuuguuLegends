@@ -7,6 +7,7 @@
         "exploration",
         "rest",
         "focus",
+        "meditation",
         "wizardy",
         "alchemy",
         "masonry",
@@ -315,32 +316,16 @@
     function restorePlayer(savedPlayer) {
         const restoredPlayer = Object.assign({}, savedPlayer);
         RESTORABLE_PLAYER_SKILLS.forEach(function (skillName) {
-            // Focus replaced the old Meditation skill. Old saves keep their
-            // progress by copying the legacy skill into the new key.
-            const legacySkill = skillName === "focus" && savedPlayer
-                ? savedPlayer.meditation
-                : null;
             const savedSkill = savedPlayer
-                ? (savedPlayer[skillName] || legacySkill)
+                ? savedPlayer[skillName]
                 : null;
-            const isLegacyMeditation = !!legacySkill
-                && !(savedPlayer && savedPlayer[skillName]);
             restoredPlayer[skillName] = savedSkill
                 ? restoreSkill(savedSkill)
                 // A skill missing from the save was added later (for example
-                // Traveling in old saves): start it at its defaults instead of
-                // inheriting progress from the current session.
+                // Traveling or Meditation in old saves): start it at its
+                // defaults instead of inheriting progress from the current session.
                 : createDefaultSkill(skillName);
-
-            if (isLegacyMeditation) {
-                // Keep the old progress but use the new Focus name/description
-                // so property multipliers and the skills tab address it as Focus.
-                const template = createDefaultSkill(skillName);
-                restoredPlayer[skillName].name = template.name;
-                restoredPlayer[skillName].description = template.description;
-            }
         });
-        delete restoredPlayer.meditation;
         RESTORABLE_PLAYER_STATS.forEach(function (statName) {
             restoredPlayer[statName] = restoreStat(savedPlayer[statName]);
         });
@@ -636,6 +621,7 @@
             ['forage', player.forage.lvl > 1 || player.forage.exp != BASE_EXP],
             ['rest', player.rest.lvl > 1 || player.rest.exp != BASE_EXP],
             ['focus', player.focus.lvl > 1 || player.focus.exp != BASE_EXP],
+            ['meditation', player.meditation.lvl > 1 || player.meditation.exp != BASE_EXP],
             ['wizardy', player.wizardy.lvl > 1 || player.wizardy.exp != BASE_EXP],
             ['alchemy', player.alchemy.lvl > 1 || player.alchemy.exp != BASE_EXP],
             ['masonry', player.masonry.lvl > 1 || player.masonry.exp != BASE_EXP],

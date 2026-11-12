@@ -690,6 +690,7 @@ function ensureSkillsDivider(){
 
 const SKILL_DISPLAY_NAMES = Object.freeze({
     focus: "Focus",
+    meditation: "Meditation",
     wizardy: "Wizardy",
     alchemy: "Alchemy",
     masonry: "Masonry",
