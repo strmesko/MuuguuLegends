@@ -43,7 +43,7 @@ Failed to load resource: the server responded with a status of 404 ()
 
 ## Architecture
 
-- `index.html` loads scripts in dependency order: `classes.js`, `itemdefs.js`, `variables.js`, `gametime.js`, `items.js`, `drama.js`, `elements.js`, `tabselector.js`, `engine.js`, `actions.js`, `main.js`, `worldgen.js`, `mapview.js`, `buttonactions.js`, `build.js`, `save.js`, `craft.js`, `cheat.js`.
+- `index.html` loads scripts in dependency order: `classes.js`, `itemdefs.js`, `variables.js`, `gametime.js`, `items.js`, `drama.js`, `elements.js`, `tabselector.js`, `engine.js`, `actions.js`, `combat.js`, `main.js`, `worldgen.js`, `mapview.js`, `buttonactions.js`, `build.js`, `save.js`, `craft.js`, `cheat.js`.
 - New JS files must be added to `index.html` at the correct point; there are no imports.
 - Most UI is generated at runtime from JS. Static HTML is only a shell; search `deepjs/` for element IDs and labels instead of assuming markup exists.
 - `deepjs/classes.js`: resources, skills, stats, equipment groups, potential, effective levels.
@@ -51,6 +51,7 @@ Failed to load resource: the server responded with a status of 404 ()
 - `deepjs/craft.js`: recipes, food quality, bonus ingredients, craft UI.
 - `deepjs/items.js`: inventory, equipment, food consumption, icon routing.
 - `deepjs/drama.js`: DramaMeter, random event list and event rolls. `updateDrama(diff)` is called from the main loop and time-skip simulation.
+- `deepjs/combat.js`: mob definitions, combat state, attack timers, combat formulas and the combat panel. `updateCombat(diff)` is called from the production loop.
 - `deepjs/engine.js`: production loops, auto-eat, smelting, burn actions, learned skill bars.
 - `deepjs/build.js`: building definitions, quality, improvement, house powers, build UI.
 - `deepjs/variables.js`: technology definitions. Research tree UI is in `elements.js`, clicks in `buttonactions.js`, status in `actions.js`, persistence in `save.js`.

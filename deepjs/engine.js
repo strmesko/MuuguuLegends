@@ -5,6 +5,10 @@ const LEARNED_SKILLS = [
     { barId: 'skillsplaceregeneration', key: 'regeneration', label: 'Regeneration', descriptionKey: 'regeneration' },
     { barId: 'skillsplacefocus', key: 'focus', label: 'Focus', descriptionKey: 'focus' },
     { barId: 'skillsplacemeditation', key: 'meditation', label: 'Meditation', descriptionKey: 'meditation' },
+    { barId: 'skillsplacetactics', key: 'tactics', label: 'Tactics', descriptionKey: 'tactics' },
+    { barId: 'skillsplaceanatomy', key: 'anatomy', label: 'Anatomy', descriptionKey: 'anatomy' },
+    { barId: 'skillsplacedodging', key: 'dodging', label: 'Dodging', descriptionKey: 'dodging' },
+    { barId: 'skillsplacebullseye', key: 'bullseye', label: 'BullsEye', descriptionKey: 'bullseye' },
     { barId: 'skillsplacewizardy', key: 'wizardy', label: 'Wizardy', descriptionKey: 'wizardy' },
     { barId: 'skillsplacealchemy', key: 'alchemy', label: 'Alchemy', descriptionKey: 'alchemy' },
     { barId: 'skillsplacemasonry', key: 'masonry', label: 'Masonry', descriptionKey: 'masonry' },
@@ -1067,6 +1071,7 @@ function productionLoop(diff, options) {
     updateDayDreamUnlock(diff);
     runTravelProduction(diff);
     runActiveActions(diff);
+    if (typeof updateCombat === "function") updateCombat(diff);
 
     const manaAfter = Number(player.mana) || 0;
     if (manaAfter < manaBefore) {

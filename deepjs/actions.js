@@ -188,6 +188,29 @@ const ACTIONS = [
         run: performFocus,
     },
     {
+        id: "entercombat",
+        label: "Enter combat",
+        tags: ["combat"],
+        description: "Fight a Catterpuwa. All other actions are blocked until combat ends.",
+        kind: ACTION_KIND.Instant,
+        initialState: Activity.Idle,
+        isVisible: function () {
+            return !(typeof isTraveling === "function" && isTraveling())
+                && !(typeof isCombatActive === "function" && isCombatActive());
+        },
+        isEnabled: function () {
+            return !(typeof isTraveling === "function" && isTraveling())
+                && !(typeof isCombatActive === "function" && isCombatActive())
+                && !!(typeof player !== "undefined" && player && player.hp > 0);
+        },
+        unavailableMessage: "You cannot enter combat right now.",
+        run: function () {
+            return typeof enterCombat === "function"
+                ? enterCombat("catterpuwa")
+                : false;
+        },
+    },
+    {
         id: "explore",
         label: "Explore",
         description: "Explore the entire tile for further investigate. <br>Full tile exploration reveals neighbour tiles",
@@ -842,6 +865,7 @@ function getActionIdleColor(action) {
     if (hasActionTag(action, "harvest")) return ACTION_HARVEST_IDLE_COLOR;
     if (hasActionTag(action, "Production")) return ACTION_PRODUCTION_IDLE_COLOR;
     if (hasActionTag(action, "Moverment")) return ACTION_MOVEMENT_IDLE_COLOR;
+    if (hasActionTag(action, "combat")) return ACTION_COMBAT_IDLE_COLOR;
     return ACTION_IDLE_COLOR;
 }
 
@@ -861,6 +885,8 @@ function createActionButton(action) {
         button.classList.add("action-production");
     } else if (hasActionTag(action, "Moverment")) {
         button.classList.add("action-moverment");
+    } else if (hasActionTag(action, "combat")) {
+        button.classList.add("action-combat");
     }
     button.style.visibility = "visible";
 
@@ -891,8 +917,11 @@ function updateActionButton(actionId) {
         button.setAttribute("data-tooltip", getActionDescription(action));
         const label = button.querySelector(".actionbutton-label");
         if (label) label.innerText = getActionLabel(action);
-        const enabled = typeof action.isEnabled !== "function"
-            || action.isEnabled() === true;
+        const combatLocked = typeof isCombatActive === "function"
+            && isCombatActive();
+        const enabled = !combatLocked
+            && (typeof action.isEnabled !== "function"
+                || action.isEnabled() === true);
         button.disabled = !enabled;
         button.classList.toggle("actiondisabled", !enabled);
     }
@@ -951,6 +980,10 @@ function shouldRememberPreviousTimedAction(action) {
 }
 
 function startTimedAction(action) {
+    if (typeof isCombatActive === "function" && isCombatActive()) {
+        logMessage("You cannot start actions during combat.");
+        return false;
+    }
     if (actionsCount <= 0) {
         logMessage("No action points.");
         return false;
@@ -1547,6 +1580,10 @@ function runTravelProduction(diff) {
 }
 
 function performAction(action) {
+    if (typeof isCombatActive === "function" && isCombatActive()) {
+        logMessage("All actions are blocked during combat.");
+        return;
+    }
     if (action.kind === ACTION_KIND.Timed) {
         toggleTimedAction(action);
     } else if (action.move) {
@@ -1798,6 +1835,7 @@ function updateDayDreamUnlock(diff) {
 }
 
 function runActiveActions(diff) {
+    if (typeof isCombatActive === "function" && isCombatActive()) return;
     ACTIONS.forEach(function (action) {
         if (action.kind !== ACTION_KIND.Timed || !isActionActive(action.id)) return;
 
@@ -1832,6 +1870,7 @@ function getForcedSleepChance() {
 
 function tryFallAsleep(diff) {
     if (!player || isTraveling()) return;
+    if (typeof isCombatActive === "function" && isCombatActive()) return;
     if (isActionActive("sleep")) return;
 
     const seconds = Math.max(0, Number(diff) || 0);

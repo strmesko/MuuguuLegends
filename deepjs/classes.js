@@ -1614,7 +1614,7 @@ function getResourceMultiplier(tile, resourceId) {
 const PERCENT = 100;
 const CORE_STAT_COUNT = 9;
 const CORE_STAT_NAMES = ["str", "agi", "vit", "per", "int", "ins", "sou", "luck", "speed"];
-const LEARNABLE_SKILL_KEYS = ["exploration", "forage", "rest", "focus", "meditation", "wizardy", "alchemy", "masonry", "pottery", "regeneration", "autism", "science", "traveling", "dreammastery", "survival", "ropemaking", "tailoring", "carpentry", "architecture", "gardening", "digging", "lumberjack", "mining", "smithing", "cooking", "milling"];
+const LEARNABLE_SKILL_KEYS = ["exploration", "forage", "rest", "focus", "meditation", "wizardy", "alchemy", "masonry", "pottery", "regeneration", "autism", "science", "traveling", "dreammastery", "survival", "ropemaking", "tailoring", "carpentry", "architecture", "gardening", "digging", "lumberjack", "mining", "smithing", "cooking", "milling", "tactics", "anatomy", "dodging", "bullseye"];
 
 // Every edible resource is bound to one core stat for the whole playthrough.
 // The binding is rolled once when a new game starts and is stored in saves.
@@ -1749,6 +1749,7 @@ const ACTION_RESTORATION_IDLE_COLOR = "#b9e2ff";
 const ACTION_MAGIC_IDLE_COLOR = "#f0dcff";
 const ACTION_PRODUCTION_IDLE_COLOR = "#b7e3a1";
 const ACTION_MOVEMENT_IDLE_COLOR = "#d9f7c0";
+const ACTION_COMBAT_IDLE_COLOR = "#e8b4b4";
 const MIN_STAMINA_TO_FORAGE = 0.1;
 const EXPLORATION_PROGRESS_RATE = 0.01;
 const SEARCH_UNITS_RATE = 1;
@@ -1889,6 +1890,10 @@ class Character {
         this.rest = new Skill("rest", "The art of sloth. Poor way to regain stamina");
         this.focus = new Skill("Focus", "The art of concentrating the mind and bending time around a running task.");
         this.meditation = new Skill("Meditation", "The art of quieting the mind and restoring mana through stillness.");
+        this.tactics = new Skill("Tactics", "The art of reading a fight and turning position into advantage.");
+        this.anatomy = new Skill("Anatomy", "Knowledge of bodies, weak points and how to hit them properly.");
+        this.dodging = new Skill("Dodging", "The art of not being where the blow lands.");
+        this.bullseye = new Skill("BullsEye", "The art of hitting the one spot that matters.");
         this.wizardy = new Skill("Wizardy", "The art of channeling spent mana into arcane understanding.");
         this.alchemy = new Skill("Alchemy", "The art of mixing minerals, ash and water into useful compounds.");
         this.masonry = new Skill("Masonry", "The art of raising durable stone structures from rocks, mortar and timber.");
