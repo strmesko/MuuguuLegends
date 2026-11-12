@@ -138,6 +138,9 @@
             dramaEventTimer: typeof dramaEventTimer !== "undefined" ? dramaEventTimer : 0,
             catchedColdRemaining: typeof catchedColdRemaining !== "undefined" ? catchedColdRemaining : 0,
             earthShakingRemaining: typeof earthShakingRemaining !== "undefined" ? earthShakingRemaining : 0,
+            dramaDebuffs: typeof getDramaDebuffsSnapshot === "function"
+                ? getDramaDebuffsSnapshot()
+                : {},
             mapSeed: window.mapView ? window.mapView.getSeed() : null,
         };
     }
@@ -476,7 +479,8 @@
                 saved.DramaMeter,
                 saved.dramaEventTimer,
                 saved.catchedColdRemaining,
-                saved.earthShakingRemaining
+                saved.earthShakingRemaining,
+                saved.dramaDebuffs
             );
         }
         restoreTechnologies(saved.technologies);

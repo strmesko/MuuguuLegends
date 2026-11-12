@@ -979,6 +979,9 @@ function renderStatusIcons() {
     const earthShakingStatus = typeof getEarthShakingStatus === 'function'
         ? getEarthShakingStatus()
         : null;
+    const dramaDebuffStatuses = typeof getActiveDramaDebuffStatuses === 'function'
+        ? getActiveDramaDebuffStatuses()
+        : [];
     const statuses = sleepyStatuses.slice();
     if (hearthfireStatus) statuses.push(hearthfireStatus);
     if (darkStatus) statuses.push(darkStatus);
@@ -986,6 +989,7 @@ function renderStatusIcons() {
     if (wellFedStatus) statuses.push(wellFedStatus);
     if (catchedColdStatus) statuses.push(catchedColdStatus);
     if (earthShakingStatus) statuses.push(earthShakingStatus);
+    statuses.push.apply(statuses, dramaDebuffStatuses);
 
     const key = statuses.map(function (status) {
         return status.id + (status.stacks != null ? ':' + round2(status.stacks) : '');
@@ -1062,6 +1066,14 @@ function renderStatusIcons() {
                 ? getEarthShakingStatus()
                 : null;
             if (status) icon.setAttribute('data-tooltip', status.tooltip);
+            return;
+        }
+
+        const dramaStatus = typeof getDramaDebuffStatusById === 'function'
+            ? getDramaDebuffStatusById(icon.dataset.statusId)
+            : null;
+        if (dramaStatus) {
+            icon.setAttribute('data-tooltip', dramaStatus.tooltip);
             return;
         }
 

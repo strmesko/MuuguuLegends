@@ -1726,6 +1726,10 @@ function getEffectiveLevel(key) {
         effective *= getCatchedColdSpeedMultiplier();
     }
 
+    if (typeof getDramaStatMultiplier === "function") {
+        effective *= getDramaStatMultiplier(key);
+    }
+
     return effective;
 }
 

@@ -6,6 +6,7 @@ var DramaMeter = 0;
 var dramaEventTimer = 0;
 var catchedColdRemaining = 0;
 var earthShakingRemaining = 0;
+var dramaDebuffs = {};
 
 const DRAMA_METER_MAX = 10000;
 const DRAMA_EVENT_INTERVAL_SECONDS = 5;
@@ -82,6 +83,184 @@ function isForageBelowTwenty() {
 function formatDramaDuration(seconds) {
     const total = Math.max(0, Math.ceil(Number(seconds) || 0));
     return Math.floor(total / 60) + ":" + String(total % 60).padStart(2, "0");
+}
+
+const DRAMA_STAT_LABELS = Object.freeze({
+    str: "Strength",
+    agi: "Agility",
+    vit: "Vitality",
+    per: "Perception",
+    int: "Intellect",
+    ins: "Insight",
+    sou: "Soul",
+    luck: "Luck",
+    speed: "Speed",
+});
+
+// Timed injuries and illnesses. Each multiplier is applied directly to the
+// corresponding core stat by getEffectiveLevel().
+const DRAMA_DEBUFF_DEFS = Object.freeze({
+    "twisted-ankle": Object.freeze({
+        name: "Twisted ankle", duration: 180, icon: "fa-bolt", color: "#c98b3b",
+        stats: Object.freeze({ agi: 0.7, speed: 0.8 }),
+    }),
+    "strained-back": Object.freeze({
+        name: "Strained back", duration: 240, icon: "fa-user-md", color: "#a06a4a",
+        stats: Object.freeze({ str: 0.7, agi: 0.9 }),
+    }),
+    "concussion": Object.freeze({
+        name: "Concussion", duration: 300, icon: "fa-medkit", color: "#8e7cc3",
+        stats: Object.freeze({ int: 0.75, per: 0.85 }),
+    }),
+    "broken-finger": Object.freeze({
+        name: "Broken finger", duration: 240, icon: "fa-hand-paper-o", color: "#b07d3a",
+        stats: Object.freeze({ agi: 0.8, str: 0.9 }),
+    }),
+    "deep-cut": Object.freeze({
+        name: "Deep cut", duration: 180, icon: "fa-tint", color: "#c0504d",
+        stats: Object.freeze({ str: 0.85, vit: 0.85 }),
+    }),
+    "infected-wound": Object.freeze({
+        name: "Infected wound", duration: 300, icon: "fa-plus-square", color: "#8a5a00",
+        stats: Object.freeze({ vit: 0.8, str: 0.9 }),
+    }),
+    "fever": Object.freeze({
+        name: "Fever", duration: 180, icon: "fa-fire", color: "#d96b3b",
+        stats: Object.freeze({ vit: 0.8, int: 0.85 }),
+    }),
+    "migraine": Object.freeze({
+        name: "Migraine", duration: 180, icon: "fa-frown-o", color: "#7b5ea7",
+        stats: Object.freeze({ int: 0.75, per: 0.9 }),
+    }),
+    "nausea": Object.freeze({
+        name: "Nausea", duration: 120, icon: "fa-meh-o", color: "#7aa35a",
+        stats: Object.freeze({ vit: 0.8, sou: 0.9 }),
+    }),
+    "blurred-vision": Object.freeze({
+        name: "Blurred vision", duration: 120, icon: "fa-eye-slash", color: "#6f8fa8",
+        stats: Object.freeze({ per: 0.7 }),
+    }),
+    "ringing-ears": Object.freeze({
+        name: "Ringing ears", duration: 120, icon: "fa-deaf", color: "#8f8f8f",
+        stats: Object.freeze({ per: 0.8, int: 0.9 }),
+    }),
+    "sprained-wrist": Object.freeze({
+        name: "Sprained wrist", duration: 180, icon: "fa-hand-paper-o", color: "#b07d3a",
+        stats: Object.freeze({ str: 0.8, agi: 0.9 }),
+    }),
+    "bruised-ribs": Object.freeze({
+        name: "Bruised ribs", duration: 240, icon: "fa-heartbeat", color: "#c0504d",
+        stats: Object.freeze({ vit: 0.8, agi: 0.9 }),
+    }),
+    "sore-muscles": Object.freeze({
+        name: "Sore muscles", duration: 300, icon: "fa-bed", color: "#7a6a5a",
+        stats: Object.freeze({ str: 0.85, agi: 0.85 }),
+    }),
+    "exhaustion": Object.freeze({
+        name: "Exhaustion", duration: 180, icon: "fa-bed", color: "#6f6f6f",
+        stats: Object.freeze({ vit: 0.8, speed: 0.9 }),
+    }),
+    "chill": Object.freeze({
+        name: "Chill", duration: 180, icon: "fa-snowflake-o", color: "#6fa8dc",
+        stats: Object.freeze({ vit: 0.85, agi: 0.9 }),
+    }),
+    "heatstroke": Object.freeze({
+        name: "Heatstroke", duration: 240, icon: "fa-fire", color: "#e07b39",
+        stats: Object.freeze({ vit: 0.8, int: 0.85 }),
+    }),
+    "food-poisoning": Object.freeze({
+        name: "Food poisoning", duration: 300, icon: "fa-flask", color: "#6b8e23",
+        stats: Object.freeze({ vit: 0.75, sou: 0.85 }),
+    }),
+    "allergy": Object.freeze({
+        name: "Allergy", duration: 180, icon: "fa-leaf", color: "#7aa35a",
+        stats: Object.freeze({ per: 0.85, vit: 0.9 }),
+    }),
+    "splinter": Object.freeze({
+        name: "Splinter", duration: 120, icon: "fa-tree", color: "#a06a4a",
+        stats: Object.freeze({ agi: 0.9, luck: 0.9 }),
+    }),
+});
+
+function getDramaDebuffDefinition(id) {
+    return DRAMA_DEBUFF_DEFS[id] || null;
+}
+
+function hasDramaDebuff(id) {
+    return (Number(dramaDebuffs[id]) || 0) > 0;
+}
+
+function applyDramaDebuff(id) {
+    const def = getDramaDebuffDefinition(id);
+    if (!def) return false;
+
+    dramaDebuffs[id] = Math.max(Number(dramaDebuffs[id]) || 0, def.duration);
+    if (typeof calculateStats === "function") calculateStats();
+    return true;
+}
+
+// Multiplies every matching core stat. Multiple active injuries stack
+// multiplicatively so a badly beaten character really feels it.
+function getDramaStatMultiplier(statKey) {
+    let multiplier = 1;
+
+    Object.keys(dramaDebuffs).forEach(function (id) {
+        const remaining = Number(dramaDebuffs[id]) || 0;
+        if (remaining <= 0) return;
+
+        const def = getDramaDebuffDefinition(id);
+        if (!def || !def.stats) return;
+
+        const value = Number(def.stats[statKey]);
+        if (Number.isFinite(value) && value > 0) multiplier *= value;
+    });
+
+    return Math.max(0.05, multiplier);
+}
+
+function createDramaDebuffStatus(id) {
+    const def = getDramaDebuffDefinition(id);
+    const remaining = Number(dramaDebuffs[id]) || 0;
+    if (!def || remaining <= 0) return null;
+
+    const lines = ["<b>" + def.name + "</b>"];
+    Object.keys(def.stats).forEach(function (statKey) {
+        const value = Number(def.stats[statKey]);
+        if (!Number.isFinite(value) || value <= 0 || value >= 1) return;
+        const label = DRAMA_STAT_LABELS[statKey] || statKey;
+        lines.push("-" + Math.round((1 - value) * 100) + "% " + label);
+    });
+    lines.push("Remaining: " + formatDramaDuration(remaining));
+
+    return {
+        id: id,
+        name: def.name,
+        kind: "debuff",
+        color: def.color,
+        icon: def.icon,
+        tooltip: lines.join("<br>"),
+    };
+}
+
+function getDramaDebuffStatusById(id) {
+    return createDramaDebuffStatus(id);
+}
+
+function getActiveDramaDebuffStatuses() {
+    return Object.keys(dramaDebuffs).map(function (id) {
+        return createDramaDebuffStatus(id);
+    }).filter(Boolean);
+}
+
+function getDramaDebuffsSnapshot() {
+    const snapshot = {};
+    Object.keys(dramaDebuffs).forEach(function (id) {
+        const remaining = Number(dramaDebuffs[id]) || 0;
+        if (remaining > 0 && getDramaDebuffDefinition(id)) {
+            snapshot[id] = remaining;
+        }
+    });
+    return snapshot;
 }
 
 function getCurrentDramaTemperature() {
@@ -236,6 +415,190 @@ function damageBuildingsOnCurrentTile() {
     return changed;
 }
 
+function applyDramaDamage(fraction, message) {
+    if (typeof player === "undefined" || !player) return 0;
+
+    const maxHp = Number(player.maxhp) || 0;
+    const currentHp = Number(player.hp) || 0;
+    if (maxHp <= 0 || currentHp <= 0) return 0;
+
+    const damage = Math.max(0.01, round2(maxHp * Math.max(0, fraction)));
+    player.hp = Math.max(0, round2(currentHp - damage));
+    logMessage(message);
+    return damage;
+}
+
+function createDramaDamageEvent(id, name, cost, chance, fraction, message) {
+    return Object.freeze({
+        id: id,
+        name: name,
+        cost: cost,
+        type: DRAMA_EVENT_TYPES.Negative,
+        message: message,
+        getChance: function () {
+            return chance;
+        },
+        condition: function () {
+            return !!(typeof player !== "undefined"
+                && player
+                && Number(player.hp) > 0
+                && Number(player.maxhp) > 0);
+        },
+        apply: function () {
+            applyDramaDamage(fraction, message);
+        },
+    });
+}
+
+function createDramaDebuffEvent(id, name, cost, chance, debuffId, message) {
+    return Object.freeze({
+        id: id,
+        name: name,
+        cost: cost,
+        type: DRAMA_EVENT_TYPES.Negative,
+        message: message,
+        getChance: function () {
+            return chance;
+        },
+        isAvailable: function () {
+            return !hasDramaDebuff(debuffId);
+        },
+        condition: function () {
+            return !hasDramaDebuff(debuffId);
+        },
+        apply: function () {
+            applyDramaDebuff(debuffId);
+            logMessage(message);
+        },
+    });
+}
+
+const DRAMA_DAMAGE_EVENTS = Object.freeze([
+    createDramaDamageEvent(
+        "Thorn_scratch", "Thorn scratch", 50, 0.05, 0.03,
+        "A thorn tears your hand. You lose 3% HP."
+    ),
+    createDramaDamageEvent(
+        "Slipped_on_rocks", "Slipped on rocks", 100, 0.03, 0.06,
+        "You slipped on wet rocks and hit the ground. You lose 6% HP."
+    ),
+    createDramaDamageEvent(
+        "Burning_hand", "Burning hand", 100, 0.02, 0.05,
+        "You burned your hand on the campfire. You lose 5% HP."
+    ),
+    createDramaDamageEvent(
+        "Fell_from_a_tree", "Fell from a tree", 150, 0.02, 0.08,
+        "You fell from a tree. You lose 8% HP."
+    ),
+    createDramaDamageEvent(
+        "Heavy_branch", "Heavy branch", 200, 0.015, 0.10,
+        "A heavy branch falls on you. You lose 10% HP."
+    ),
+    createDramaDamageEvent(
+        "Fell_into_a_hole", "Fell into a hole", 200, 0.02, 0.10,
+        "You fell into a hidden hole. You lose 10% HP."
+    ),
+    createDramaDamageEvent(
+        "Snake_bite", "Snake bite", 250, 0.02, 0.12,
+        "A snake bites your leg. You lose 12% HP."
+    ),
+    createDramaDamageEvent(
+        "Wolf_scratch", "Wolf scratch", 300, 0.015, 0.15,
+        "A wolf scratches you. You lose 15% HP."
+    ),
+    createDramaDamageEvent(
+        "Rockfall", "Rockfall", 350, 0.01, 0.18,
+        "A rockfall hits you. You lose 18% HP."
+    ),
+    createDramaDamageEvent(
+        "Bee_swarm", "Bee swarm", 80, 0.04, 0.04,
+        "A swarm of bees stings you. You lose 4% HP."
+    ),
+]);
+
+const DRAMA_DEBUFF_EVENTS = Object.freeze([
+    createDramaDebuffEvent(
+        "Twisted_ankle", "Twisted ankle", 120, 0.03, "twisted-ankle",
+        "You twisted your ankle on uneven ground."
+    ),
+    createDramaDebuffEvent(
+        "Strained_back", "Strained back", 100, 0.03, "strained-back",
+        "You strained your back while lifting too much."
+    ),
+    createDramaDebuffEvent(
+        "Concussion", "Concussion", 250, 0.01, "concussion",
+        "A falling branch strikes your head. Everything spins."
+    ),
+    createDramaDebuffEvent(
+        "Broken_finger", "Broken finger", 150, 0.02, "broken-finger",
+        "You crushed your finger between two stones."
+    ),
+    createDramaDebuffEvent(
+        "Deep_cut", "Deep cut", 180, 0.02, "deep-cut",
+        "A sharp edge opens a deep cut."
+    ),
+    createDramaDebuffEvent(
+        "Infected_wound", "Infected wound", 220, 0.015, "infected-wound",
+        "A small wound becomes infected."
+    ),
+    createDramaDebuffEvent(
+        "Fever", "Fever", 160, 0.025, "fever",
+        "A sudden fever weakens your body."
+    ),
+    createDramaDebuffEvent(
+        "Migraine", "Migraine", 140, 0.025, "migraine",
+        "A throbbing migraine clouds your thoughts."
+    ),
+    createDramaDebuffEvent(
+        "Nausea", "Nausea", 100, 0.03, "nausea",
+        "A wave of nausea twists your stomach."
+    ),
+    createDramaDebuffEvent(
+        "Blurred_vision", "Blurred vision", 90, 0.03, "blurred-vision",
+        "Your vision blurs and refuses to focus."
+    ),
+    createDramaDebuffEvent(
+        "Ringing_ears", "Ringing ears", 90, 0.03, "ringing-ears",
+        "A loud ringing fills your ears."
+    ),
+    createDramaDebuffEvent(
+        "Sprained_wrist", "Sprained wrist", 130, 0.025, "sprained-wrist",
+        "You sprained your wrist."
+    ),
+    createDramaDebuffEvent(
+        "Bruised_ribs", "Bruised ribs", 180, 0.02, "bruised-ribs",
+        "You bruised your ribs."
+    ),
+    createDramaDebuffEvent(
+        "Sore_muscles", "Sore muscles", 120, 0.03, "sore-muscles",
+        "Every muscle in your body aches."
+    ),
+    createDramaDebuffEvent(
+        "Exhaustion", "Exhaustion", 200, 0.02, "exhaustion",
+        "A wave of exhaustion drains your strength."
+    ),
+    createDramaDebuffEvent(
+        "Chill", "Chill", 150, 0.02, "chill",
+        "A deep chill settles into your bones."
+    ),
+    createDramaDebuffEvent(
+        "Heatstroke", "Heatstroke", 180, 0.02, "heatstroke",
+        "The heat overwhelms you."
+    ),
+    createDramaDebuffEvent(
+        "Food_poisoning", "Food poisoning", 220, 0.015, "food-poisoning",
+        "Something you ate was rotten."
+    ),
+    createDramaDebuffEvent(
+        "Allergy", "Allergy", 100, 0.03, "allergy",
+        "Pollen and dust make your eyes water."
+    ),
+    createDramaDebuffEvent(
+        "Splinter", "Splinter", 60, 0.04, "splinter",
+        "A splinter digs under your skin."
+    ),
+]);
+
 const DRAMA_EVENTS = Object.freeze([
     Object.freeze({
         id: "Wrong_Step",
@@ -350,6 +713,8 @@ const DRAMA_EVENTS = Object.freeze([
             }
         },
     }),
+    ...DRAMA_DAMAGE_EVENTS,
+    ...DRAMA_DEBUFF_EVENTS,
 ]);
 
 function canTriggerDramaEvent(event) {
@@ -402,6 +767,29 @@ function updateDrama(diff) {
         }
     }
 
+    let dramaDebuffExpired = false;
+    Object.keys(dramaDebuffs).forEach(function (id) {
+        const previousRemaining = Number(dramaDebuffs[id]) || 0;
+        if (previousRemaining <= 0) {
+            delete dramaDebuffs[id];
+            return;
+        }
+
+        const remaining = Math.max(0, previousRemaining - seconds);
+        if (remaining > 0) {
+            dramaDebuffs[id] = remaining;
+            return;
+        }
+
+        delete dramaDebuffs[id];
+        dramaDebuffExpired = true;
+        const def = getDramaDebuffDefinition(id);
+        if (def) logMessage(def.name + " has worn off.");
+    });
+    if (dramaDebuffExpired && typeof calculateStats === "function") {
+        calculateStats();
+    }
+
     addDramaMeter(seconds);
     dramaEventTimer += seconds;
 
@@ -411,7 +799,7 @@ function updateDrama(diff) {
     }
 }
 
-function restoreDramaState(savedMeter, savedTimer, savedColdRemaining, savedEarthShakingRemaining) {
+function restoreDramaState(savedMeter, savedTimer, savedColdRemaining, savedEarthShakingRemaining, savedDebuffs) {
     setDramaMeter(savedMeter);
     const timer = Number(savedTimer);
     dramaEventTimer = Number.isFinite(timer) && timer >= 0
@@ -427,4 +815,15 @@ function restoreDramaState(savedMeter, savedTimer, savedColdRemaining, savedEart
     earthShakingRemaining = Number.isFinite(shaking) && shaking > 0
         ? Math.min(EARTH_SHAKING_DURATION_SECONDS, shaking)
         : 0;
+
+    dramaDebuffs = {};
+    if (savedDebuffs && typeof savedDebuffs === "object") {
+        Object.keys(savedDebuffs).forEach(function (id) {
+            const def = getDramaDebuffDefinition(id);
+            const remaining = Number(savedDebuffs[id]);
+            if (!def || !Number.isFinite(remaining) || remaining <= 0) return;
+            dramaDebuffs[id] = Math.min(def.duration, remaining);
+        });
+    }
+    if (typeof calculateStats === "function") calculateStats();
 }
