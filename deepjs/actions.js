@@ -78,6 +78,12 @@ function performFocus() {
     const manaSpent = round2(Math.max(0, manaBefore - Number(player.mana)));
     // Every point of mana actually spent while focusing becomes Wizardy exp.
     if (manaSpent > 0 && player.wizardy) player.wizardy.addexp(manaSpent);
+    // The Focus action trains its matching skill as well. At least one point
+    // is awarded so the Focus skill bar appears on first use.
+    if (power > 0 && player.focus) {
+        if (typeof createSkillBar === "function") createSkillBar("focus");
+        player.focus.addexp(Math.max(1, round2(power)));
+    }
     logMessage(
         "You focus and skip " + round2(power)
         + " seconds. Mana spent: " + round2(manaCost) + "."
