@@ -1920,7 +1920,7 @@ class Character {
         this.luck = new Stat("Luck", "You dont know how it works... probably.");
         this.speed = new Stat("Speed", "GOTTA GO FAST");
         this.speed.lvl = STARTING_SPEED_LEVEL;
-        this.speed.exp = this.speed.lvl * BASE_EXP;
+        this.speed.exp = getExperienceRequiredForLevel(this.speed.lvl);
         this.equipinventory = new Array(EQUIPMENT_SLOTS);
         this.equipment = createEmptyEquipment();
         this.sleepyness = 0;
@@ -1931,13 +1931,13 @@ function addPlayerExp(amount) {
 
     amount *= getGlobalPropertyMultiplier("characterExp");
 
-    player.maxexp = player.maxexp || BASE_EXP;
+    player.maxexp = player.maxexp || getExperienceRequiredForLevel(player.lvl || 1);
     player.exp += amount;
 
     while (player.exp >= player.maxexp) {
         player.exp -= player.maxexp;
         player.lvl += 1;
-        player.maxexp = player.lvl * BASE_EXP;
+        player.maxexp = getExperienceRequiredForLevel(player.lvl);
         logMessage("Your character are now level " + player.lvl);
     }
 
@@ -1968,16 +1968,7 @@ function addStatLevels(statNames, amount) {
         if (!stat) return;
 
         for (let level = 0; level < amount; level++) {
-            stat.lvl += 1;
-            stat.exp = stat.lvl * BASE_EXP;
-            stat.potential = Math.max(getMinPotential(), stat.potential * STAT_POTENTIAL_DECAY);
-            logMessage("Your " + stat.name + " are now level " + stat.lvl);
-            addPlayerExp(stat.lvl);
-
-            if (statName === "int" && typeof focusPoints === "number") {
-                focusPoints += 1;
-                updateFocusPointsDisplay();
-            }
+            levelUpExperienceEntry(stat, STAT_EXPERIENCE_OPTIONS);
         }
     });
 }
@@ -2096,6 +2087,121 @@ function getStatPropertyKey(stat) {
     return null;
 }
 
+function getExperienceRequiredForLevel(level) {
+    const value = Number(level);
+    return (Number.isFinite(value) && value > 0 ? value : 1) * BASE_EXP;
+}
+
+function getExperiencePotentialRate(entry) {
+    const potential = Number(entry && entry.potential);
+    return Number.isFinite(potential) && potential > 0
+        ? potential / MAX_POTENTIAL
+        : 0;
+}
+
+function getExperienceLevelCost(entry, potentialRate) {
+    const rate = Number(potentialRate);
+    return rate > 0 ? entry.exp / rate : 0;
+}
+
+function levelUpExperienceEntry(entry, options, key) {
+    const opts = options || {};
+    entry.lvl += 1;
+    entry.exp = getExperienceRequiredForLevel(entry.lvl);
+
+    const decay = Number(opts.potentialDecay);
+    entry.potential = Math.max(
+        getMinPotential(),
+        entry.potential * (Number.isFinite(decay) && decay > 0 ? decay : 1)
+    );
+
+    const shouldLog = typeof opts.shouldLogLevelUp !== "function"
+        || opts.shouldLogLevelUp(entry, key);
+    if (shouldLog) {
+        logMessage("Your " + entry.name + " are now level " + entry.lvl);
+    }
+
+    addPlayerExp(entry.lvl);
+    if (typeof opts.onLevelUp === "function") {
+        opts.onLevelUp(entry, key);
+    }
+    return entry.lvl;
+}
+
+// Single experience pipeline for Stats and Skills. Callers only supply the
+// equipment property type, potential decay and optional hooks.
+function addExperienceToEntry(entry, amount, options) {
+    if (!entry || !Number.isFinite(amount) || amount <= 0) return 0;
+
+    const opts = options || {};
+    const key = typeof opts.getPropertyKey === "function"
+        ? opts.getPropertyKey(entry)
+        : null;
+
+    if (key && typeof getEquippedPropertyMultiplier === "function") {
+        amount *= getEquippedPropertyMultiplier(opts.propertyType, key);
+    }
+
+    let levelsGained = 0;
+    while (amount > 0) {
+        if (typeof opts.beforeExp === "function") {
+            opts.beforeExp(entry, key);
+        }
+
+        const potentialRate = getExperiencePotentialRate(entry);
+        if (potentialRate > 0 && amount * potentialRate > entry.exp) {
+            amount -= getExperienceLevelCost(entry, potentialRate);
+            levelUpExperienceEntry(entry, opts, key);
+            levelsGained += 1;
+            continue;
+        }
+
+        entry.exp -= amount * potentialRate;
+        amount = 0;
+        if (typeof opts.onExpApplied === "function") {
+            opts.onExpApplied(entry, key);
+        }
+    }
+
+    return levelsGained;
+}
+
+const STAT_EXPERIENCE_OPTIONS = Object.freeze({
+    propertyType: "stat",
+    getPropertyKey: getStatPropertyKey,
+    potentialDecay: STAT_POTENTIAL_DECAY,
+    onLevelUp: function (entry) {
+        if (typeof player !== "undefined" && player && player.int === entry) {
+            if (typeof focusPoints === "number") focusPoints += 1;
+            if (typeof updateFocusPointsDisplay === "function") {
+                updateFocusPointsDisplay();
+            }
+        }
+    },
+    onExpApplied: function () {
+        if (typeof calculateStats === "function") calculateStats();
+    },
+});
+
+const SKILL_EXPERIENCE_OPTIONS = Object.freeze({
+    propertyType: "skill",
+    getPropertyKey: function (entry) {
+        return entry.name.toLowerCase();
+    },
+    potentialDecay: SKILL_POTENTIAL_DECAY,
+    beforeExp: function (entry, key) {
+        if (entry.lvl == 1
+            && entry.exp == BASE_EXP
+            && entry.potential
+            && LEARNABLE_SKILL_KEYS.includes(key)) {
+            createSkillBar(key);
+        }
+    },
+    shouldLogLevelUp: function (entry, key) {
+        return !(key === "autism" && suppressAutismLevelLogs);
+    },
+});
+
 class Stat {
     constructor (name, description)
     {
@@ -2108,30 +2214,7 @@ class Stat {
         nextStatId++;
     }
     addexp(amount){
-        if (typeof getEquippedPropertyMultiplier === "function") {
-            const propertyKey = getStatPropertyKey(this);
-            if (propertyKey) {
-                amount *= getEquippedPropertyMultiplier("stat", propertyKey);
-            }
-        }
-        while (amount > 0) {
-            if ((amount * this.potential/MAX_POTENTIAL) > this.exp)
-            {
-                this.lvl +=1;
-                amount -= this.exp/this.potential*MAX_POTENTIAL;
-                this.exp = this.lvl*BASE_EXP;
-                this.potential = Math.max(getMinPotential(), this.potential * STAT_POTENTIAL_DECAY);
-                logMessage("Your " + this.name + " are now level " + this.lvl);
-                addPlayerExp(this.lvl);
-                if (typeof player !== "undefined" && player && player.int === this) {
-                    focusPoints += 1;
-                    updateFocusPointsDisplay();
-                }
-                
-            }
-            else {this.exp -= ( amount * this.potential/MAX_POTENTIAL); amount = 0; calculateStats();}
-
-        }
+        return addExperienceToEntry(this, amount, STAT_EXPERIENCE_OPTIONS);
     }
     clone(cloned){
         this.name = cloned.name;
@@ -2151,27 +2234,7 @@ class Skill {
         this.description = description
     }
     addexp(amount){
-        if (typeof getEquippedPropertyMultiplier === "function") {
-            amount *= getEquippedPropertyMultiplier("skill", this.name.toLowerCase());
-        }
-        while (amount > 0) {
-            const skillKey = this.name.toLowerCase();
-            if (this.lvl == 1 && this.exp == BASE_EXP && this.potential && LEARNABLE_SKILL_KEYS.includes(skillKey)){
-               createSkillBar(skillKey);
-            }
-            if ((amount * this.potential/MAX_POTENTIAL) > this.exp)
-            {
-                this.lvl +=1;
-                amount -= this.exp * MAX_POTENTIAL / this.potential;
-                this.exp = this.lvl*BASE_EXP;
-                this.potential = Math.max(getMinPotential(), this.potential * SKILL_POTENTIAL_DECAY);
-                if (!(skillKey === "autism" && suppressAutismLevelLogs)) {
-                    logMessage("Your " + this.name + " are now level " + this.lvl);
-                }
-                addPlayerExp(this.lvl);
-            }
-            else {this.exp -= ( amount * this.potential/MAX_POTENTIAL); amount = 0}
-        }
+        return addExperienceToEntry(this, amount, SKILL_EXPERIENCE_OPTIONS);
     }
     clone(cloned){
         this.name = cloned.name;

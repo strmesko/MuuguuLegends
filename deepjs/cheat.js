@@ -205,7 +205,7 @@
             eachCharacterEntry(function (entry, key, kind) {
                 if (kind !== "stat") return;
                 entry.lvl = (Number(entry.lvl) || 1) + 1;
-                entry.exp = entry.lvl * BASE_EXP;
+                entry.exp = getExperienceRequiredForLevel(entry.lvl);
             });
             setCheatStatus("All stats increased by 1 level.");
             refreshGameUI();
@@ -215,7 +215,7 @@
             eachCharacterEntry(function (entry, key, kind) {
                 if (kind !== "skill") return;
                 entry.lvl = (Number(entry.lvl) || 1) + 1;
-                entry.exp = entry.lvl * BASE_EXP;
+                entry.exp = getExperienceRequiredForLevel(entry.lvl);
             });
             setCheatStatus("All skills increased by 1 level.");
             refreshGameUI();

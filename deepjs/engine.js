@@ -1031,8 +1031,9 @@ function calculateStats(){
 
 function updateSkillGUI(skillName, lvl, exp, description, potential) {
     const skillKey = getSkillBarKey(skillName);
-    document.getElementById('skillsplace'+skillKey).childNodes[0].nodeValue = skillName+ " LVL:" + lvl + " EXP remain:" + round2(round2(exp / (lvl * BASE_EXP)) * PERCENT) + "%"; //double dounded because paranoid
-    document.getElementById('skillbar'+skillKey).style.width = (PERCENT - PERCENT*(exp/(lvl*BASE_EXP))) + '%';
+    const experienceRequired = getExperienceRequiredForLevel(lvl);
+    document.getElementById('skillsplace'+skillKey).childNodes[0].nodeValue = skillName+ " LVL:" + lvl + " EXP remain:" + round2(round2(exp / experienceRequired) * PERCENT) + "%"; //double dounded because paranoid
+    document.getElementById('skillbar'+skillKey).style.width = (PERCENT - PERCENT*(exp/experienceRequired)) + '%';
 
     // Clothing bonuses are listed under the usual level/exp line, but only
     // when something equipped actually affects this stat or skill.
