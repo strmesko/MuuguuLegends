@@ -440,6 +440,8 @@
       ensureResourceBranch('intermediate-resources-items', 'cooking', 'Cooking', 'Flour and other cooking intermediates');
       ensureResourceBranch('cooking-items', 'flour', 'Flour', 'Stone-ground flour made with a Big Grinding stone');
       ensureResourceBranch('cooking-items', 'maple', 'Maple', 'Maple sirup from Maple extractors');
+      ensureResourceBranch('intermediate-resources-items', 'wizardy', 'Wizardy', 'Arcane and spirit remains');
+      ensureResourceBranch('wizardy-items', 'mob-spirit', 'Mob spirit', 'Spirit drops from slain mobs');
       if (resource && resource.id === RESOURCE_IDS.MAPLE_SIRUP) {
         return document.getElementById('maple-items');
       }
@@ -458,6 +460,9 @@
           || resource.id === RESOURCE_IDS.WOODEN_PLANK
           || resource.id === RESOURCE_IDS.WOODEN_BEAMS)) {
         return ensureResourceBranch('intermediate-resources-items', 'carpentry', 'carpentry', 'Shafts, handles, planks, beams and other carpentry materials');
+      }
+      if (resource && RESOURCE_DEFS[resource.id] && RESOURCE_DEFS[resource.id].mobSpirit) {
+        return document.getElementById('mob-spirit-items');
       }
       if (resource && (resource.id === RESOURCE_IDS.ASH
         || resource.id === RESOURCE_IDS.SPIRIT_ASPIC)) {

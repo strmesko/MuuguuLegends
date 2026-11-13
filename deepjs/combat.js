@@ -213,6 +213,44 @@ function getMobLootQuality(combatant) {
     return Math.pow(level, 1.1);
 }
 
+const MOB_SPIRIT_DROP_REQUIREMENTS = Object.freeze([
+    Object.freeze({ resourceId: RESOURCE_IDS.MOB_SPIRIT_DROPS, requiredLevel: 1 }),
+    Object.freeze({ resourceId: RESOURCE_IDS.MOB_SPIRIT_PART, requiredLevel: 16 }),
+    Object.freeze({ resourceId: RESOURCE_IDS.MOB_SPIRIT_TEARS, requiredLevel: 30 }),
+    Object.freeze({ resourceId: RESOURCE_IDS.MINOR_MOB_SPIRIT, requiredLevel: 45 }),
+    Object.freeze({ resourceId: RESOURCE_IDS.MEDIUM_MOB_SPIRIT, requiredLevel: 60 }),
+    Object.freeze({ resourceId: RESOURCE_IDS.BIG_MOB_SPIRIT, requiredLevel: 75 }),
+    Object.freeze({ resourceId: RESOURCE_IDS.GRAND_MOB_SPIRIT, requiredLevel: 90 }),
+]);
+
+function getMobSpiritDropChance(level, requiredLevel) {
+    const current = Math.max(1, Math.floor(Number(level) || 1));
+    const required = Math.max(1, Math.floor(Number(requiredLevel) || 1));
+    if (current < required) return 0;
+    return Math.min(1, (1 + (current - required)) / 100);
+}
+
+function dropMobSpiritResources(combatant) {
+    if (!combatant || typeof addResource !== "function") return;
+
+    const level = Math.max(1, Math.floor(Number(combatant.level) || 1));
+    const quality = getMobLootQuality(combatant);
+
+    MOB_SPIRIT_DROP_REQUIREMENTS.forEach(function (entry) {
+        if (level < entry.requiredLevel) return;
+        const chance = getMobSpiritDropChance(level, entry.requiredLevel);
+        if (chance <= 0 || Math.random() >= chance) return;
+
+        addResource(entry.resourceId, 1, quality);
+        const definition = typeof RESOURCE_DEFS !== "undefined"
+            ? RESOURCE_DEFS[entry.resourceId]
+            : null;
+        const name = definition ? definition.name : "mob spirit";
+        logCombat("You gather " + name + " x1 (Q"
+            + formatCombatStat(quality) + ").");
+    });
+}
+
 function dropMobLoot(combatant) {
     if (!combatant || typeof addResource !== "function") return;
 
@@ -696,6 +734,7 @@ function finishCombat(victory) {
         addCombatSkillExp("bullseye", 2);
 
         dropMobLoot(activeCombat.enemy);
+        dropMobSpiritResources(activeCombat.enemy);
 
         if (activeCombat.enemy.id === "bombchick") {
             const explosionDamage = roundCombatDamage(activeCombat.enemy.maxHp / 2);
