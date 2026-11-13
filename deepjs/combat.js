@@ -115,6 +115,30 @@ const MOBS = Object.freeze({
         armor: 0.5,
         attackSpeedMs: 6000,
     }),
+    jellopa: Object.freeze({
+        id: "jellopa",
+        name: "Jellopa",
+        description: "A translucent blue slime. It looks like a very wet bad idea.",
+        image: "images/combat/mobs/jellopa.png",
+        stats: Object.freeze({
+            str: 1,
+            agi: 2,
+            vit: 1,
+            per: 1,
+            int: 1,
+            ins: 1,
+            sou: 1,
+            luck: 1,
+            speed: 100,
+        }),
+        hp: 12,
+        mana: 0,
+        sp: 4,
+        attack: 0.2,
+        armor: 0.5,
+        attackSpeedMs: COMBAT_ATTACK_SPEED_BASE_MS,
+        healOnAttack: 0.1,
+    }),
 });
 
 function getMobLevelForTile(x, y) {
@@ -147,6 +171,12 @@ const MOB_LOOT = Object.freeze({
     ]),
     bombchick: Object.freeze([
         Object.freeze({ resourceId: RESOURCE_IDS.CHICKEN_MEAT, amount: 1 }),
+    ]),
+    assspider: Object.freeze([
+        Object.freeze({ resourceId: RESOURCE_IDS.BUG_MEAT, amount: 1 }),
+    ]),
+    jellopa: Object.freeze([
+        Object.freeze({ resourceId: RESOURCE_IDS.JELLY, amount: 1 }),
     ]),
 });
 
@@ -438,6 +468,7 @@ function createMobCombatant(mobId, level) {
         maxSp: Math.max(0, (Number(def.sp) || 0) * multiplier),
         attack: Math.max(0, (Number(def.attack) || 0) * multiplier),
         armor: Math.max(0, (Number(def.armor) || 0) * multiplier),
+        healOnAttack: Math.max(0, Number(def.healOnAttack) || 0),
         attackSpeedMs: Math.max(100, Number(def.attackSpeedMs) || COMBAT_ATTACK_SPEED_BASE_MS),
         attackTimerMs: 0,
     };
@@ -660,8 +691,25 @@ function finishCombat(victory) {
     }, COMBAT_AUTO_CLOSE_DELAY_MS);
 }
 
+function applyMobAttackHeal(attacker) {
+    if (!attacker || attacker.kind !== "mob") return;
+    const fraction = Number(attacker.healOnAttack);
+    if (!Number.isFinite(fraction) || fraction <= 0) return;
+    if (attacker.hp >= attacker.maxHp) return;
+
+    const heal = Math.max(0.01, roundCombatDamage(attacker.maxHp * fraction));
+    attacker.hp = Math.min(
+        attacker.maxHp,
+        roundCombatDamage(attacker.hp + heal)
+    );
+    logCombat(attacker.name + " regenerates "
+        + formatCombatStat(heal) + " HP.");
+}
+
 function performCombatAttack(attacker, defender) {
     if (!activeCombat || activeCombat.finished) return;
+
+    applyMobAttackHeal(attacker);
 
     const hitChance = getCombatHitChance(attacker, defender);
     if (Math.random() * 100 >= hitChance) {
