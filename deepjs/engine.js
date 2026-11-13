@@ -29,6 +29,14 @@ const LEARNED_SKILLS = [
     { barId: 'skillsplacesmithing', key: 'smithing', label: 'Smithing', descriptionKey: 'smithing' },
     { barId: 'skillsplacecooking', key: 'cooking', label: 'Cooking', descriptionKey: 'cooking' },
     { barId: 'skillsplacemilling', key: 'milling', label: 'Milling', descriptionKey: 'milling' },
+    { barId: 'skillsplaceaxechopping', key: 'axechopping', label: 'Axe chopping', descriptionKey: 'axechopping' },
+    { barId: 'skillsplaceswordsswingin', key: 'swordsswingin', label: 'Swords swingin', descriptionKey: 'swordsswingin' },
+    { barId: 'skillsplaceknifesstabbing', key: 'knifesstabbing', label: 'Knifes stabbing', descriptionKey: 'knifesstabbing' },
+    { barId: 'skillsplacespearsspooning', key: 'spearsspooning', label: 'Spears spooning', descriptionKey: 'spearsspooning' },
+    { barId: 'skillsplacebrawlbaps', key: 'brawlbaps', label: 'Brawl Baps', descriptionKey: 'brawlbaps' },
+    { barId: 'skillsplacehammerscrushworks', key: 'hammerscrushworks', label: 'Hammers crushworks', descriptionKey: 'hammerscrushworks' },
+    { barId: 'skillsplacedodgedancing', key: 'dodgedancing', label: 'Dodge dancing', descriptionKey: 'dodgedancing' },
+    { barId: 'skillsplacecritomancy', key: 'critomancy', label: 'Critomancy', descriptionKey: 'critomancy' },
 ];
 
 function updateCharacterHeader() {

@@ -297,6 +297,17 @@ const FORAGING_TOOL_SLOTS = Object.freeze(["arm1", "arm2"]);
 const TOOL_DESCRIPTION = "A sturdy tool for gathering materials and fighting.";
 const FORAGING_TOOL_DESCRIPTION = "A stick that would be handful with searching a forage stuff<br>that below of grass or between bushes without exceed moverment. <br>Very helpful in foraging.";
 
+// Every arm-held item trains one weapon skill. The skill adds 1% damage and
+// 1 hit per level while the item is equipped.
+const WEAPON_SKILL_LABELS = Object.freeze({
+    axechopping: "Axe chopping",
+    swordsswingin: "Swords swingin",
+    knifesstabbing: "Knifes stabbing",
+    spearsspooning: "Spears spooning",
+    brawlbaps: "Brawl Baps",
+    hammerscrushworks: "Hammers crushworks",
+});
+
 // Cutting, mining, digging, smashing and chopping share the "tool power" type.
 // A tool definition may store one or several powers. The effective value of
 // each is computed per item instance as
@@ -332,7 +343,7 @@ function normalizeToolPowerConfigs(config) {
     return Object.freeze(source.map(normalizeToolPowerConfig).filter(Boolean));
 }
 
-function createToolDefinition(id, name, icon, toolPower, description, stats) {
+function createToolDefinition(id, name, icon, toolPower, description, stats, weaponSkill) {
     const toolPowers = normalizeToolPowerConfigs(toolPower);
 
     return Object.freeze({
@@ -351,16 +362,30 @@ function createToolDefinition(id, name, icon, toolPower, description, stats) {
         // Legacy first power plus the full list for tools with several powers.
         toolPower: toolPowers[0] || null,
         toolPowers: toolPowers,
+        weaponSkill: WEAPON_SKILL_LABELS[weaponSkill] ? weaponSkill : null,
         description: description || TOOL_DESCRIPTION,
     });
 }
 
-function createForagingToolDefinition(id, name, icon, toolPower, description) {
+function createForagingToolDefinition(id, name, icon, toolPower, description, weaponSkill) {
     return createToolDefinition(
         id, name, icon, toolPower,
         description || FORAGING_TOOL_DESCRIPTION,
-        FORAGING_TOOL_STATS
+        FORAGING_TOOL_STATS,
+        weaponSkill
     );
+}
+
+function getItemWeaponSkill(item) {
+    if (!item) return null;
+
+    const definition = item.definition && typeof item.definition === "object"
+        ? item.definition
+        : (item.itemId != null ? getItemDefinition(item.itemId) : null);
+    const skill = definition && typeof definition.weaponSkill === "string"
+        ? definition.weaponSkill
+        : null;
+    return WEAPON_SKILL_LABELS[skill] ? skill : null;
 }
 
 // Metal tool and utensil variants. Every recipe uses the matching metal bar
@@ -404,31 +429,37 @@ const METAL_VARIANT_TOOL_BASES = Object.freeze([
         key: "knife", name: "Knife", category: "tools", icon: "flintknife",
         weight: 0.5, durability: 40, handleResourceId: RESOURCE_IDS.HANDLES,
         toolPowers: Object.freeze([{ type: "cutting", power: 3 }]),
+        weaponSkill: "knifesstabbing",
     }),
     Object.freeze({
         key: "hammer", name: "Hammer", category: "tools", icon: "stonehammer",
         weight: 0.5, durability: 40, handleResourceId: RESOURCE_IDS.HANDLES,
         toolPowers: Object.freeze([{ type: "smash", power: 2 }]),
+        weaponSkill: "hammerscrushworks",
     }),
     Object.freeze({
         key: "axe", name: "Axe", category: "tools", icon: "stoneaxe",
         weight: 0.5, durability: 40, handleResourceId: RESOURCE_IDS.HANDLES,
         toolPowers: Object.freeze([{ type: "cutting", power: 1 }, { type: "chopping", power: 2 }]),
+        weaponSkill: "axechopping",
     }),
     Object.freeze({
         key: "pickaxe", name: "Pickaxe", category: "tools", icon: "flintpickaxe",
         weight: 0.5, durability: 40, handleResourceId: RESOURCE_IDS.SHAFTS,
         toolPowers: Object.freeze([{ type: "mining", power: 1 }]),
+        weaponSkill: "axechopping",
     }),
     Object.freeze({
         key: "shovel", name: "Shovel", category: "tools", icon: "metalshovel",
         weight: 0.5, durability: 40, handleResourceId: RESOURCE_IDS.SHAFTS,
         toolPowers: Object.freeze([{ type: "digging", power: 1 }]),
+        weaponSkill: "hammerscrushworks",
     }),
     Object.freeze({
         key: "spear", name: "Spear", category: "tools", icon: "flintspear",
         weight: 0.5, durability: 40, handleResourceId: RESOURCE_IDS.HANDLES,
         toolPowers: Object.freeze([]),
+        weaponSkill: "spearsspooning",
     }),
 ]);
 
@@ -489,6 +520,7 @@ METAL_VARIANT_METALS.forEach(function (metal) {
             stats: createMetalVariantStats(metal, base.key === "knife"),
             toolPower: toolPowers[0] || null,
             toolPowers: toolPowers,
+            weaponSkill: base.weaponSkill || null,
             description: metal.name + " " + base.name.toLowerCase()
                 + " forged from refined metal and mounted on a sturdy wooden "
                 + (base.handleResourceId === RESOURCE_IDS.SHAFTS ? "shaft." : "handle."),
@@ -620,16 +652,19 @@ METAL_POT_METALS.forEach(function (metal) {
 const ITEM_DEFS = Object.freeze({
     [ITEM_IDS.HANDY_STICK]: createForagingToolDefinition(
         ITEM_IDS.HANDY_STICK, "Handy Stick", "handystick",
-        { type: "digging", power: 1 }
+        { type: "digging", power: 1 },
+        null, "spearsspooning"
     ),
     [ITEM_IDS.FLINT_KNIFE]: createForagingToolDefinition(
         ITEM_IDS.FLINT_KNIFE, "Flint Knife", "flintknife",
-        { type: "cutting", power: 3 }
+        { type: "cutting", power: 3 },
+        null, "knifesstabbing"
     ),
     [ITEM_IDS.STONE_HAMMER]: createToolDefinition(
         ITEM_IDS.STONE_HAMMER, "Stone Hammer", "stonehammer",
         { type: "smash", power: 2 },
-        "A heavy stone hammer for smashing stone and driving wedges."
+        "A heavy stone hammer for smashing stone and driving wedges.",
+        null, "hammerscrushworks"
     ),
     [ITEM_IDS.STONE_AXE]: createToolDefinition(
         ITEM_IDS.STONE_AXE, "Stone Axe", "stoneaxe",
@@ -637,7 +672,8 @@ const ITEM_DEFS = Object.freeze({
             { type: "cutting", power: 1 },
             { type: "chopping", power: 2 },
         ],
-        "A sturdy stone axe for chopping wood and shaping shafts."
+        "A sturdy stone axe for chopping wood and shaping shafts.",
+        null, "axechopping"
     ),
     [ITEM_IDS.KEBOB_ON_STICK]: Object.freeze({
         id: ITEM_IDS.KEBOB_ON_STICK,
@@ -768,12 +804,14 @@ const ITEM_DEFS = Object.freeze({
     [ITEM_IDS.FLINT_PICKAXE]: createToolDefinition(
         ITEM_IDS.FLINT_PICKAXE, "Flint Pickaxe", "flintpickaxe",
         { type: "mining", power: 1 },
-        "A flint-headed pickaxe for breaking stone and ore."
+        "A flint-headed pickaxe for breaking stone and ore.",
+        null, "axechopping"
     ),
     [ITEM_IDS.FLINT_SPEAR]: createToolDefinition(
         ITEM_IDS.FLINT_SPEAR, "Flint Spear", "flintspear",
         null,
-        "A flint-tipped spear for hunting and fighting."
+        "A flint-tipped spear for hunting and fighting.",
+        null, "spearsspooning"
     ),
     [ITEM_IDS.LEAF_OF_NATURE]: createLeafClothingDefinition(
         ITEM_IDS.LEAF_OF_NATURE, "Leaf of Nature", "pants", "leafofnature"
@@ -954,6 +992,13 @@ function getItemBonusDescriptions(item) {
                 );
             }
         });
+    }
+
+    const weaponSkill = typeof getItemWeaponSkill === "function"
+        ? getItemWeaponSkill(item)
+        : null;
+    if (weaponSkill && WEAPON_SKILL_LABELS[weaponSkill]) {
+        descriptions.push("Weapon skill: " + WEAPON_SKILL_LABELS[weaponSkill]);
     }
 
     if (typeof getItemInventorySlotBonus === "function") {

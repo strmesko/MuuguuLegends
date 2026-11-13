@@ -1636,7 +1636,7 @@ function getResourceMultiplier(tile, resourceId) {
 const PERCENT = 100;
 const CORE_STAT_COUNT = 9;
 const CORE_STAT_NAMES = ["str", "agi", "vit", "per", "int", "ins", "sou", "luck", "speed"];
-const LEARNABLE_SKILL_KEYS = ["exploration", "forage", "rest", "focus", "meditation", "wizardy", "alchemy", "masonry", "pottery", "regeneration", "autism", "science", "traveling", "dreammastery", "survival", "ropemaking", "tailoring", "carpentry", "architecture", "gardening", "digging", "lumberjack", "mining", "smithing", "cooking", "milling", "tactics", "anatomy", "dodging", "bullseye"];
+const LEARNABLE_SKILL_KEYS = ["exploration", "forage", "rest", "focus", "meditation", "wizardy", "alchemy", "masonry", "pottery", "regeneration", "autism", "science", "traveling", "dreammastery", "survival", "ropemaking", "tailoring", "carpentry", "architecture", "gardening", "digging", "lumberjack", "mining", "smithing", "cooking", "milling", "tactics", "anatomy", "dodging", "bullseye", "axechopping", "swordsswingin", "knifesstabbing", "spearsspooning", "brawlbaps", "hammerscrushworks", "dodgedancing", "critomancy"];
 
 // Every edible resource is bound to one core stat for the whole playthrough.
 // The binding is rolled once when a new game starts and is stored in saves.
@@ -1916,6 +1916,14 @@ class Character {
         this.anatomy = new Skill("Anatomy", "Knowledge of bodies, weak points and how to hit them properly.");
         this.dodging = new Skill("Dodging", "The art of not being where the blow lands.");
         this.bullseye = new Skill("BullsEye", "The art of hitting the one spot that matters.");
+        this.axechopping = new Skill("Axe chopping", "The art of splitting wood and skulls with a heavy blade. Each level adds 1% damage and 1 hit while an axe or pickaxe is held.");
+        this.swordsswingin = new Skill("Swords swingin", "The art of sweeping a long blade through a fight. Each level adds 1% damage and 1 hit while a sword is held.");
+        this.knifesstabbing = new Skill("Knifes stabbing", "The art of quick, precise stabs. Each level adds 1% damage and 1 hit while a knife is held.");
+        this.spearsspooning = new Skill("Spears spooning", "The art of keeping trouble at the end of a long stick. Each level adds 1% damage and 1 hit while a spear or stick is held.");
+        this.brawlbaps = new Skill("Brawl Baps", "The art of bare-knuckle violence. Each level adds 1% damage and 1 hit while both hands are empty.");
+        this.hammerscrushworks = new Skill("Hammers crushworks", "The art of turning heavy things into flat things. Each level adds 1% damage and 1 hit while a hammer or shovel is held.");
+        this.dodgedancing = new Skill("Dodge dancing", "The art of dancing out of the way. Every dodge grants experience based on the attacker's base hit, and each level adds 2 flee.");
+        this.critomancy = new Skill("Critomancy", "The art of finding the one perfect opening. Each level adds 1% critical damage and reshapes critical chance.");
         this.wizardy = new Skill("Wizardy", "The art of channeling spent mana into arcane understanding.");
         this.alchemy = new Skill("Alchemy", "The art of mixing minerals, ash and water into useful compounds.");
         this.masonry = new Skill("Masonry", "The art of raising durable stone structures from rocks, mortar and timber.");
@@ -2213,7 +2221,9 @@ const STAT_EXPERIENCE_OPTIONS = Object.freeze({
 const SKILL_EXPERIENCE_OPTIONS = Object.freeze({
     propertyType: "skill",
     getPropertyKey: function (entry) {
-        return entry.name.toLowerCase();
+        // Multi-word skill names map to their property key ("Axe chopping"
+        // becomes "axechopping"), matching LEARNABLE_SKILL_KEYS and saves.
+        return String(entry.name || "").toLowerCase().replace(/\s+/g, "");
     },
     potentialDecay: SKILL_POTENTIAL_DECAY,
     beforeExp: function (entry, key) {

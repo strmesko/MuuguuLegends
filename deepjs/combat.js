@@ -389,6 +389,56 @@ function getCombatantSkill(combatant, key) {
     return Number.isFinite(value) ? value : 0;
 }
 
+// Weapon skills trained by the items held in arm1/arm2. Every level adds 1%
+// damage and 1 hit while such an item is equipped. Dual-wielding the same
+// weapon type doubles experience gain only, not the bonus itself.
+const WEAPON_SKILL_KEYS = Object.freeze([
+    "axechopping", "swordsswingin", "knifesstabbing",
+    "spearsspooning", "brawlbaps", "hammerscrushworks",
+]);
+
+function getEquippedWeaponSkillKeys() {
+    const equipment = typeof player !== "undefined" && player
+        ? player.equipment
+        : null;
+
+    return ["arm1", "arm2"].map(function (slot) {
+        const item = equipment ? equipment[slot] : null;
+        const skill = item && typeof getItemWeaponSkill === "function"
+            ? getItemWeaponSkill(item)
+            : null;
+        return WEAPON_SKILL_KEYS.indexOf(skill) !== -1 ? skill : null;
+    });
+}
+
+function getPlayerWeaponSkillInfo() {
+    const equipped = getEquippedWeaponSkillKeys();
+    const held = equipped.filter(Boolean);
+    const keys = held.length
+        ? held.filter(function (key, index) {
+            return held.indexOf(key) === index;
+        })
+        : ["brawlbaps"];
+
+    let level = 0;
+    keys.forEach(function (key) {
+        level += getPlayerCombatSkillLevel(key);
+    });
+
+    return {
+        equipped: equipped,
+        held: held,
+        keys: keys,
+        level: level,
+        sameSkill: held.length === 2 && held[0] === held[1],
+    };
+}
+
+function getPlayerCombatSkillLevel(key) {
+    if (typeof getEffectiveLevel !== "function") return 0;
+    return Math.max(0, Number(getEffectiveLevel(key)) || 0);
+}
+
 function getCombatantGearAttack(combatant) {
     if (!combatant) return 0;
     if (combatant.kind === "player" && typeof getEquippedStatBonus === "function") {
@@ -411,8 +461,14 @@ function getCombatAttack(combatant) {
     const tactics = getCombatantSkill(combatant, "tactics");
     const anatomy = getCombatantSkill(combatant, "anatomy");
 
-    return ((strength + vitality / 5) + getCombatantGearAttack(combatant))
+    const base = ((strength + vitality / 5) + getCombatantGearAttack(combatant))
         * (1 + tactics / 5 + anatomy / 2);
+
+    if (combatant && combatant.kind === "player") {
+        return base * (1 + getPlayerWeaponSkillInfo().level / 100);
+    }
+
+    return base;
 }
 
 function getCombatDefence(combatant) {
@@ -429,16 +485,33 @@ function getCombatFlee(combatant) {
         + getCombatantSkill(combatant, "tactics")
         + getCombatantSkill(combatant, "dodging");
     const multiplier = Number(combatant && combatant.fleeMultiplier);
-    return base * (Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1);
+    let total = base * (Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1);
+
+    // Dodge dancing adds a flat 2 flee per level.
+    if (combatant && combatant.kind === "player") {
+        total += 2 * getPlayerCombatSkillLevel("dodgedancing");
+    }
+
+    return total;
+}
+
+// Raw hit stat before the defender's flee is subtracted.
+function getCombatBaseHit(combatant) {
+    return 100
+        + (Number(combatant && combatant.hitBonus) || 0)
+        + (getCombatantStat(combatant, "agi") * 2
+            + getCombatantStat(combatant, "ins")
+            + getCombatantSkill(combatant, "tactics"));
 }
 
 function getCombatHitChance(attacker, defender) {
-    const bonus = Number(attacker && attacker.hitBonus) || 0;
-    const chance = 100 + bonus
-        + (getCombatantStat(attacker, "agi") * 2
-            + getCombatantStat(attacker, "ins")
-            + getCombatantSkill(attacker, "tactics"))
-        - getCombatFlee(defender);
+    let chance = getCombatBaseHit(attacker) - getCombatFlee(defender);
+
+    // Weapon skills add 1 hit per level.
+    if (attacker && attacker.kind === "player") {
+        chance += getPlayerWeaponSkillInfo().level;
+    }
+
     return Math.max(5, Math.min(100, chance));
 }
 
@@ -448,15 +521,32 @@ function getCombatCritChance(attacker) {
         + getCombatantSkill(attacker, "tactics") / 5
         + getCombatantSkill(attacker, "bullseye");
     const denominator = 100 + numerator;
-    return denominator > 0
+    let chance = denominator > 0
         ? Math.max(0, Math.min(0.95, numerator / denominator))
         : 0;
+
+    // Critomancy: (CritChance + Critomancy) / MAX(1, Critomancy), where every
+    // Critomancy level is 0.01 of the chance.
+    if (attacker && attacker.kind === "player") {
+        const critomancy = getPlayerCombatSkillLevel("critomancy") / 100;
+        if (critomancy > 0) {
+            chance = (chance + critomancy) / Math.max(1, critomancy);
+        }
+    }
+
+    return Math.max(0, Math.min(0.95, chance));
 }
 
 function getCombatCritMultiplier(attacker) {
-    return 1.5
-        + (getCombatantSkill(attacker, "bullseye")
-            + getCombatantStat(attacker, "ins")) / 100;
+    let bonus = getCombatantSkill(attacker, "bullseye")
+        + getCombatantStat(attacker, "ins");
+
+    // Critomancy adds 1% critical damage per level.
+    if (attacker && attacker.kind === "player") {
+        bonus += getPlayerCombatSkillLevel("critomancy");
+    }
+
+    return 1.5 + bonus / 100;
 }
 
 function getCombatAttackIntervalMs(combatant) {
@@ -632,6 +722,19 @@ function addCombatSkillExp(key, amount) {
     const value = Number(amount);
     if (!Number.isFinite(value) || value <= 0) return;
     if (typeof player[key].addexp === "function") player[key].addexp(value);
+}
+
+// Weapon experience follows the damage dealt. Holding two items of the same
+// weapon skill doubles the gain.
+function grantWeaponSkillExp(damage) {
+    const amount = Math.max(0, Number(damage) || 0);
+    if (amount <= 0) return;
+
+    const info = getPlayerWeaponSkillInfo();
+    const multiplier = info.sameSkill ? 2 : 1;
+    info.keys.forEach(function (key) {
+        addCombatSkillExp(key, amount * multiplier);
+    });
 }
 
 function getCombatStatsText(combatant) {
@@ -881,6 +984,8 @@ function performCombatAttack(attacker, defender) {
         logCombat(attacker.name + " misses " + defender.name + ".");
         if (attacker.kind === "mob" && defender.kind === "player") {
             addCombatSkillExp("dodging", 1);
+            // Dodge dancing trains from the attacker's raw hit stat.
+            addCombatSkillExp("dodgedancing", getCombatBaseHit(attacker));
         }
         return;
     }
@@ -901,6 +1006,7 @@ function performCombatAttack(attacker, defender) {
         addCombatSkillExp("tactics", 1);
         addCombatSkillExp("anatomy", 1);
         if (crit) addCombatSkillExp("bullseye", 2);
+        grantWeaponSkillExp(damage);
     }
 
     if (attacker.kind === "mob" && attacker.id === "assspider") {

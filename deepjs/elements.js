@@ -676,7 +676,7 @@ function getSkillBarKey(skillName){
         Vitality: "vit",
         Perception: "per",
     };
-    return aliases[skillName] || String(skillName).toLowerCase();
+    return aliases[skillName] || String(skillName).toLowerCase().replace(/\s+/g, "");
 }
 function getSkillGroupIndex(skillGroup){
     return Array.from(skillsTab.children).filter(function (element) {
@@ -710,6 +710,14 @@ const SKILL_DISPLAY_NAMES = Object.freeze({
     anatomy: "Anatomy",
     dodging: "Dodging",
     bullseye: "BullsEye",
+    axechopping: "Axe chopping",
+    swordsswingin: "Swords swingin",
+    knifesstabbing: "Knifes stabbing",
+    spearsspooning: "Spears spooning",
+    brawlbaps: "Brawl Baps",
+    hammerscrushworks: "Hammers crushworks",
+    dodgedancing: "Dodge dancing",
+    critomancy: "Critomancy",
     wizardy: "Wizardy",
     alchemy: "Alchemy",
     masonry: "Masonry",
