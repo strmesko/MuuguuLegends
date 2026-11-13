@@ -96,6 +96,25 @@ const MEAT_RESOURCE_IDS = Object.freeze(
         })
 );
 
+// Soup takes any edible resource plus every herb type (medicinal, spice,
+// alchemical and magical included).
+const SOUP_INGREDIENT_IDS = Object.freeze((function () {
+    const ids = [];
+
+    Object.keys(RESOURCE_DEFS).map(Number).forEach(function (resourceId) {
+        if (typeof hasResourceTag === "function"
+            && hasResourceTag(resourceId, RESOURCE_TAGS.Edible)) {
+            ids.push(resourceId);
+        }
+    });
+
+    HERB_RESOURCE_IDS.forEach(function (resourceId) {
+        if (ids.indexOf(resourceId) === -1) ids.push(resourceId);
+    });
+
+    return ids;
+})());
+
 // Metal tools, metal cutlery and metal pots use the matching metal bars.
 // Tools and cutlery also need a wooden handle/shaft; pots do not.
 function createMetalVariantRecipes() {
@@ -318,6 +337,50 @@ const CRAFT_RECIPES = Object.freeze([
             label: "Choose flat bread:",
             rarityBoost: 1,
         }),
+    }),
+    Object.freeze({
+        id: "soup",
+        category: "food",
+        itemId: ITEM_IDS.SOUP,
+        skill: "cooking",
+        stat: "sou",
+        resources: Object.freeze([]),
+        choiceSlots: Object.freeze([
+            Object.freeze({
+                id: "ingredient1",
+                resourceIds: SOUP_INGREDIENT_IDS,
+                amount: 1,
+                label: "Choose ingredient 1:",
+            }),
+            Object.freeze({
+                id: "ingredient2",
+                resourceIds: SOUP_INGREDIENT_IDS,
+                amount: 1,
+                label: "Choose ingredient 2:",
+            }),
+            Object.freeze({
+                id: "ingredient3",
+                resourceIds: SOUP_INGREDIENT_IDS,
+                amount: 1,
+                label: "Choose ingredient 3:",
+            }),
+            Object.freeze({
+                id: "ingredient4",
+                resourceIds: SOUP_INGREDIENT_IDS,
+                amount: 1,
+                label: "Choose ingredient 4:",
+            }),
+            Object.freeze({
+                id: "ingredient5",
+                resourceIds: SOUP_INGREDIENT_IDS,
+                amount: 1,
+                label: "Choose ingredient 5:",
+            }),
+        ]),
+        bonusChoiceSlotsFromCooking: true,
+        bonusChoiceSlotsMultiplier: 2,
+        bonusChoiceResourceIds: SOUP_INGREDIENT_IDS,
+        bonusChoiceAmount: 1,
     }),
     createCutleryRecipe("ladle", ITEM_IDS.LADLE, 1),
     createCutleryRecipe("wooden-fork", ITEM_IDS.WOODEN_FORK, 3),
@@ -644,7 +707,11 @@ function getCookingBonusSlotCount() {
 function getCraftBonusSlotCount(recipe) {
     if (!recipe) return 0;
     if (recipe.bonusChoiceSlotsFromCooking === true) {
-        return getCookingBonusSlotCount();
+        const multiplier = Math.max(
+            1,
+            Math.floor(Number(recipe.bonusChoiceSlotsMultiplier) || 1)
+        );
+        return getCookingBonusSlotCount() * multiplier;
     }
     return Math.max(0, Math.floor(Number(recipe.bonusChoiceSlots) || 0));
 }
@@ -722,10 +789,12 @@ function getCraftRequirements(recipe) {
         addRequirement(requirement.resourceId, requirement.amount);
     });
 
-    if (recipe && getCraftChoiceResourceIds(recipe).length) {
-        const choice = getSelectedCraftChoice(recipe);
-        if (choice != null) {
-            addRequirement(choice, recipe.choiceAmount);
+    if (recipe) {
+        if (getCraftChoiceResourceIds(recipe).length) {
+            const choice = getSelectedCraftChoice(recipe);
+            if (choice != null) {
+                addRequirement(choice, recipe.choiceAmount);
+            }
         }
 
         getCraftBonusChoices(recipe).forEach(function (bonusResourceId) {
@@ -1512,50 +1581,11 @@ function renderCraftResources(category) {
         choiceBox.appendChild(choiceLabel);
         choiceBox.appendChild(select);
         panel.appendChild(choiceBox);
-
-        const bonusChoices = getCraftBonusChoices(recipe);
-        if (bonusChoices.length) {
-            const bonusBox = document.createElement("div");
-            bonusBox.className = "craftchoice craftchoice-bonus";
-
-            const bonusLabel = document.createElement("div");
-            bonusLabel.className = "craftchoice-label";
-            bonusLabel.innerText = "Bonus ingredients (optional, "
-                + bonusChoices.length + " slot"
-                + (bonusChoices.length === 1 ? "" : "s")
-                + (recipe.bonusChoiceSlotsFromCooking === true ? " from Cooking" : "")
-                + "):";
-            bonusBox.appendChild(bonusLabel);
-
-            bonusChoices.forEach(function (selectedResourceId, index) {
-                const row = document.createElement("div");
-                row.className = "craftchoice-bonus-row";
-
-                const slotLabel = document.createElement("span");
-                slotLabel.className = "craftchoice-slot-label";
-                slotLabel.innerText = "Bonus " + (index + 1);
-
-                const bonusSelect = createCraftIngredientSelect({
-                    id: "craftbonus-" + category.id + "-" + recipe.id + "-" + index,
-                    resourceIds: getCraftBonusResourceIds(recipe),
-                    selectedResourceId: selectedResourceId,
-                    includeNone: true,
-                    onSelect: function (resourceId) {
-                        setCraftBonusChoice(recipe, index, resourceId);
-                        renderCraftResources(category);
-                        renderCraftDetails(category);
-                        refreshCraftAvailability();
-                    },
-                });
-
-                row.appendChild(slotLabel);
-                row.appendChild(bonusSelect);
-                bonusBox.appendChild(row);
-            });
-
-            panel.appendChild(bonusBox);
-        }
     }
+
+    // Bonus ingredients are independent of the main ingredient picker: soups
+    // use five fixed ingredient slots but still take Cooking bonus slots.
+    const bonusChoices = getCraftBonusChoices(recipe);
 
     const craftItemChoice = getCraftItemChoice(recipe);
     if (craftItemChoice) {
@@ -1617,6 +1647,50 @@ function renderCraftResources(category) {
         });
 
         panel.appendChild(slotBox);
+    }
+
+    // Bonus ingredients are optional and come from the Cooking level; soups
+    // double the number of these slots.
+    if (bonusChoices.length) {
+        const bonusBox = document.createElement("div");
+        bonusBox.className = "craftchoice craftchoice-bonus";
+
+        const bonusLabel = document.createElement("div");
+        bonusLabel.className = "craftchoice-label";
+        bonusLabel.innerText = "Bonus ingredients (optional, "
+            + bonusChoices.length + " slot"
+            + (bonusChoices.length === 1 ? "" : "s")
+            + (recipe.bonusChoiceSlotsFromCooking === true ? " from Cooking" : "")
+            + "):";
+        bonusBox.appendChild(bonusLabel);
+
+        bonusChoices.forEach(function (selectedResourceId, index) {
+            const row = document.createElement("div");
+            row.className = "craftchoice-bonus-row";
+
+            const slotLabel = document.createElement("span");
+            slotLabel.className = "craftchoice-slot-label";
+            slotLabel.innerText = "Bonus " + (index + 1);
+
+            const bonusSelect = createCraftIngredientSelect({
+                id: "craftbonus-" + category.id + "-" + recipe.id + "-" + index,
+                resourceIds: getCraftBonusResourceIds(recipe),
+                selectedResourceId: selectedResourceId,
+                includeNone: true,
+                onSelect: function (resourceId) {
+                    setCraftBonusChoice(recipe, index, resourceId);
+                    renderCraftResources(category);
+                    renderCraftDetails(category);
+                    refreshCraftAvailability();
+                },
+            });
+
+            row.appendChild(slotLabel);
+            row.appendChild(bonusSelect);
+            bonusBox.appendChild(row);
+        });
+
+        panel.appendChild(bonusBox);
     }
 
     const container = document.createElement("div");

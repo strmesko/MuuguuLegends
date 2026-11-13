@@ -49,6 +49,7 @@ const ITEM_IDS = Object.freeze({
     FRUITS_SALAD: ITEM_ID_BASE + 39,
     FLAT_BREAD: ITEM_ID_BASE + 40,
     SHAWERMA: ITEM_ID_BASE + 41,
+    SOUP: ITEM_ID_BASE + 42,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -763,6 +764,20 @@ const ITEM_DEFS = Object.freeze({
         primaryStat: "sou",
         food: Object.freeze({ hungerRestore: 150 }),
         description: "Flat bread stuffed with vegetables and meat. The finest street food of the wilderness.",
+    }),
+    [ITEM_IDS.SOUP]: Object.freeze({
+        id: ITEM_IDS.SOUP,
+        name: "Soup",
+        kind: ITEM_KINDS.Consumable,
+        stackable: false,
+        weight: 0.5,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: "soup",
+        primaryStat: "sou",
+        food: Object.freeze({ hungerRestore: 130 }),
+        description: "A hot bowl of whatever was edible, simmered with herbs until it became a meal.",
     }),
     [ITEM_IDS.LADLE]: Object.freeze({
         id: ITEM_IDS.LADLE,
