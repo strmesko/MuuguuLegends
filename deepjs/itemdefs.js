@@ -47,6 +47,8 @@ const ITEM_IDS = Object.freeze({
     PORRIDGE: ITEM_ID_BASE + 37,
     SALAD: ITEM_ID_BASE + 38,
     FRUITS_SALAD: ITEM_ID_BASE + 39,
+    FLAT_BREAD: ITEM_ID_BASE + 40,
+    SHAWERMA: ITEM_ID_BASE + 41,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -733,6 +735,34 @@ const ITEM_DEFS = Object.freeze({
         primaryStat: "sou",
         food: Object.freeze({ hungerRestore: 80 }),
         description: "A sweet pile of sliced fruit with crushed nuts on top.",
+    }),
+    [ITEM_IDS.FLAT_BREAD]: Object.freeze({
+        id: ITEM_IDS.FLAT_BREAD,
+        name: "Flat bread",
+        kind: ITEM_KINDS.Consumable,
+        stackable: false,
+        weight: 0.3,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: "flatbread",
+        primaryStat: "sou",
+        food: Object.freeze({ hungerRestore: 70 }),
+        description: "A thin flat bread baked from flour and water. Simple travel food.",
+    }),
+    [ITEM_IDS.SHAWERMA]: Object.freeze({
+        id: ITEM_IDS.SHAWERMA,
+        name: "Shawerma",
+        kind: ITEM_KINDS.Consumable,
+        stackable: false,
+        weight: 0.6,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: "shawerma",
+        primaryStat: "sou",
+        food: Object.freeze({ hungerRestore: 150 }),
+        description: "Flat bread stuffed with vegetables and meat. The finest street food of the wilderness.",
     }),
     [ITEM_IDS.LADLE]: Object.freeze({
         id: ITEM_IDS.LADLE,

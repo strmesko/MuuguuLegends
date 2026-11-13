@@ -86,6 +86,16 @@ const SALAD_HERB_IDS = Object.freeze(
     HERB_EDIBLE_RESOURCE_IDS.concat(HERB_SPICE_RESOURCE_IDS)
 );
 
+// Every resource tagged as meat can go into shawerma.
+const MEAT_RESOURCE_IDS = Object.freeze(
+    Object.keys(RESOURCE_DEFS)
+        .map(Number)
+        .filter(function (resourceId) {
+            const definition = RESOURCE_DEFS[resourceId];
+            return !!definition && definition.meat === true;
+        })
+);
+
 // Metal tools, metal cutlery and metal pots use the matching metal bars.
 // Tools and cutlery also need a wooden handle/shaft; pots do not.
 function createMetalVariantRecipes() {
@@ -257,6 +267,63 @@ const CRAFT_RECIPES = Object.freeze([
             exclusive: true,
         }),
     }),
+    Object.freeze({
+        id: "flat-bread",
+        category: "food",
+        itemId: ITEM_IDS.FLAT_BREAD,
+        skill: "cooking",
+        stat: "sou",
+        resources: Object.freeze([]),
+        choiceResourceIds: FLOUR_RESOURCE_IDS,
+        choiceAmount: 1,
+        choiceLabel: "Choose flour:",
+        resultNameSuffix: "",
+        requiresWater: true,
+    }),
+    Object.freeze({
+        id: "shawerma",
+        category: "food",
+        itemId: ITEM_IDS.SHAWERMA,
+        skill: "cooking",
+        stat: "sou",
+        resources: Object.freeze([]),
+        choiceSlots: Object.freeze([
+            Object.freeze({
+                id: "vegetable1",
+                resourceIds: VEGETABLE_RESOURCE_IDS,
+                amount: 1,
+                label: "Choose vegetable 1:",
+            }),
+            Object.freeze({
+                id: "vegetable2",
+                resourceIds: VEGETABLE_RESOURCE_IDS,
+                amount: 1,
+                label: "Choose vegetable 2:",
+            }),
+            Object.freeze({
+                id: "vegetable3",
+                resourceIds: VEGETABLE_RESOURCE_IDS,
+                amount: 1,
+                label: "Choose vegetable 3:",
+            }),
+            Object.freeze({
+                id: "meat",
+                resourceIds: MEAT_RESOURCE_IDS,
+                amount: 1,
+                label: "Choose meat:",
+            }),
+        ]),
+        itemChoice: Object.freeze({
+            itemId: ITEM_IDS.FLAT_BREAD,
+            label: "Choose flat bread:",
+            rarityBoost: 1,
+        }),
+        requiredToolPower: Object.freeze({
+            type: "cutting",
+            power: 2,
+            exclusive: true,
+        }),
+    }),
     createCutleryRecipe("ladle", ITEM_IDS.LADLE, 1),
     createCutleryRecipe("wooden-fork", ITEM_IDS.WOODEN_FORK, 3),
     createCutleryRecipe("wooden-spoon", ITEM_IDS.WOODEN_SPOON, 1),
@@ -365,6 +432,9 @@ const selectedCraftBonusChoicesByRecipe = {};
 // Extra mandatory ingredient slots (for example 3 vegetables + 1 herb).
 // Keyed by recipe id and then by slot id.
 const selectedCraftSlotChoicesByRecipe = {};
+// Chosen inventory item for recipes that consume a crafted item (shawerma
+// takes one flat bread out of the inventory).
+const selectedCraftItemByRecipe = {};
 
 function getCraftCategory(categoryId) {
     return CRAFT_CATEGORIES.find(function (category) {
@@ -426,6 +496,117 @@ function setCraftSlotChoice(recipe, slotId, resourceId) {
     state[slot.id] = chosen;
     selectedCraftSlotChoicesByRecipe[recipe.id] = state;
     return true;
+}
+
+// Some recipes consume a crafted item instead of (or besides) resources.
+function getCraftItemChoice(recipe) {
+    const choice = recipe && recipe.itemChoice;
+    return choice && choice.itemId != null ? choice : null;
+}
+
+function getCraftItemChoices(recipe) {
+    const choice = getCraftItemChoice(recipe);
+    if (!choice
+        || typeof player === "undefined"
+        || !player
+        || !Array.isArray(player.equipinventory)) {
+        return [];
+    }
+
+    return player.equipinventory.filter(function (item) {
+        return !!item && item.itemId === choice.itemId;
+    });
+}
+
+function getCraftItemChoiceName(item) {
+    if (!item) return "Item";
+    if (typeof getInventoryItemName === "function") {
+        const name = getInventoryItemName(item);
+        if (name) return name;
+    }
+    return item.name || "Item";
+}
+
+function getCraftItemChoiceLabel(item) {
+    if (!item) return "-None-";
+
+    const rarityId = typeof getItemRarityId === "function"
+        ? getItemRarityId(item)
+        : null;
+    return getCraftItemChoiceName(item)
+        + " | Q" + round2(Math.max(0, Number(item.quality) || 1))
+        + (rarityId ? " | " + getRarityLabel(rarityId) : "");
+}
+
+function getSelectedCraftItemChoice(recipe) {
+    const choice = getCraftItemChoice(recipe);
+    if (!choice) return null;
+
+    const items = getCraftItemChoices(recipe);
+    if (!items.length) {
+        delete selectedCraftItemByRecipe[recipe.id];
+        return null;
+    }
+
+    const stored = Number(selectedCraftItemByRecipe[recipe.id]);
+    const found = items.find(function (item) {
+        return Number(item.instanceId) === stored;
+    });
+    const selected = found || items[0];
+    selectedCraftItemByRecipe[recipe.id] = Number(selected.instanceId);
+    return selected;
+}
+
+function setCraftItemChoice(recipe, instanceId) {
+    if (!getCraftItemChoice(recipe)) return false;
+
+    const id = Number(instanceId);
+    const exists = getCraftItemChoices(recipe).some(function (item) {
+        return Number(item.instanceId) === id;
+    });
+    if (!exists) return false;
+
+    selectedCraftItemByRecipe[recipe.id] = id;
+    return true;
+}
+
+function consumeCraftItemChoice(recipe, item) {
+    if (!item || typeof player === "undefined" || !player
+        || !Array.isArray(player.equipinventory)) {
+        return false;
+    }
+
+    const index = player.equipinventory.indexOf(item);
+    if (index === -1) return false;
+
+    player.equipinventory[index] = null;
+    delete selectedCraftItemByRecipe[recipe.id];
+    return true;
+}
+
+// The selected item's rarity raises the crafted result. The result is at
+// least `rarityBoost` tiers above the item, or keeps a higher rolled rarity.
+function getItemChoiceBoostedRarity(recipe, baseRarity) {
+    const choice = getCraftItemChoice(recipe);
+    if (!choice) return baseRarity;
+
+    const boost = Math.max(0, Math.floor(Number(choice.rarityBoost) || 0));
+    if (boost <= 0) return baseRarity;
+
+    const item = getSelectedCraftItemChoice(recipe);
+    if (!item) return baseRarity;
+
+    const rarityOrder = Object.keys(ITEM_RARITY_DEFS);
+    const baseTier = Math.max(0, getRarityTier(baseRarity));
+    const itemRarity = typeof getItemRarityId === "function"
+        ? getItemRarityId(item)
+        : null;
+    const itemTier = itemRarity ? Math.max(0, getRarityTier(itemRarity)) : 0;
+    const tier = Math.min(
+        rarityOrder.length - 1,
+        Math.max(baseTier, itemTier + boost)
+    );
+    return rarityOrder[tier] || baseRarity;
 }
 
 function getSelectedCraftChoice(recipe) {
@@ -581,7 +762,8 @@ function getCraftRecipeForItem(itemId) {
 }
 
 function getCraftResultName(recipe) {
-    if (recipe && getCraftChoiceResourceIds(recipe).length) {
+    if (recipe && getCraftChoiceResourceIds(recipe).length
+        && recipe.resultNameSuffix !== "") {
         const choice = getSelectedCraftChoice(recipe);
         const choiceDefinition = choice != null ? RESOURCE_DEFS[choice] : null;
         if (choiceDefinition) {
@@ -788,6 +970,9 @@ function canCraftRecipe(recipe) {
         return false;
     }
     if (!canMeetCraftStationRequirements(recipe)) {
+        return false;
+    }
+    if (getCraftItemChoice(recipe) && !getSelectedCraftItemChoice(recipe)) {
         return false;
     }
     return canAffordCraft(recipe);
@@ -1198,6 +1383,86 @@ function createCraftIngredientSelect(options) {
     return wrapper;
 }
 
+// Same listbox as the ingredient picker, but for inventory items (flat bread).
+function createCraftItemSelect(options) {
+    const settings = options || {};
+    const items = Array.isArray(settings.items) ? settings.items : [];
+    const selectedItem = settings.selectedItem || null;
+    const onSelect = typeof settings.onSelect === "function"
+        ? settings.onSelect
+        : function () {};
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "craftingredient-select";
+    if (settings.id) wrapper.id = settings.id;
+    wrapper.dataset.instanceId = selectedItem
+        ? String(selectedItem.instanceId)
+        : "";
+
+    const addIcon = function (parent, item) {
+        if (!item) {
+            const empty = document.createElement("span");
+            empty.className = "craftingredient-icon empty";
+            parent.appendChild(empty);
+            return;
+        }
+        parent.appendChild(createItemImage(
+            getCraftItemChoiceName(item),
+            "craftingredient-icon"
+        ));
+    };
+
+    const current = document.createElement("button");
+    current.type = "button";
+    current.className = "craftingredient-current";
+    addIcon(current, selectedItem);
+
+    const currentName = document.createElement("span");
+    currentName.className = "craftingredient-name";
+    currentName.innerText = selectedItem
+        ? getCraftItemChoiceLabel(selectedItem)
+        : "-None-";
+    current.appendChild(currentName);
+
+    const arrow = document.createElement("span");
+    arrow.className = "craftingredient-arrow";
+    arrow.innerText = "▼";
+    current.appendChild(arrow);
+
+    const menu = document.createElement("div");
+    menu.className = "craftingredient-menu";
+
+    items.forEach(function (item) {
+        const option = document.createElement("button");
+        option.type = "button";
+        option.className = "craftingredient-option";
+        option.dataset.instanceId = String(item.instanceId);
+        addIcon(option, item);
+
+        const label = document.createElement("span");
+        label.className = "craftingredient-option-label";
+        label.innerText = getCraftItemChoiceLabel(item);
+        option.appendChild(label);
+
+        option.addEventListener("click", function (event) {
+            event.stopPropagation();
+            wrapper.classList.remove("open");
+            onSelect(item.instanceId);
+        });
+
+        menu.appendChild(option);
+    });
+
+    current.addEventListener("click", function (event) {
+        event.stopPropagation();
+        wrapper.classList.toggle("open");
+    });
+
+    wrapper.appendChild(current);
+    wrapper.appendChild(menu);
+    return wrapper;
+}
+
 document.addEventListener("click", function (event) {
     const openSelects = document.querySelectorAll(".craftingredient-select.open");
     Array.prototype.forEach.call(openSelects, function (select) {
@@ -1295,6 +1560,35 @@ function renderCraftResources(category) {
 
             panel.appendChild(bonusBox);
         }
+    }
+
+    const craftItemChoice = getCraftItemChoice(recipe);
+    if (craftItemChoice) {
+        const itemChoices = getCraftItemChoices(recipe);
+        const selectedItem = getSelectedCraftItemChoice(recipe);
+        const itemBox = document.createElement("div");
+        itemBox.className = "craftchoice";
+
+        const itemLabel = document.createElement("label");
+        itemLabel.className = "craftchoice-label";
+        itemLabel.innerText = craftItemChoice.label || "Choose item:";
+        itemLabel.htmlFor = "craftitem-" + category.id + "-" + recipe.id;
+        itemBox.appendChild(itemLabel);
+
+        itemBox.appendChild(createCraftItemSelect({
+            id: itemLabel.htmlFor,
+            items: itemChoices,
+            selectedItem: selectedItem,
+            onSelect: function (instanceId) {
+                setCraftItemChoice(recipe, instanceId);
+                renderCraftList(category);
+                renderCraftResources(category);
+                renderCraftDetails(category);
+                refreshCraftAvailability();
+            },
+        }));
+
+        panel.appendChild(itemBox);
     }
 
     const choiceSlots = getCraftChoiceSlots(recipe);
@@ -1413,6 +1707,17 @@ function renderCraftResources(category) {
                 + " " + (requirement.ok ? "yes" : "no");
         }).join(", ");
         panel.appendChild(stationRow);
+    }
+
+    if (craftItemChoice) {
+        const selectedItem = getSelectedCraftItemChoice(recipe);
+        const itemDefinition = ITEM_DEFS[craftItemChoice.itemId];
+        const itemRow = document.createElement("div");
+        itemRow.className = "craftskillrow" + (selectedItem ? "" : " missing");
+        itemRow.dataset.craftItemChoice = "1";
+        itemRow.innerText = (itemDefinition ? itemDefinition.name : "Item")
+            + ": " + (selectedItem ? "1 / 1" : "0 / 1");
+        panel.appendChild(itemRow);
     }
 }
 
@@ -1671,6 +1976,26 @@ function refreshCraftAvailability() {
                     );
                 }
             }
+
+            // The flat-bread list can change after every bake, so rebuild the
+            // picker when the available items or the selection no longer match.
+            if (getCraftItemChoice(recipe)) {
+                const itemSelect = resourcesPanel.querySelector(
+                    ".craftingredient-select[data-instance-id]"
+                );
+                const selectedItem = getSelectedCraftItemChoice(recipe);
+                const expectedId = selectedItem
+                    ? String(selectedItem.instanceId)
+                    : "";
+                const renderedOptions = resourcesPanel.querySelectorAll(
+                    ".craftingredient-option[data-instance-id]"
+                ).length;
+                if (!itemSelect
+                    || itemSelect.dataset.instanceId !== expectedId
+                    || renderedOptions !== getCraftItemChoices(recipe).length) {
+                    renderCraftResources(category);
+                }
+            }
         }
 
         const button = document.getElementById(category.id + "craftbutton");
@@ -1731,9 +2056,9 @@ function pickAutoCookResource(candidates, amount, remaining, priorityStat) {
 // DietBasics 5: every cooking-granted bonus slot is filled when possible.
 // DietBasics 6: main and bonus ingredients prefer the priority stat.
 function buildAutoCookChoices(recipe, level, priorityStat) {
-    // Recipes with several mandatory pick slots (salads) are left for manual
-    // crafting: auto-cook only understands one flexible ingredient.
-    if (getCraftChoiceSlots(recipe).length) return null;
+    // Recipes with several mandatory pick slots (salads) or with an inventory
+    // item requirement (shawerma) are left for manual crafting.
+    if (getCraftChoiceSlots(recipe).length || getCraftItemChoice(recipe)) return null;
 
     const choiceIds = getCraftChoiceResourceIds(recipe);
     const choiceAmount = Math.max(1, Number(recipe.choiceAmount) || 1);
@@ -1866,24 +2191,39 @@ function performCraft(recipe) {
         return false;
     }
 
+    const itemChoice = getCraftItemChoice(recipe);
+    const chosenItem = itemChoice ? getSelectedCraftItemChoice(recipe) : null;
+    if (itemChoice && !chosenItem) {
+        const neededDefinition = ITEM_DEFS[itemChoice.itemId];
+        logMessage("You need " + (neededDefinition ? neededDefinition.name : "an item")
+            + " to craft " + resultName);
+        return false;
+    }
+
     if (!canAffordCraft(recipe)) {
         logMessage("Not enough resources to craft " + resultName);
         return false;
     }
 
-    if (!hasFreeInventorySlot()) {
+    // The consumed item frees a slot, so a full inventory is fine.
+    if (!hasFreeInventorySlot() && !chosenItem) {
         logMessage("Your inventory is full, cannot craft " + resultName);
         return false;
     }
 
     const qualityInfo = getCraftQualityInfo(recipe);
-    const rarity = rollCraftRarity(qualityInfo.rawQuality, qualityInfo.skillLevel);
+    let rarity = rollCraftRarity(qualityInfo.rawQuality, qualityInfo.skillLevel);
+    rarity = getItemChoiceBoostedRarity(recipe, rarity);
     const choice = getSelectedCraftChoice(recipe);
     const potentialBonuses = getCraftPotentialBonuses(
         recipe,
         qualityInfo.quality,
         rarity
     );
+
+    if (chosenItem) {
+        consumeCraftItemChoice(recipe, chosenItem);
+    }
 
     getCraftRequirements(recipe).forEach(function (requirement) {
         const stack = resources[requirement.resourceId];
