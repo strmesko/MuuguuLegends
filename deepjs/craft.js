@@ -34,6 +34,73 @@ const CRAFT_CATEGORIES = Object.freeze([
     }),
 ]);
 
+// --- craft list grouping ---------------------------------------------------
+// Recipes are shown in small named groups inside every craft tab instead of
+// one flat list.
+const CRAFT_GROUP_NAMES = Object.freeze({
+    meals: "Meals",
+    bread: "Bread & dough",
+    pasta: "Raw pasta",
+    sticks: "Sticks",
+    knives: "Knives",
+    hammers: "Hammers",
+    axes: "Axes",
+    pickaxes: "Pickaxes",
+    shovels: "Shovels",
+    spears: "Spears",
+    "leaf-clothing": "Leaf clothing",
+    containers: "Containers",
+    cutlery: "Cutlery",
+    pots: "Pots",
+    other: "Other",
+});
+
+function getCraftRecipeGroupId(recipe) {
+    if (recipe && typeof recipe.group === "string" && recipe.group) {
+        return recipe.group;
+    }
+    return (recipe && CRAFT_RECIPE_GROUPS_BY_ID[recipe.id]) || "other";
+}
+
+function getCraftRecipeGroupName(groupId) {
+    return CRAFT_GROUP_NAMES[groupId] || "Other";
+}
+
+const TOOL_RECIPE_GROUPS = Object.freeze({
+    "handy-stick": "sticks",
+    "flint-knife": "knives",
+    "stone-hammer": "hammers",
+    "stone-axe": "axes",
+    "flint-pickaxe": "pickaxes",
+    "flint-spear": "spears",
+});
+
+const METAL_TOOL_GROUPS = Object.freeze({
+    knife: "knives",
+    hammer: "hammers",
+    axe: "axes",
+    pickaxe: "pickaxes",
+    shovel: "shovels",
+    spear: "spears",
+});
+
+// Recipes defined as plain literals get their group here.
+const CRAFT_RECIPE_GROUPS_BY_ID = Object.freeze({
+    "kebob-on-stick": "meals",
+    porridge: "meals",
+    salad: "meals",
+    "fruits-salad": "meals",
+    shawerma: "meals",
+    soup: "meals",
+    "flat-bread": "bread",
+    dough: "bread",
+    "sweet-dough": "bread",
+    bread: "bread",
+    "toast-bread": "bread",
+    "leaf-of-nature": "leaf-clothing",
+    "pottery-clay-pot": "pots",
+});
+
 // Tools share the Tools category and the Survival skill. Resource costs are
 // passed as [resourceId, amount] pairs so new tools stay one line each.
 function createToolRecipe(id, itemId, resources) {
@@ -42,6 +109,7 @@ function createToolRecipe(id, itemId, resources) {
         category: "tools",
         itemId: itemId,
         skill: "survival",
+        group: TOOL_RECIPE_GROUPS[id] || "other",
         resources: Object.freeze(resources.map(function (resource) {
             return Object.freeze({
                 resourceId: resource[0],
@@ -55,12 +123,16 @@ function createToolRecipe(id, itemId, resources) {
 // Survival Pounch uses the same recipe with twice as many fibers.
 function createLeafClothingRecipe(id, itemId, fibers) {
     const fiberAmount = Number.isFinite(fibers) && fibers > 0 ? fibers : 1;
+    const group = (id === "survival-pounch" || id === "straw-basket-backpack")
+        ? "containers"
+        : "leaf-clothing";
 
     return Object.freeze({
         id: "leaf-" + id,
         category: "common",
         itemId: itemId,
         skill: "tailoring",
+        group: group,
         resources: Object.freeze([
             Object.freeze({ resourceId: RESOURCE_IDS.LEAVES, amount: 1 }),
             Object.freeze({ resourceId: RESOURCE_IDS.BRANCHES, amount: 1 }),
@@ -99,13 +171,14 @@ const MEAT_RESOURCE_IDS = Object.freeze(
 // Flour-and-water cooking recipes: one flour of choice plus water on the tile.
 // Raw intermediates (dough, pasta) skip potential bonuses because they are not
 // edible until cooked again.
-function createFlourWaterRecipe(id, itemId, extraResources) {
+function createFlourWaterRecipe(id, itemId, extraResources, group) {
     return Object.freeze({
         id: id,
         category: "food",
         itemId: itemId,
         skill: "cooking",
         stat: "sou",
+        group: group || "bread",
         resources: Object.freeze(extraResources || []),
         choiceResourceIds: FLOUR_RESOURCE_IDS,
         choiceAmount: 1,
@@ -119,8 +192,14 @@ function createFlourWaterRecipe(id, itemId, extraResources) {
 const PASTA_RECIPES = Object.freeze(PASTA_ITEM_DEFINITIONS.map(function (pasta) {
     return createFlourWaterRecipe(
         "raw-pasta-" + pasta.name.toLowerCase().replace(/\s+/g, "-"),
-        pasta.id
+        pasta.id,
+        null,
+        "pasta"
     );
+}));
+
+const PASTA_ITEM_IDS = Object.freeze(PASTA_ITEM_DEFINITIONS.map(function (pasta) {
+    return pasta.id;
 }));
 
 // Soup takes any edible resource plus every herb type (medicinal, spice,
@@ -166,6 +245,9 @@ function createMetalVariantRecipes() {
             category: variant.category,
             itemId: variant.itemId,
             skill: "smithing",
+            group: variant.category === "tools"
+                ? (METAL_TOOL_GROUPS[variant.baseKey] || "other")
+                : (variant.baseKey === "pot" ? "pots" : "cutlery"),
             resources: Object.freeze(resources),
         });
     });
@@ -181,6 +263,7 @@ function createCutleryRecipe(id, itemId, cuttingPower) {
         category: "cultery",
         itemId: itemId,
         skill: "carpentry",
+        group: "cutlery",
         resources: Object.freeze([
             Object.freeze({ resourceId: RESOURCE_IDS.STICKS, amount: 10 }),
         ]),
@@ -408,6 +491,13 @@ const CRAFT_RECIPES = Object.freeze([
         bonusChoiceSlotsMultiplier: 2,
         bonusChoiceResourceIds: SOUP_INGREDIENT_IDS,
         bonusChoiceAmount: 1,
+        itemChoice: Object.freeze({
+            itemIds: PASTA_ITEM_IDS,
+            label: "Add pasta (optional):",
+            rowLabel: "Pasta",
+            optional: true,
+            rarityBoost: 1,
+        }),
     }),
     createFlourWaterRecipe("dough", ITEM_IDS.DOUGH),
     createFlourWaterRecipe("sweet-dough", ITEM_IDS.SWEET_DOUGH, [
@@ -615,7 +705,18 @@ function setCraftSlotChoice(recipe, slotId, resourceId) {
 // Some recipes consume a crafted item instead of (or besides) resources.
 function getCraftItemChoice(recipe) {
     const choice = recipe && recipe.itemChoice;
-    return choice && choice.itemId != null ? choice : null;
+    if (!choice) return null;
+    const hasIds = (Array.isArray(choice.itemIds) && choice.itemIds.length > 0)
+        || choice.itemId != null;
+    return hasIds ? choice : null;
+}
+
+function getCraftItemChoiceIds(choice) {
+    if (!choice) return [];
+    if (Array.isArray(choice.itemIds) && choice.itemIds.length) {
+        return choice.itemIds;
+    }
+    return choice.itemId != null ? [choice.itemId] : [];
 }
 
 function getCraftItemChoices(recipe) {
@@ -627,8 +728,9 @@ function getCraftItemChoices(recipe) {
         return [];
     }
 
+    const allowedIds = getCraftItemChoiceIds(choice);
     return player.equipinventory.filter(function (item) {
-        return !!item && item.itemId === choice.itemId;
+        return !!item && allowedIds.indexOf(item.itemId) !== -1;
     });
 }
 
@@ -657,22 +759,43 @@ function getSelectedCraftItemChoice(recipe) {
     if (!choice) return null;
 
     const items = getCraftItemChoices(recipe);
-    if (!items.length) {
+    const stored = selectedCraftItemByRecipe[recipe.id];
+
+    if (Object.prototype.hasOwnProperty.call(selectedCraftItemByRecipe, recipe.id)) {
+        if (stored === null) return null;
+
+        const found = items.find(function (item) {
+            return Number(item.instanceId) === Number(stored);
+        });
+        if (found) return found;
+
+        // The chosen item was consumed or removed.
+        if (choice.optional === true) {
+            selectedCraftItemByRecipe[recipe.id] = null;
+            return null;
+        }
         delete selectedCraftItemByRecipe[recipe.id];
+    }
+
+    if (choice.optional === true) {
+        selectedCraftItemByRecipe[recipe.id] = null;
         return null;
     }
 
-    const stored = Number(selectedCraftItemByRecipe[recipe.id]);
-    const found = items.find(function (item) {
-        return Number(item.instanceId) === stored;
-    });
-    const selected = found || items[0];
-    selectedCraftItemByRecipe[recipe.id] = Number(selected.instanceId);
-    return selected;
+    if (!items.length) return null;
+    selectedCraftItemByRecipe[recipe.id] = Number(items[0].instanceId);
+    return items[0];
 }
 
 function setCraftItemChoice(recipe, instanceId) {
-    if (!getCraftItemChoice(recipe)) return false;
+    const choice = getCraftItemChoice(recipe);
+    if (!choice) return false;
+
+    if (instanceId == null || instanceId === "") {
+        if (choice.optional !== true) return false;
+        selectedCraftItemByRecipe[recipe.id] = null;
+        return true;
+    }
 
     const id = Number(instanceId);
     const exists = getCraftItemChoices(recipe).some(function (item) {
@@ -1092,7 +1215,9 @@ function canCraftRecipe(recipe) {
     if (!canMeetCraftStationRequirements(recipe)) {
         return false;
     }
-    if (getCraftItemChoice(recipe) && !getSelectedCraftItemChoice(recipe)) {
+    const itemChoice = getCraftItemChoice(recipe);
+    if (itemChoice && itemChoice.optional !== true
+        && !getSelectedCraftItemChoice(recipe)) {
         return false;
     }
     return canAffordCraft(recipe);
@@ -1341,15 +1466,15 @@ function renderCraftList(category) {
 
     const recipes = getCraftRecipesByCategory(category.id);
 
-    const group = document.createElement("div");
-    group.className = "habitcategory craftcategory";
-
-    const groupTitle = document.createElement("div");
-    groupTitle.className = "habitcategorytitle";
-    groupTitle.innerText = category.name;
-    group.appendChild(groupTitle);
-
     if (!recipes.length) {
+        const group = document.createElement("div");
+        group.className = "habitcategory craftcategory";
+
+        const groupTitle = document.createElement("div");
+        groupTitle.className = "habitcategorytitle";
+        groupTitle.innerText = category.name;
+        group.appendChild(groupTitle);
+
         const empty = document.createElement("div");
         empty.className = "craftempty";
         empty.innerText = "Nothing to craft here yet.";
@@ -1361,47 +1486,74 @@ function renderCraftList(category) {
     // Keep the selection valid and default it to the first recipe.
     const selectedRecipe = getSelectedCraftRecipe(category.id);
 
-    const recipeList = document.createElement("ul");
-    recipeList.className = "habitlist";
-
+    // Split the flat recipe list into named groups, preserving recipe order.
+    const groups = [];
+    const groupsById = Object.create(null);
     recipes.forEach(function (recipe) {
-        const recipeItem = document.createElement("li");
-        recipeItem.className = "habititem craftrecipe";
-        recipeItem.id = "craftrecipe-" + category.id + "-" + recipe.id;
-        recipeItem.dataset.recipeId = recipe.id;
-        recipeItem.classList.toggle(
-            "selected",
-            !!selectedRecipe && selectedRecipe.id === recipe.id
-        );
-        recipeItem.classList.toggle("unavailable", !canCraftRecipe(recipe));
-
-        const switchElement = document.createElement("span");
-        switchElement.className = "habitswitch";
-        switchElement.setAttribute(
-            "data-tooltip",
-            "Craft " + getCraftResultName(recipe)
-                + "<br>Skill: " + getCraftSkillName(recipe)
-        );
-
-        const slider = document.createElement("span");
-        slider.className = "habitslider";
-
-        const name = document.createElement("span");
-        name.className = "habitname";
-        name.innerText = getCraftResultName(recipe);
-
-        switchElement.appendChild(slider);
-        switchElement.appendChild(name);
-        recipeItem.appendChild(switchElement);
-        recipeItem.addEventListener("click", function () {
-            selectCraft(category.id, recipe.id);
-        });
-
-        recipeList.appendChild(recipeItem);
+        const groupId = getCraftRecipeGroupId(recipe);
+        if (!groupsById[groupId]) {
+            groupsById[groupId] = {
+                id: groupId,
+                name: getCraftRecipeGroupName(groupId),
+                recipes: [],
+            };
+            groups.push(groupsById[groupId]);
+        }
+        groupsById[groupId].recipes.push(recipe);
     });
 
-    group.appendChild(recipeList);
-    list.appendChild(group);
+    groups.forEach(function (groupInfo) {
+        const group = document.createElement("div");
+        group.className = "habitcategory craftcategory";
+        group.dataset.craftGroup = groupInfo.id;
+
+        const groupTitle = document.createElement("div");
+        groupTitle.className = "habitcategorytitle";
+        groupTitle.innerText = groupInfo.name;
+        group.appendChild(groupTitle);
+
+        const recipeList = document.createElement("ul");
+        recipeList.className = "habitlist";
+
+        groupInfo.recipes.forEach(function (recipe) {
+            const recipeItem = document.createElement("li");
+            recipeItem.className = "habititem craftrecipe";
+            recipeItem.id = "craftrecipe-" + category.id + "-" + recipe.id;
+            recipeItem.dataset.recipeId = recipe.id;
+            recipeItem.classList.toggle(
+                "selected",
+                !!selectedRecipe && selectedRecipe.id === recipe.id
+            );
+            recipeItem.classList.toggle("unavailable", !canCraftRecipe(recipe));
+
+            const switchElement = document.createElement("span");
+            switchElement.className = "habitswitch";
+            switchElement.setAttribute(
+                "data-tooltip",
+                "Craft " + getCraftResultName(recipe)
+                    + "<br>Skill: " + getCraftSkillName(recipe)
+            );
+
+            const slider = document.createElement("span");
+            slider.className = "habitslider";
+
+            const name = document.createElement("span");
+            name.className = "habitname";
+            name.innerText = getCraftResultName(recipe);
+
+            switchElement.appendChild(slider);
+            switchElement.appendChild(name);
+            recipeItem.appendChild(switchElement);
+            recipeItem.addEventListener("click", function () {
+                selectCraft(category.id, recipe.id);
+            });
+
+            recipeList.appendChild(recipeItem);
+        });
+
+        group.appendChild(recipeList);
+        list.appendChild(group);
+    });
 }
 
 function createCraftIngredientIcon(resourceId, className) {
@@ -1553,6 +1705,30 @@ function createCraftItemSelect(options) {
     const menu = document.createElement("div");
     menu.className = "craftingredient-menu";
 
+    if (settings.includeNone === true) {
+        const noneOption = document.createElement("button");
+        noneOption.type = "button";
+        noneOption.className = "craftingredient-option";
+        noneOption.dataset.instanceId = "";
+
+        const noneIcon = document.createElement("span");
+        noneIcon.className = "craftingredient-icon empty";
+        noneOption.appendChild(noneIcon);
+
+        const noneLabel = document.createElement("span");
+        noneLabel.className = "craftingredient-option-label";
+        noneLabel.innerText = "-None-";
+        noneOption.appendChild(noneLabel);
+
+        noneOption.addEventListener("click", function (event) {
+            event.stopPropagation();
+            wrapper.classList.remove("open");
+            onSelect(null);
+        });
+
+        menu.appendChild(noneOption);
+    }
+
     items.forEach(function (item) {
         const option = document.createElement("button");
         option.type = "button";
@@ -1661,6 +1837,7 @@ function renderCraftResources(category) {
             id: itemLabel.htmlFor,
             items: itemChoices,
             selectedItem: selectedItem,
+            includeNone: craftItemChoice.optional === true,
             onSelect: function (instanceId) {
                 setCraftItemChoice(recipe, instanceId);
                 renderCraftList(category);
@@ -1837,11 +2014,15 @@ function renderCraftResources(category) {
 
     if (craftItemChoice) {
         const selectedItem = getSelectedCraftItemChoice(recipe);
-        const itemDefinition = ITEM_DEFS[craftItemChoice.itemId];
+        const optional = craftItemChoice.optional === true;
+        const firstId = getCraftItemChoiceIds(craftItemChoice)[0];
+        const firstDefinition = firstId != null ? ITEM_DEFS[firstId] : null;
+        const itemName = craftItemChoice.rowLabel
+            || (firstDefinition ? firstDefinition.name : "Item");
         const itemRow = document.createElement("div");
-        itemRow.className = "craftskillrow" + (selectedItem ? "" : " missing");
+        itemRow.className = "craftskillrow" + (!selectedItem && !optional ? " missing" : "");
         itemRow.dataset.craftItemChoice = "1";
-        itemRow.innerText = (itemDefinition ? itemDefinition.name : "Item")
+        itemRow.innerText = itemName + (optional ? " (optional)" : "")
             + ": " + (selectedItem ? "1 / 1" : "0 / 1");
         panel.appendChild(itemRow);
     }
@@ -2116,9 +2297,11 @@ function refreshCraftAvailability() {
                 const renderedOptions = resourcesPanel.querySelectorAll(
                     ".craftingredient-option[data-instance-id]"
                 ).length;
+                const expectedOptions = getCraftItemChoices(recipe).length
+                    + (getCraftItemChoice(recipe).optional === true ? 1 : 0);
                 if (!itemSelect
                     || itemSelect.dataset.instanceId !== expectedId
-                    || renderedOptions !== getCraftItemChoices(recipe).length) {
+                    || renderedOptions !== expectedOptions) {
                     renderCraftResources(category);
                 }
             }
@@ -2323,8 +2506,8 @@ function performCraft(recipe) {
 
     const itemChoice = getCraftItemChoice(recipe);
     const chosenItem = itemChoice ? getSelectedCraftItemChoice(recipe) : null;
-    if (itemChoice && !chosenItem) {
-        const neededDefinition = ITEM_DEFS[itemChoice.itemId];
+    if (itemChoice && !chosenItem && itemChoice.optional !== true) {
+        const neededDefinition = ITEM_DEFS[getCraftItemChoiceIds(itemChoice)[0]];
         logMessage("You need " + (neededDefinition ? neededDefinition.name : "an item")
             + " to craft " + resultName);
         return false;
