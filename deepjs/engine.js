@@ -1071,6 +1071,7 @@ function productionLoop(diff, options) {
     updateDayDreamUnlock(diff);
     runTravelProduction(diff);
     runActiveActions(diff);
+    if (typeof updateAssPoison === "function") updateAssPoison(diff);
     if (typeof updateCombat === "function") updateCombat(diff);
 
     const manaAfter = Number(player.mana) || 0;

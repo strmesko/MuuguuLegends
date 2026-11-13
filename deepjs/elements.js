@@ -994,6 +994,9 @@ function renderStatusIcons() {
     const dramaDebuffStatuses = typeof getActiveDramaDebuffStatuses === 'function'
         ? getActiveDramaDebuffStatuses()
         : [];
+    const assPoisonStatus = typeof getAssPoisonStatus === 'function'
+        ? getAssPoisonStatus()
+        : null;
     const statuses = sleepyStatuses.slice();
     if (hearthfireStatus) statuses.push(hearthfireStatus);
     if (darkStatus) statuses.push(darkStatus);
@@ -1001,6 +1004,7 @@ function renderStatusIcons() {
     if (wellFedStatus) statuses.push(wellFedStatus);
     if (catchedColdStatus) statuses.push(catchedColdStatus);
     if (earthShakingStatus) statuses.push(earthShakingStatus);
+    if (assPoisonStatus) statuses.push(assPoisonStatus);
     statuses.push.apply(statuses, dramaDebuffStatuses);
 
     const key = statuses.map(function (status) {
@@ -1076,6 +1080,14 @@ function renderStatusIcons() {
         if (icon.dataset.statusId === 'earth-shaking') {
             const status = typeof getEarthShakingStatus === 'function'
                 ? getEarthShakingStatus()
+                : null;
+            if (status) icon.setAttribute('data-tooltip', status.tooltip);
+            return;
+        }
+
+        if (icon.dataset.statusId === 'ass-poison') {
+            const status = typeof getAssPoisonStatus === 'function'
+                ? getAssPoisonStatus()
                 : null;
             if (status) icon.setAttribute('data-tooltip', status.tooltip);
             return;

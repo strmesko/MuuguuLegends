@@ -14,6 +14,12 @@ const COMBAT_ATTACK_SPEED_FACTOR = 0.03;
 const COMBAT_AUTO_CLOSE_DELAY_MS = 2500;
 const MOB_LEVEL_TILES = 5;
 const MOB_LEVEL_STAT_MULTIPLIER = 1.05;
+const ASS_POISON_DURATION_SECONDS = 30;
+const ASS_POISON_DAMAGE_PER_STACK_PER_SECOND = 0.05;
+const ASS_POISON_MAX_STACKS = 50;
+
+var assPoisonStacks = 0;
+var assPoisonRemaining = 0;
 
 const MOBS = Object.freeze({
     catterpuwa: Object.freeze({
@@ -86,6 +92,29 @@ const MOBS = Object.freeze({
         armor: 0.5,
         attackSpeedMs: COMBAT_ATTACK_SPEED_BASE_MS,
     }),
+    assspider: Object.freeze({
+        id: "assspider",
+        name: "Ass spider",
+        description: "A spider with an ass on its rear abdomen.",
+        image: "images/combat/mobs/assspider.png",
+        stats: Object.freeze({
+            str: 1,
+            agi: 2,
+            vit: 1,
+            per: 1,
+            int: 1,
+            ins: 1,
+            sou: 1,
+            luck: 1,
+            speed: 100,
+        }),
+        hp: 12,
+        mana: 0,
+        sp: 4,
+        attack: 0.2,
+        armor: 0.5,
+        attackSpeedMs: 6000,
+    }),
 });
 
 function getMobLevelForTile(x, y) {
@@ -142,6 +171,90 @@ function dropMobLoot(combatant) {
         logCombat("You gather " + name + " x" + drop.amount
             + " (Q" + formatCombatStat(quality) + ").");
     });
+}
+
+function formatCombatDuration(seconds) {
+    const total = Math.max(0, Math.ceil(Number(seconds) || 0));
+    return Math.floor(total / 60) + ":" + String(total % 60).padStart(2, "0");
+}
+
+function getAssPoisonDamagePerSecond() {
+    return assPoisonStacks * ASS_POISON_DAMAGE_PER_STACK_PER_SECOND;
+}
+
+function applyAssPoison(damage) {
+    const stacks = Math.max(1, Math.floor(Number(damage) || 1));
+    assPoisonStacks = Math.min(
+        ASS_POISON_MAX_STACKS,
+        assPoisonStacks + stacks
+    );
+    assPoisonRemaining = ASS_POISON_DURATION_SECONDS;
+    logCombat("AssPoison: +" + stacks + " stack"
+        + (stacks === 1 ? "" : "s") + " (" + assPoisonStacks + " total).");
+}
+
+function updateAssPoison(diff) {
+    if (assPoisonStacks <= 0 || assPoisonRemaining <= 0) return;
+
+    const seconds = Math.max(0, Number(diff) || 0);
+    if (seconds <= 0) return;
+
+    const activeSeconds = Math.min(seconds, assPoisonRemaining);
+    const damage = roundCombatDamage(
+        getAssPoisonDamagePerSecond() * activeSeconds
+    );
+
+    if (damage > 0 && typeof player !== "undefined" && player) {
+        player.hp = Math.max(0, roundCombatDamage(Number(player.hp) - damage));
+        if (activeCombat && activeCombat.player) {
+            activeCombat.player.hp = player.hp;
+        }
+    }
+
+    assPoisonRemaining = Math.max(0, assPoisonRemaining - seconds);
+    if (assPoisonRemaining <= 0) {
+        assPoisonStacks = 0;
+        if (typeof logMessage === "function") {
+            logMessage("AssPoison has worn off.");
+        }
+    }
+}
+
+function getAssPoisonStatus() {
+    if (assPoisonStacks <= 0 || assPoisonRemaining <= 0) return null;
+
+    return {
+        id: "ass-poison",
+        name: "AssPoison",
+        kind: "debuff",
+        color: "#a569bd",
+        icon: "fa-flask",
+        stacks: assPoisonStacks,
+        tooltip: [
+            "<b>AssPoison</b>",
+            "Stacks: " + assPoisonStacks,
+            "Damage: " + formatCombatStat(getAssPoisonDamagePerSecond()) + "/s",
+            "Remaining: " + formatCombatDuration(assPoisonRemaining),
+        ].join("<br>"),
+    };
+}
+
+function getAssPoisonSnapshot() {
+    return {
+        stacks: assPoisonStacks,
+        remaining: assPoisonRemaining,
+    };
+}
+
+function restoreAssPoison(savedStacks, savedRemaining) {
+    const stacks = Number(savedStacks);
+    const remaining = Number(savedRemaining);
+    assPoisonStacks = Number.isFinite(stacks) && stacks > 0
+        ? Math.min(ASS_POISON_MAX_STACKS, Math.floor(stacks))
+        : 0;
+    assPoisonRemaining = Number.isFinite(remaining) && remaining > 0
+        ? Math.min(ASS_POISON_DURATION_SECONDS, remaining)
+        : 0;
 }
 
 function isCombatActive() {
@@ -575,6 +688,10 @@ function performCombatAttack(attacker, defender) {
         addCombatSkillExp("tactics", 1);
         addCombatSkillExp("anatomy", 1);
         if (crit) addCombatSkillExp("bullseye", 2);
+    }
+
+    if (attacker.kind === "mob" && attacker.id === "assspider") {
+        applyAssPoison(damage);
     }
 
     logCombat(attacker.name + " hits " + defender.name + " for "

@@ -148,6 +148,12 @@
             dramaDebuffs: typeof getDramaDebuffsSnapshot === "function"
                 ? getDramaDebuffsSnapshot()
                 : {},
+            assPoisonStacks: typeof getAssPoisonSnapshot === "function"
+                ? getAssPoisonSnapshot().stacks
+                : 0,
+            assPoisonRemaining: typeof getAssPoisonSnapshot === "function"
+                ? getAssPoisonSnapshot().remaining
+                : 0,
             mapSeed: window.mapView ? window.mapView.getSeed() : null,
         };
     }
@@ -311,6 +317,13 @@
             foodStatBindings: saveData.foodStatBindings ?? null,
             buildings: Array.isArray(saveData.buildings) ? saveData.buildings : [],
             hearthfireFuelElapsed: saveData.hearthfireFuelElapsed ?? 0,
+            DramaMeter: saveData.DramaMeter ?? 0,
+            dramaEventTimer: saveData.dramaEventTimer ?? 0,
+            catchedColdRemaining: saveData.catchedColdRemaining ?? 0,
+            earthShakingRemaining: saveData.earthShakingRemaining ?? 0,
+            dramaDebuffs: saveData.dramaDebuffs ?? {},
+            assPoisonStacks: saveData.assPoisonStacks ?? 0,
+            assPoisonRemaining: saveData.assPoisonRemaining ?? 0,
             mapSeed: saveData.mapSeed ?? null,
             landTotals: saveData.landTotals ?? {
                 trees: saveData.trees ?? 0,
@@ -475,6 +488,9 @@
                 saved.earthShakingRemaining,
                 saved.dramaDebuffs
             );
+        }
+        if (typeof restoreAssPoison === "function") {
+            restoreAssPoison(saved.assPoisonStacks, saved.assPoisonRemaining);
         }
         restoreTechnologies(saved.technologies);
         minPotentialBonusPercent = saved.minPotentialBonusPercent
