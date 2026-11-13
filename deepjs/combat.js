@@ -63,6 +63,29 @@ const MOBS = Object.freeze({
         armor: 0.1,
         attackSpeedMs: 500,
     }),
+    bombchick: Object.freeze({
+        id: "bombchick",
+        name: "Bomb chick",
+        description: "A chick with an elevated nitroglycerin content.",
+        image: "images/combat/mobs/bombchick.png",
+        stats: Object.freeze({
+            str: 1,
+            agi: 2,
+            vit: 1,
+            per: 1,
+            int: 1,
+            ins: 1,
+            sou: 1,
+            luck: 1,
+            speed: 100,
+        }),
+        hp: 6,
+        mana: 0,
+        sp: 4,
+        attack: 0.2,
+        armor: 0.5,
+        attackSpeedMs: COMBAT_ATTACK_SPEED_BASE_MS,
+    }),
 });
 
 function getMobLevelForTile(x, y) {
@@ -465,6 +488,19 @@ function finishCombat(victory) {
             && typeof addResource === "function") {
             addResource(RESOURCE_IDS.BUG_MEAT, 1, RESOURCE_DEFAULT_QUALITY);
             logCombat("You gather Bug meat x1.");
+        }
+
+        if (activeCombat.enemy.id === "bombchick") {
+            const explosionDamage = roundCombatDamage(activeCombat.enemy.maxHp / 2);
+            activeCombat.player.hp = Math.max(
+                0,
+                roundCombatDamage(activeCombat.player.hp - explosionDamage)
+            );
+            if (typeof player !== "undefined" && player) {
+                player.hp = activeCombat.player.hp;
+            }
+            logCombat("Bomb chick explodes! You take "
+                + formatCombatStat(explosionDamage) + " damage.");
         }
     } else {
         logCombat("You were defeated by " + activeCombat.enemy.name + ".");
