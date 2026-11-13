@@ -81,6 +81,11 @@ const KEBOB_INGREDIENT_IDS = Object.freeze(
 const PORRIDGE_GRAIN_IDS = Object.freeze(CROP_RESOURCE_IDS.slice());
 const PORRIDGE_BONUS_INGREDIENT_IDS = KEBOB_INGREDIENT_IDS;
 
+// Salads take three of one vegetable/fruit plus one aromatic herb or nuts.
+const SALAD_HERB_IDS = Object.freeze(
+    HERB_EDIBLE_RESOURCE_IDS.concat(HERB_SPICE_RESOURCE_IDS)
+);
+
 // Metal tools, metal cutlery and metal pots use the matching metal bars.
 // Tools and cutlery also need a wooden handle/shaft; pots do not.
 function createMetalVariantRecipes() {
@@ -173,6 +178,60 @@ const CRAFT_RECIPES = Object.freeze([
         requiresEquippedSlot: "pot",
         requiresWater: true,
         requiresCampfire: true,
+    }),
+    Object.freeze({
+        id: "salad",
+        category: "food",
+        itemId: ITEM_IDS.SALAD,
+        skill: "cooking",
+        stat: "sou",
+        resources: Object.freeze([]),
+        choiceSlots: Object.freeze([
+            Object.freeze({
+                id: "vegetables",
+                resourceIds: VEGETABLE_RESOURCE_IDS,
+                amount: 3,
+                label: "Choose vegetable (x3):",
+            }),
+            Object.freeze({
+                id: "herbs",
+                resourceIds: SALAD_HERB_IDS,
+                amount: 1,
+                label: "Choose herb:",
+            }),
+        ]),
+        requiredToolPower: Object.freeze({
+            type: "cutting",
+            power: 2,
+            exclusive: true,
+        }),
+    }),
+    Object.freeze({
+        id: "fruits-salad",
+        category: "food",
+        itemId: ITEM_IDS.FRUITS_SALAD,
+        skill: "cooking",
+        stat: "sou",
+        resources: Object.freeze([]),
+        choiceSlots: Object.freeze([
+            Object.freeze({
+                id: "fruits",
+                resourceIds: FRUIT_RESOURCE_IDS,
+                amount: 3,
+                label: "Choose fruit (x3):",
+            }),
+            Object.freeze({
+                id: "nuts",
+                resourceIds: NUT_RESOURCE_IDS,
+                amount: 1,
+                label: "Choose nuts:",
+            }),
+        ]),
+        requiredToolPower: Object.freeze({
+            type: "cutting",
+            power: 2,
+            exclusive: true,
+        }),
     }),
     createCutleryRecipe("ladle", ITEM_IDS.LADLE, 1),
     createCutleryRecipe("wooden-fork", ITEM_IDS.WOODEN_FORK, 3),
@@ -279,6 +338,9 @@ const selectedCraftChoiceByRecipe = {};
 // Optional bonus ingredients. Keyed by recipe id, each entry is an array of
 // resource ids or null for an empty "-None-" slot.
 const selectedCraftBonusChoicesByRecipe = {};
+// Extra mandatory ingredient slots (for example 3 vegetables + 1 herb).
+// Keyed by recipe id and then by slot id.
+const selectedCraftSlotChoicesByRecipe = {};
 
 function getCraftCategory(categoryId) {
     return CRAFT_CATEGORIES.find(function (category) {
@@ -296,6 +358,50 @@ function getCraftChoiceResourceIds(recipe) {
     return recipe && Array.isArray(recipe.choiceResourceIds)
         ? recipe.choiceResourceIds
         : [];
+}
+
+// A recipe may also need several independent mandatory picks, each with its
+// own resource list and amount (salads need 3 vegetables and 1 herb).
+function getCraftChoiceSlots(recipe) {
+    return recipe && Array.isArray(recipe.choiceSlots) ? recipe.choiceSlots : [];
+}
+
+function getCraftSlotChoices(recipe) {
+    const slots = getCraftChoiceSlots(recipe);
+    if (!slots.length) return {};
+
+    let state = selectedCraftSlotChoicesByRecipe[recipe.id];
+    if (!state || typeof state !== "object") state = {};
+
+    slots.forEach(function (slot) {
+        const allowed = Array.isArray(slot.resourceIds) ? slot.resourceIds : [];
+        const stored = Number(state[slot.id]);
+        if (allowed.indexOf(stored) !== -1) return;
+
+        const required = Math.max(1, Number(slot.amount) || 1);
+        const available = allowed.find(function (resourceId) {
+            return getResourceAmount(resourceId) >= required;
+        });
+        state[slot.id] = available != null ? available : allowed[0];
+    });
+
+    selectedCraftSlotChoicesByRecipe[recipe.id] = state;
+    return state;
+}
+
+function setCraftSlotChoice(recipe, slotId, resourceId) {
+    const slot = getCraftChoiceSlots(recipe).find(function (entry) {
+        return entry.id === slotId;
+    });
+    if (!slot) return false;
+
+    const chosen = Number(resourceId);
+    if ((slot.resourceIds || []).indexOf(chosen) === -1) return false;
+
+    const state = getCraftSlotChoices(recipe);
+    state[slot.id] = chosen;
+    selectedCraftSlotChoicesByRecipe[recipe.id] = state;
+    return true;
 }
 
 function getSelectedCraftChoice(recipe) {
@@ -429,6 +535,15 @@ function getCraftRequirements(recipe) {
         });
     }
 
+    const slots = getCraftChoiceSlots(recipe);
+    if (slots.length) {
+        const slotState = getCraftSlotChoices(recipe);
+        slots.forEach(function (slot) {
+            const chosen = slotState[slot.id];
+            if (chosen != null) addRequirement(chosen, slot.amount);
+        });
+    }
+
     return Object.keys(merged).map(function (key) {
         return merged[key];
     });
@@ -524,6 +639,7 @@ function getCraftRequiredToolPower(recipe) {
     return {
         type: requirement.type,
         power: Math.max(0, Number(requirement.power) || 0),
+        exclusive: requirement.exclusive === true,
     };
 }
 
@@ -533,10 +649,17 @@ function getCraftToolPower(type) {
         : 0;
 }
 
+function meetsCraftToolPower(requirement, currentPower) {
+    if (!requirement) return true;
+    return requirement.exclusive
+        ? currentPower > requirement.power
+        : currentPower >= requirement.power;
+}
+
 function hasCraftToolPower(recipe) {
     const requirement = getCraftRequiredToolPower(recipe);
     if (!requirement) return true;
-    return getCraftToolPower(requirement.type) >= requirement.power;
+    return meetsCraftToolPower(requirement, getCraftToolPower(requirement.type));
 }
 
 function getCraftQualityMultiplier(recipe) {
@@ -724,7 +847,11 @@ function getCraftFoodRarityPotential(recipe, quality, rarity, existingBonuses) {
 // ingredient adds its own bonus while multiplying the whole result by 1.2.
 // Rarity adds more potential in place of the random ItemDefs properties.
 function getCraftPotentialBonuses(recipe, quality, rarity) {
-    if (!recipe || getCraftChoiceResourceIds(recipe).length === 0) return null;
+    if (!recipe) return null;
+    if (getCraftChoiceResourceIds(recipe).length === 0
+        && getCraftChoiceSlots(recipe).length === 0) {
+        return null;
+    }
 
     const totals = Object.create(null);
     const requirements = getCraftRequirements(recipe);
@@ -1146,6 +1273,39 @@ function renderCraftResources(category) {
         }
     }
 
+    const choiceSlots = getCraftChoiceSlots(recipe);
+    if (choiceSlots.length) {
+        const slotState = getCraftSlotChoices(recipe);
+        const slotBox = document.createElement("div");
+        slotBox.className = "craftchoice";
+
+        choiceSlots.forEach(function (slot) {
+            const slotLabel = document.createElement("label");
+            slotLabel.className = "craftchoice-label";
+            slotLabel.innerText = slot.label || ("Choose " + slot.id + ":");
+            slotLabel.htmlFor = "craftslot-" + category.id + "-" + recipe.id + "-" + slot.id;
+
+            const select = createCraftIngredientSelect({
+                id: slotLabel.htmlFor,
+                resourceIds: slot.resourceIds,
+                selectedResourceId: slotState[slot.id],
+                includeNone: false,
+                onSelect: function (resourceId) {
+                    setCraftSlotChoice(recipe, slot.id, resourceId);
+                    renderCraftList(category);
+                    renderCraftResources(category);
+                    renderCraftDetails(category);
+                    refreshCraftAvailability();
+                },
+            });
+
+            slotBox.appendChild(slotLabel);
+            slotBox.appendChild(select);
+        });
+
+        panel.appendChild(slotBox);
+    }
+
     const container = document.createElement("div");
     container.className = "craftresources";
 
@@ -1191,12 +1351,14 @@ function renderCraftResources(category) {
             : null;
         const label = toolDefinition ? toolDefinition.label : toolPowerRequirement.type;
         const currentPower = getCraftToolPower(toolPowerRequirement.type);
+        const requiredLabel = (toolPowerRequirement.exclusive ? ">" : "")
+            + toolPowerRequirement.power;
         const powerRow = document.createElement("div");
         powerRow.className = "craftskillrow"
-            + (currentPower >= toolPowerRequirement.power ? "" : " missing");
+            + (meetsCraftToolPower(toolPowerRequirement, currentPower) ? "" : " missing");
         powerRow.dataset.craftToolPower = toolPowerRequirement.type;
         powerRow.innerText = label + ": " + round2(currentPower)
-            + " / " + toolPowerRequirement.power;
+            + " / " + requiredLabel;
         panel.appendChild(powerRow);
     }
 
@@ -1436,11 +1598,13 @@ function refreshCraftAvailability() {
                         ? toolDefinition.label
                         : toolPowerRequirement.type;
                     const currentPower = getCraftToolPower(toolPowerRequirement.type);
+                    const requiredLabel = (toolPowerRequirement.exclusive ? ">" : "")
+                        + toolPowerRequirement.power;
                     powerRow.innerText = label + ": " + round2(currentPower)
-                        + " / " + toolPowerRequirement.power;
+                        + " / " + requiredLabel;
                     powerRow.classList.toggle(
                         "missing",
-                        currentPower < toolPowerRequirement.power
+                        !meetsCraftToolPower(toolPowerRequirement, currentPower)
                     );
                 }
             }
@@ -1543,6 +1707,10 @@ function pickAutoCookResource(candidates, amount, remaining, priorityStat) {
 // DietBasics 5: every cooking-granted bonus slot is filled when possible.
 // DietBasics 6: main and bonus ingredients prefer the priority stat.
 function buildAutoCookChoices(recipe, level, priorityStat) {
+    // Recipes with several mandatory pick slots (salads) are left for manual
+    // crafting: auto-cook only understands one flexible ingredient.
+    if (getCraftChoiceSlots(recipe).length) return null;
+
     const choiceIds = getCraftChoiceResourceIds(recipe);
     const choiceAmount = Math.max(1, Number(recipe.choiceAmount) || 1);
     const bonusAmount = Math.max(1, Number(recipe.bonusChoiceAmount) || 1);

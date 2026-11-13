@@ -45,6 +45,8 @@ const ITEM_IDS = Object.freeze({
     CARVED_WOODEN_PLATE: ITEM_ID_BASE + 35,
     CLAY_POT: ITEM_ID_BASE + 36,
     PORRIDGE: ITEM_ID_BASE + 37,
+    SALAD: ITEM_ID_BASE + 38,
+    FRUITS_SALAD: ITEM_ID_BASE + 39,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -703,6 +705,34 @@ const ITEM_DEFS = Object.freeze({
         primaryStat: "sou",
         food: Object.freeze({ hungerRestore: 120 }),
         description: "A thick bowl of grain porridge cooked in a pot over a campfire. Warm, filling and impossible to rush.",
+    }),
+    [ITEM_IDS.SALAD]: Object.freeze({
+        id: ITEM_IDS.SALAD,
+        name: "Salad",
+        kind: ITEM_KINDS.Consumable,
+        stackable: false,
+        weight: 0.4,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: "salad",
+        primaryStat: "sou",
+        food: Object.freeze({ hungerRestore: 90 }),
+        description: "A fresh bowl of chopped vegetables with herbs. Simple, crunchy and honest.",
+    }),
+    [ITEM_IDS.FRUITS_SALAD]: Object.freeze({
+        id: ITEM_IDS.FRUITS_SALAD,
+        name: "Fruits salad",
+        kind: ITEM_KINDS.Consumable,
+        stackable: false,
+        weight: 0.5,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: "fruitssalad",
+        primaryStat: "sou",
+        food: Object.freeze({ hungerRestore: 80 }),
+        description: "A sweet pile of sliced fruit with crushed nuts on top.",
     }),
     [ITEM_IDS.LADLE]: Object.freeze({
         id: ITEM_IDS.LADLE,
