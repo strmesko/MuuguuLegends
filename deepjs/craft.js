@@ -96,6 +96,33 @@ const MEAT_RESOURCE_IDS = Object.freeze(
         })
 );
 
+// Flour-and-water cooking recipes: one flour of choice plus water on the tile.
+// Raw intermediates (dough, pasta) skip potential bonuses because they are not
+// edible until cooked again.
+function createFlourWaterRecipe(id, itemId, extraResources) {
+    return Object.freeze({
+        id: id,
+        category: "food",
+        itemId: itemId,
+        skill: "cooking",
+        stat: "sou",
+        resources: Object.freeze(extraResources || []),
+        choiceResourceIds: FLOUR_RESOURCE_IDS,
+        choiceAmount: 1,
+        choiceLabel: "Choose flour:",
+        resultNameSuffix: "",
+        requiresWater: true,
+        noPotentialBonuses: true,
+    });
+}
+
+const PASTA_RECIPES = Object.freeze(PASTA_ITEM_DEFINITIONS.map(function (pasta) {
+    return createFlourWaterRecipe(
+        "raw-pasta-" + pasta.name.toLowerCase().replace(/\s+/g, "-"),
+        pasta.id
+    );
+}));
+
 // Soup takes any edible resource plus every herb type (medicinal, spice,
 // alchemical and magical included).
 const SOUP_INGREDIENT_IDS = Object.freeze((function () {
@@ -382,6 +409,35 @@ const CRAFT_RECIPES = Object.freeze([
         bonusChoiceResourceIds: SOUP_INGREDIENT_IDS,
         bonusChoiceAmount: 1,
     }),
+    createFlourWaterRecipe("dough", ITEM_IDS.DOUGH),
+    createFlourWaterRecipe("sweet-dough", ITEM_IDS.SWEET_DOUGH, [
+        Object.freeze({ resourceId: RESOURCE_IDS.SUGAR, amount: 1 }),
+    ]),
+    Object.freeze({
+        id: "bread",
+        category: "food",
+        itemId: ITEM_IDS.BREAD,
+        skill: "cooking",
+        stat: "sou",
+        resources: Object.freeze([]),
+        itemChoice: Object.freeze({
+            itemId: ITEM_IDS.DOUGH,
+            label: "Choose dough:",
+        }),
+    }),
+    Object.freeze({
+        id: "toast-bread",
+        category: "food",
+        itemId: ITEM_IDS.TOAST_BREAD,
+        skill: "cooking",
+        stat: "sou",
+        resources: Object.freeze([]),
+        itemChoice: Object.freeze({
+            itemId: ITEM_IDS.BREAD,
+            label: "Choose bread:",
+        }),
+    }),
+    ...PASTA_RECIPES,
     createCutleryRecipe("ladle", ITEM_IDS.LADLE, 1),
     createCutleryRecipe("wooden-fork", ITEM_IDS.WOODEN_FORK, 3),
     createCutleryRecipe("wooden-spoon", ITEM_IDS.WOODEN_SPOON, 1),
@@ -1121,6 +1177,7 @@ function getCraftFoodRarityPotential(recipe, quality, rarity, existingBonuses) {
 // Rarity adds more potential in place of the random ItemDefs properties.
 function getCraftPotentialBonuses(recipe, quality, rarity) {
     if (!recipe) return null;
+    if (recipe.noPotentialBonuses === true) return null;
     if (getCraftChoiceResourceIds(recipe).length === 0
         && getCraftChoiceSlots(recipe).length === 0) {
         return null;
@@ -2125,6 +2182,10 @@ function pickAutoCookResource(candidates, amount, remaining, priorityStat) {
 // DietBasics 5: every cooking-granted bonus slot is filled when possible.
 // DietBasics 6: main and bonus ingredients prefer the priority stat.
 function buildAutoCookChoices(recipe, level, priorityStat) {
+    // Only edible results are auto-cooked: raw dough and pasta are ingredients.
+    const resultDefinition = recipe && getItemDefinition(recipe.itemId);
+    if (!resultDefinition || !resultDefinition.food) return null;
+
     // Recipes with several mandatory pick slots (salads) or with an inventory
     // item requirement (shawerma) are left for manual crafting.
     if (getCraftChoiceSlots(recipe).length || getCraftItemChoice(recipe)) return null;

@@ -50,6 +50,26 @@ const ITEM_IDS = Object.freeze({
     FLAT_BREAD: ITEM_ID_BASE + 40,
     SHAWERMA: ITEM_ID_BASE + 41,
     SOUP: ITEM_ID_BASE + 42,
+    DOUGH: ITEM_ID_BASE + 43,
+    SWEET_DOUGH: ITEM_ID_BASE + 44,
+    BREAD: ITEM_ID_BASE + 45,
+    TOAST_BREAD: ITEM_ID_BASE + 46,
+    RAW_SPAGHETTI: ITEM_ID_BASE + 47,
+    LINGUINE: ITEM_ID_BASE + 48,
+    CAPELLINI: ITEM_ID_BASE + 49,
+    BUCATINI: ITEM_ID_BASE + 50,
+    TAGLIATELLE: ITEM_ID_BASE + 51,
+    FETTUCCINE: ITEM_ID_BASE + 52,
+    PAPPARDELLE: ITEM_ID_BASE + 53,
+    PENNE: ITEM_ID_BASE + 54,
+    MACARONI: ITEM_ID_BASE + 55,
+    RIGATONI: ITEM_ID_BASE + 56,
+    FUSILLI: ITEM_ID_BASE + 57,
+    FARFALLE: ITEM_ID_BASE + 58,
+    RAVIOLI: ITEM_ID_BASE + 59,
+    TORTELLINI: ITEM_ID_BASE + 60,
+    LASAGNE_SHEETS: ITEM_ID_BASE + 61,
+    NOODLES: ITEM_ID_BASE + 62,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -382,6 +402,67 @@ function createForagingToolDefinition(id, name, icon, toolPower, description, we
     );
 }
 
+// Raw dough and uncooked pasta are cooking intermediates: they are not edible
+// on their own and exist only as ingredients for later recipes.
+function createRawCookingItemDefinition(id, name, icon, description) {
+    return Object.freeze({
+        id: id,
+        name: name,
+        kind: ITEM_KINDS.Consumable,
+        stackable: false,
+        weight: 0.3,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: icon,
+        description: description,
+    });
+}
+
+function createBakedFoodDefinition(id, name, icon, weight, hungerRestore, description) {
+    return Object.freeze({
+        id: id,
+        name: name,
+        kind: ITEM_KINDS.Consumable,
+        stackable: false,
+        weight: weight,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: icon,
+        primaryStat: "sou",
+        food: Object.freeze({ hungerRestore: hungerRestore }),
+        description: description,
+    });
+}
+
+// Every raw pasta shape shares one definition; only name and icon differ.
+const PASTA_ITEM_DEFINITIONS = Object.freeze([
+    Object.freeze({ id: ITEM_ID_BASE + 47, name: "Raw Spaghetti", icon: "rawspaghetti", description: "Long thin strands of raw pasta." }),
+    Object.freeze({ id: ITEM_ID_BASE + 48, name: "Linguine", icon: "linguine", description: "Flat narrow strands of raw pasta." }),
+    Object.freeze({ id: ITEM_ID_BASE + 49, name: "Capellini", icon: "capellini", description: "Very fine hair-thin strands of raw pasta." }),
+    Object.freeze({ id: ITEM_ID_BASE + 50, name: "Bucatini", icon: "bucatini", description: "Thick hollow tubes of raw pasta." }),
+    Object.freeze({ id: ITEM_ID_BASE + 51, name: "Tagliatelle", icon: "tagliatelle", description: "Wide flat ribbons of raw pasta." }),
+    Object.freeze({ id: ITEM_ID_BASE + 52, name: "Fettuccine", icon: "fettuccine", description: "Flat ribbons of raw pasta, a little narrower than tagliatelle." }),
+    Object.freeze({ id: ITEM_ID_BASE + 53, name: "Pappardelle", icon: "pappardelle", description: "Very wide ribbons of raw pasta." }),
+    Object.freeze({ id: ITEM_ID_BASE + 54, name: "Penne", icon: "penne", description: "Short diagonal tubes of raw pasta." }),
+    Object.freeze({ id: ITEM_ID_BASE + 55, name: "Macaroni", icon: "macaroni", description: "Short curved elbows of raw pasta." }),
+    Object.freeze({ id: ITEM_ID_BASE + 56, name: "Rigatoni", icon: "rigatoni", description: "Short ridged tubes of raw pasta." }),
+    Object.freeze({ id: ITEM_ID_BASE + 57, name: "Fusilli", icon: "fusilli", description: "Spiral twists of raw pasta." }),
+    Object.freeze({ id: ITEM_ID_BASE + 58, name: "Farfalle", icon: "farfalle", description: "Little bow ties of raw pasta." }),
+    Object.freeze({ id: ITEM_ID_BASE + 59, name: "Ravioli", icon: "ravioli", description: "Raw pasta parcels with a filling sealed inside." }),
+    Object.freeze({ id: ITEM_ID_BASE + 60, name: "Tortellini", icon: "tortellini", description: "Raw pasta rings folded around a filling." }),
+    Object.freeze({ id: ITEM_ID_BASE + 61, name: "Lasagne raw sheets", icon: "lasagnerawsheets", description: "Wide flat sheets of raw pasta for layering." }),
+    Object.freeze({ id: ITEM_ID_BASE + 62, name: "Noodles", icon: "noodles", description: "Long soft strands of raw noodle dough." }),
+]);
+
+const PASTA_ITEM_DEFS = {};
+PASTA_ITEM_DEFINITIONS.forEach(function (pasta) {
+    PASTA_ITEM_DEFS[pasta.id] = createRawCookingItemDefinition(
+        pasta.id, pasta.name, pasta.icon, pasta.description
+    );
+});
+
 function getItemWeaponSkill(item) {
     if (!item) return null;
 
@@ -656,6 +737,7 @@ METAL_POT_METALS.forEach(function (metal) {
 });
 
 const ITEM_DEFS = Object.freeze({
+    ...PASTA_ITEM_DEFS,
     [ITEM_IDS.HANDY_STICK]: createForagingToolDefinition(
         ITEM_IDS.HANDY_STICK, "Handy Stick", "handystick",
         { type: "digging", power: 1 },
@@ -779,6 +861,22 @@ const ITEM_DEFS = Object.freeze({
         food: Object.freeze({ hungerRestore: 130 }),
         description: "A hot bowl of whatever was edible, simmered with herbs until it became a meal.",
     }),
+    [ITEM_IDS.DOUGH]: createRawCookingItemDefinition(
+        ITEM_IDS.DOUGH, "Dough", "dough",
+        "A soft ball of flour and water. Needs baking or shaping before it becomes food."
+    ),
+    [ITEM_IDS.SWEET_DOUGH]: createRawCookingItemDefinition(
+        ITEM_IDS.SWEET_DOUGH, "Sweet dough", "sweetdough",
+        "Flour, water and sugar kneaded into a sweet dough."
+    ),
+    [ITEM_IDS.BREAD]: createBakedFoodDefinition(
+        ITEM_IDS.BREAD, "Bread", "bread", 0.4, 100,
+        "A simple loaf baked from dough. The backbone of every meal."
+    ),
+    [ITEM_IDS.TOAST_BREAD]: createBakedFoodDefinition(
+        ITEM_IDS.TOAST_BREAD, "Toast bread", "toastbread", 0.3, 110,
+        "A slice of bread toasted until crisp and warm."
+    ),
     [ITEM_IDS.LADLE]: Object.freeze({
         id: ITEM_IDS.LADLE,
         name: "Ladle",
