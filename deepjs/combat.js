@@ -109,6 +109,41 @@ function getRandomMobId() {
     return ids[Math.floor(Math.random() * ids.length)];
 }
 
+const MOB_LOOT = Object.freeze({
+    catterpuwa: Object.freeze([
+        Object.freeze({ resourceId: RESOURCE_IDS.BUG_MEAT, amount: 1 }),
+    ]),
+    angrybird: Object.freeze([
+        Object.freeze({ resourceId: RESOURCE_IDS.CHICKEN_MEAT, amount: 1 }),
+    ]),
+    bombchick: Object.freeze([
+        Object.freeze({ resourceId: RESOURCE_IDS.CHICKEN_MEAT, amount: 1 }),
+    ]),
+});
+
+function getMobLootQuality(combatant) {
+    const level = Math.max(1, Math.floor(Number(combatant && combatant.level) || 1));
+    return Math.pow(level, 1.1);
+}
+
+function dropMobLoot(combatant) {
+    if (!combatant || typeof addResource !== "function") return;
+
+    const drops = MOB_LOOT[combatant.id] || [];
+    if (!drops.length) return;
+
+    const quality = getMobLootQuality(combatant);
+    drops.forEach(function (drop) {
+        addResource(drop.resourceId, drop.amount, quality);
+        const definition = typeof RESOURCE_DEFS !== "undefined"
+            ? RESOURCE_DEFS[drop.resourceId]
+            : null;
+        const name = definition ? definition.name : "resource";
+        logCombat("You gather " + name + " x" + drop.amount
+            + " (Q" + formatCombatStat(quality) + ").");
+    });
+}
+
 function isCombatActive() {
     return !!activeCombat;
 }
@@ -484,11 +519,7 @@ function finishCombat(victory) {
         addCombatSkillExp("dodging", 2);
         addCombatSkillExp("bullseye", 2);
 
-        if (activeCombat.enemy.id === "catterpuwa"
-            && typeof addResource === "function") {
-            addResource(RESOURCE_IDS.BUG_MEAT, 1, RESOURCE_DEFAULT_QUALITY);
-            logCombat("You gather Bug meat x1.");
-        }
+        dropMobLoot(activeCombat.enemy);
 
         if (activeCombat.enemy.id === "bombchick") {
             const explosionDamage = roundCombatDamage(activeCombat.enemy.maxHp / 2);

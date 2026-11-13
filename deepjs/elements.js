@@ -421,11 +421,13 @@
       ensureResourceBranch('raw-resources-items', 'wild-herbs', 'herbs', 'Medical and spice herbs gathered with Forage');
       ensureResourceBranch('wild-herbs-items', 'medicinal-herbs', 'medicinal', 'Healing herbs used by herbalists');
       ensureResourceBranch('wild-herbs-items', 'spice-herbs', 'spices', 'Aromatic herbs for cooking');
+      ensureResourceBranch('raw-resources-items', 'raw-meat', 'Meat', 'Raw meat from creatures');
 
       if (isVegetableFoodResource(resource)) return document.getElementById('vegetables-items');
       if (isCropFoodResource(resource)) return document.getElementById('crops-items');
       if (isMedicalHerbResource(resource)) return document.getElementById('medicinal-herbs-items');
       if (isSpiceHerbResource(resource)) return document.getElementById('spice-herbs-items');
+      if (resource && resource.id === RESOURCE_IDS.CHICKEN_MEAT) return document.getElementById('raw-meat-items');
       return document.getElementById('nature-resources-items');
     }
     function getIntermediateResourceContainer(resource){
@@ -470,6 +472,9 @@
       if (isFlourFoodResource(resource)) return getIntermediateResourceContainer(resource);
       if (resource && resource.id === RESOURCE_IDS.MAPLE_SIRUP) {
         return getIntermediateResourceContainer(resource);
+      }
+      if (resource && resource.id === RESOURCE_IDS.CHICKEN_MEAT) {
+        return getRawResourceContainer(resource);
       }
       if (isFoodResource(resource)) return getFoodResourceContainer(resource);
       if (isRawResource(resource)) return getRawResourceContainer(resource);

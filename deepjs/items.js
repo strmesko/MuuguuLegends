@@ -70,6 +70,9 @@ function getResourceImageFolder(itemName) {
             && FLOUR_RESOURCE_IDS.indexOf(resourceId) !== -1) {
             return "flour";
         }
+        if (definition.meat) {
+            return "meat";
+        }
         if (definition.category === RESOURCE_CATEGORIES.Food) {
             return "berries";
         }
