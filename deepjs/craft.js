@@ -807,6 +807,17 @@ function setCraftItemChoice(recipe, instanceId) {
     return true;
 }
 
+// Shared accounting for every inventory item a recipe consumes. Quality,
+// potential bonuses, affordability and consumption all go through this so an
+// item ingredient behaves like any other ingredient.
+function getCraftInventoryIngredientItems(recipe) {
+    const choice = getCraftItemChoice(recipe);
+    if (!choice) return [];
+
+    const selected = getSelectedCraftItemChoice(recipe);
+    return selected ? [{ choice: choice, item: selected }] : [];
+}
+
 function consumeCraftItemChoice(recipe, item) {
     if (!item || typeof player === "undefined" || !player
         || !Array.isArray(player.equipinventory)) {
@@ -830,7 +841,8 @@ function getItemChoiceBoostedRarity(recipe, baseRarity) {
     const boost = Math.max(0, Math.floor(Number(choice.rarityBoost) || 0));
     if (boost <= 0) return baseRarity;
 
-    const item = getSelectedCraftItemChoice(recipe);
+    const ingredient = getCraftInventoryIngredientItems(recipe)[0];
+    const item = ingredient ? ingredient.item : null;
     if (!item) return baseRarity;
 
     const rarityOrder = Object.keys(ITEM_RARITY_DEFS);
@@ -1217,13 +1229,14 @@ function canCraftRecipe(recipe) {
     }
     const itemChoice = getCraftItemChoice(recipe);
     if (itemChoice && itemChoice.optional !== true
-        && !getSelectedCraftItemChoice(recipe)) {
+        && getCraftInventoryIngredientItems(recipe).length === 0) {
         return false;
     }
     return canAffordCraft(recipe);
 }
 
-// Weighted average quality of all resource units consumed by the recipe.
+// Weighted average quality of all ingredient units consumed by the recipe,
+// including crafted items taken from the inventory.
 function getCraftResourceQuality(recipe) {
     let totalAmount = 0;
     let totalQuality = 0;
@@ -1234,6 +1247,14 @@ function getCraftResourceQuality(recipe) {
 
         totalQuality += getResourceQuality(requirement.resourceId) * amount;
         totalAmount += amount;
+    });
+
+    getCraftInventoryIngredientItems(recipe).forEach(function (entry) {
+        const quality = Number(entry.item && entry.item.quality);
+        totalQuality += Number.isFinite(quality) && quality > 0
+            ? quality
+            : RESOURCE_DEFAULT_QUALITY;
+        totalAmount += 1;
     });
 
     if (totalAmount <= 0) return RESOURCE_DEFAULT_QUALITY;
@@ -1304,7 +1325,8 @@ function getCraftPotentialBonuses(recipe, quality, rarity) {
     if (!recipe) return null;
     if (recipe.noPotentialBonuses === true) return null;
     if (getCraftChoiceResourceIds(recipe).length === 0
-        && getCraftChoiceSlots(recipe).length === 0) {
+        && getCraftChoiceSlots(recipe).length === 0
+        && getCraftInventoryIngredientItems(recipe).length === 0) {
         return null;
     }
 
@@ -1320,6 +1342,18 @@ function getCraftPotentialBonuses(recipe, quality, rarity) {
         const resourceQuality = getResourceQuality(requirement.resourceId);
         const baseBonus = (1 + resourceQuality / 10) * amount;
         totals[statKey] = (totals[statKey] || 0) + baseBonus;
+    });
+
+    // Inventory ingredients carry their own potential bonuses into the dish.
+    getCraftInventoryIngredientItems(recipe).forEach(function (entry) {
+        const source = entry.item && entry.item.potentialBonuses;
+        if (!source || typeof source !== "object") return;
+
+        Object.keys(source).forEach(function (statKey) {
+            const value = Number(source[statKey]);
+            if (!Number.isFinite(value) || value <= 0) return;
+            totals[statKey] = (totals[statKey] || 0) + value;
+        });
     });
 
     const bonusIngredients = getCraftBonusChoices(recipe).filter(function (resourceId) {
@@ -2505,7 +2539,10 @@ function performCraft(recipe) {
     }
 
     const itemChoice = getCraftItemChoice(recipe);
-    const chosenItem = itemChoice ? getSelectedCraftItemChoice(recipe) : null;
+    const inventoryIngredients = getCraftInventoryIngredientItems(recipe);
+    const chosenItem = inventoryIngredients.length
+        ? inventoryIngredients[0].item
+        : null;
     if (itemChoice && !chosenItem && itemChoice.optional !== true) {
         const neededDefinition = ITEM_DEFS[getCraftItemChoiceIds(itemChoice)[0]];
         logMessage("You need " + (neededDefinition ? neededDefinition.name : "an item")
