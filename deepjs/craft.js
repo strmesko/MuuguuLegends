@@ -188,10 +188,22 @@ const CRAFT_RECIPES = Object.freeze([
         resources: Object.freeze([]),
         choiceSlots: Object.freeze([
             Object.freeze({
-                id: "vegetables",
+                id: "vegetable1",
                 resourceIds: VEGETABLE_RESOURCE_IDS,
-                amount: 3,
-                label: "Choose vegetable (x3):",
+                amount: 1,
+                label: "Choose vegetable 1:",
+            }),
+            Object.freeze({
+                id: "vegetable2",
+                resourceIds: VEGETABLE_RESOURCE_IDS,
+                amount: 1,
+                label: "Choose vegetable 2:",
+            }),
+            Object.freeze({
+                id: "vegetable3",
+                resourceIds: VEGETABLE_RESOURCE_IDS,
+                amount: 1,
+                label: "Choose vegetable 3:",
             }),
             Object.freeze({
                 id: "herbs",
@@ -215,10 +227,22 @@ const CRAFT_RECIPES = Object.freeze([
         resources: Object.freeze([]),
         choiceSlots: Object.freeze([
             Object.freeze({
-                id: "fruits",
+                id: "fruit1",
                 resourceIds: FRUIT_RESOURCE_IDS,
-                amount: 3,
-                label: "Choose fruit (x3):",
+                amount: 1,
+                label: "Choose fruit 1:",
+            }),
+            Object.freeze({
+                id: "fruit2",
+                resourceIds: FRUIT_RESOURCE_IDS,
+                amount: 1,
+                label: "Choose fruit 2:",
+            }),
+            Object.freeze({
+                id: "fruit3",
+                resourceIds: FRUIT_RESOURCE_IDS,
+                amount: 1,
+                label: "Choose fruit 3:",
             }),
             Object.freeze({
                 id: "nuts",
