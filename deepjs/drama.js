@@ -599,6 +599,135 @@ const DRAMA_DEBUFF_EVENTS = Object.freeze([
     ),
 ]);
 
+// Forced fights. Drama can drag the player into combat without their consent;
+// the mob may be stronger than the local one and may carry a prefix that
+// boosts a single combat attribute.
+function canStartDramaCombat() {
+    if (typeof enterCombat !== "function") return false;
+    if (typeof isCombatActive === "function" && isCombatActive()) return false;
+    if (typeof isTraveling === "function" && isTraveling()) return false;
+    return !!(typeof player !== "undefined"
+        && player
+        && Number(player.hp) > 0);
+}
+
+function getDramaCombatMobLevel(levelOffset) {
+    if (typeof getMobLevelForTile !== "function") return undefined;
+
+    const tile = typeof currentTile !== "undefined" && currentTile
+        ? currentTile
+        : null;
+    const baseLevel = getMobLevelForTile(
+        tile ? Number(tile.x) || 0 : 0,
+        tile ? Number(tile.y) || 0 : 0
+    );
+    const offset = Number(levelOffset);
+    return Math.max(1, Math.floor(
+        (Number(baseLevel) || 1) + (Number.isFinite(offset) ? offset : 0)
+    ));
+}
+
+function createDramaCombatEvent(id, name, cost, chance, levelOffset, prefixes, message) {
+    return Object.freeze({
+        id: id,
+        name: name,
+        cost: cost,
+        type: DRAMA_EVENT_TYPES.Negative,
+        message: message,
+        getChance: function () {
+            return chance;
+        },
+        isAvailable: function () {
+            return canStartDramaCombat();
+        },
+        condition: function () {
+            return canStartDramaCombat();
+        },
+        apply: function () {
+            logMessage(message);
+            if (!canStartDramaCombat()) return;
+
+            enterCombat(null, {
+                level: getDramaCombatMobLevel(levelOffset),
+                prefixes: prefixes,
+                forced: true,
+            });
+        },
+    });
+}
+
+const DRAMA_COMBAT_EVENTS = Object.freeze([
+    createDramaCombatEvent(
+        "Ambush", "Ambush", 1000, 0.02, 0, [],
+        "Something rustles behind you. A mob ambushes you!"
+    ),
+    createDramaCombatEvent(
+        "Elite_ambush", "Elite ambush", 2000, 0.012, 3, [],
+        "A larger and meaner mob steps out of the dark. There is no way around it."
+    ),
+    createDramaCombatEvent(
+        "Deadly_ambush", "Deadly ambush", 3500, 0.008, 6, [],
+        "A creature far beyond your strength has found you."
+    ),
+    createDramaCombatEvent(
+        "Fat_ambush", "Fat ambush", 2200, 0.009, 0, ["fat"],
+        "A bloated mob rolls out of the bushes and blocks your path."
+    ),
+    createDramaCombatEvent(
+        "Fierce_ambush", "Fierce ambush", 2400, 0.009, 0, ["fierce"],
+        "A furious mob rushes at you with blinding speed."
+    ),
+    createDramaCombatEvent(
+        "Brute_ambush", "Brute ambush", 2400, 0.008, 0, ["brute"],
+        "A brutal mob swings at you with terrible force."
+    ),
+    createDramaCombatEvent(
+        "Armored_ambush", "Armored ambush", 2600, 0.008, 0, ["armored"],
+        "A heavily armoured mob clanks toward you."
+    ),
+    createDramaCombatEvent(
+        "Precise_ambush", "Precise ambush", 2300, 0.008, 0, ["precise"],
+        "Something with perfect aim takes a shot at you."
+    ),
+    createDramaCombatEvent(
+        "Cruel_ambush", "Cruel ambush", 2600, 0.008, 0, ["cruel"],
+        "A cruel mob goes straight for your weak spots."
+    ),
+    createDramaCombatEvent(
+        "Elusive_ambush", "Elusive ambush", 2300, 0.008, 0, ["elusive"],
+        "An elusive mob slips past your guard."
+    ),
+    createDramaCombatEvent(
+        "Mighty_ambush", "Mighty ambush", 2500, 0.008, 0, ["mighty"],
+        "A mighty mob flexes and charges."
+    ),
+    createDramaCombatEvent(
+        "Nimble_ambush", "Nimble ambush", 2400, 0.008, 0, ["nimble"],
+        "A nimble mob darts at you from cover."
+    ),
+    createDramaCombatEvent(
+        "Hardy_ambush", "Hardy ambush", 2500, 0.008, 0, ["hardy"],
+        "A hardy mob takes your first hit and keeps coming."
+    ),
+    createDramaCombatEvent(
+        "Keen_ambush", "Keen ambush", 2200, 0.008, 0, ["keen"],
+        "A keen-eyed mob is tracking your every move."
+    ),
+    createDramaCombatEvent(
+        "Lucky_ambush", "Lucky ambush", 2600, 0.007, 0, ["lucky"],
+        "A lucky mob strolls into the fight and finds every opening."
+    ),
+    createDramaCombatEvent(
+        "Swift_ambush", "Swift ambush", 2400, 0.008, 0, ["swift"],
+        "A swift mob blurs toward you."
+    ),
+    createDramaCombatEvent(
+        "Nightmare_ambush", "Nightmare ambush", 5000, 0.004, 3,
+        ["fat", "fierce", "brute"],
+        "A nightmare mob bears down on you. Fat, fierce and brutal."
+    ),
+]);
+
 const DRAMA_EVENTS = Object.freeze([
     Object.freeze({
         id: "Wrong_Step",
@@ -715,6 +844,7 @@ const DRAMA_EVENTS = Object.freeze([
     }),
     ...DRAMA_DAMAGE_EVENTS,
     ...DRAMA_DEBUFF_EVENTS,
+    ...DRAMA_COMBAT_EVENTS,
 ]);
 
 function canTriggerDramaEvent(event) {

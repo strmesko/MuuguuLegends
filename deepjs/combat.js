@@ -21,6 +21,24 @@ const ASS_POISON_MAX_STACKS = 50;
 var assPoisonStacks = 0;
 var assPoisonRemaining = 0;
 
+// Prefixes used by forced drama fights. Each one boosts a single combat
+// attribute and is shown in front of the mob name, e.g. "Fat Fierce Catterpuwa".
+const MOB_PREFIXES = Object.freeze({
+    fat: Object.freeze({ id: "fat", name: "Fat", hp: 2.5 }),
+    fierce: Object.freeze({ id: "fierce", name: "Fierce", attackSpeed: 0.5 }),
+    brute: Object.freeze({ id: "brute", name: "Brute", attack: 1.75 }),
+    armored: Object.freeze({ id: "armored", name: "Armored", armor: 2.5 }),
+    precise: Object.freeze({ id: "precise", name: "Precise", hitBonus: 25 }),
+    cruel: Object.freeze({ id: "cruel", name: "Cruel", critBonus: 25 }),
+    elusive: Object.freeze({ id: "elusive", name: "Elusive", fleeMultiplier: 2 }),
+    mighty: Object.freeze({ id: "mighty", name: "Mighty", stat: "str", statMultiplier: 2 }),
+    nimble: Object.freeze({ id: "nimble", name: "Nimble", stat: "agi", statMultiplier: 2 }),
+    hardy: Object.freeze({ id: "hardy", name: "Hardy", stat: "vit", statMultiplier: 2 }),
+    keen: Object.freeze({ id: "keen", name: "Keen", stat: "ins", statMultiplier: 2 }),
+    lucky: Object.freeze({ id: "lucky", name: "Lucky", stat: "luck", statMultiplier: 2 }),
+    swift: Object.freeze({ id: "swift", name: "Swift", stat: "speed", statMultiplier: 2 }),
+});
+
 const MOBS = Object.freeze({
     catterpuwa: Object.freeze({
         id: "catterpuwa",
@@ -415,7 +433,8 @@ function getCombatFlee(combatant) {
 }
 
 function getCombatHitChance(attacker, defender) {
-    const chance = 100
+    const bonus = Number(attacker && attacker.hitBonus) || 0;
+    const chance = 100 + bonus
         + (getCombatantStat(attacker, "agi") * 2
             + getCombatantStat(attacker, "ins")
             + getCombatantSkill(attacker, "tactics"))
@@ -425,6 +444,7 @@ function getCombatHitChance(attacker, defender) {
 
 function getCombatCritChance(attacker) {
     const numerator = getCombatantStat(attacker, "luck")
+        + (Number(attacker && attacker.critBonus) || 0)
         + getCombatantSkill(attacker, "tactics") / 5
         + getCombatantSkill(attacker, "bullseye");
     const denominator = 100 + numerator;
@@ -495,7 +515,7 @@ function createPlayerCombatant() {
     };
 }
 
-function createMobCombatant(mobId, level) {
+function createMobCombatant(mobId, level, prefixes) {
     const def = MOBS[mobId] || MOBS.catterpuwa;
     const tileX = typeof currentTile !== "undefined" && currentTile
         ? currentTile.x
@@ -517,31 +537,94 @@ function createMobCombatant(mobId, level) {
         skills[key] = Number(def.skills && def.skills[key]) || 0;
     });
 
+    const prefixIds = normalizeMobPrefixes(prefixes);
+    const prefixDefs = prefixIds.map(function (id) {
+        return MOB_PREFIXES[id];
+    });
+
+    let hp = Math.max(0, (Number(def.hp) || 0) * multiplier);
+    let attack = Math.max(0, (Number(def.attack) || 0) * multiplier);
+    let armor = Math.max(0, (Number(def.armor) || 0) * multiplier);
+    let attackSpeedMs = Math.max(100,
+        Number(def.attackSpeedMs) || COMBAT_ATTACK_SPEED_BASE_MS);
+    let fleeMultiplier = Math.max(0, Number(def.fleeMultiplier) || 1);
+    let hitBonus = 0;
+    let critBonus = 0;
+
+    prefixDefs.forEach(function (prefix) {
+        if (!prefix) return;
+        if (Number(prefix.hp) > 0) hp *= Number(prefix.hp);
+        if (Number(prefix.attack) > 0) attack *= Number(prefix.attack);
+        if (Number(prefix.armor) > 0) armor *= Number(prefix.armor);
+        if (Number(prefix.attackSpeed) > 0) {
+            attackSpeedMs = Math.max(100, attackSpeedMs * Number(prefix.attackSpeed));
+        }
+        if (prefix.stat && Number(prefix.statMultiplier) > 0) {
+            const key = prefix.stat;
+            stats[key] = (Number(stats[key]) || 0) * Number(prefix.statMultiplier);
+        }
+        hitBonus += Number(prefix.hitBonus) || 0;
+        critBonus += Number(prefix.critBonus) || 0;
+        if (Number(prefix.fleeMultiplier) > 0) {
+            fleeMultiplier *= Number(prefix.fleeMultiplier);
+        }
+    });
+
+    const namePrefix = prefixDefs.map(function (prefix) {
+        return prefix.name;
+    }).join(" ");
+
     return {
         kind: "mob",
         id: def.id,
-        name: def.name + " Lv " + mobLevel,
+        name: (namePrefix ? namePrefix + " " : "") + def.name + " Lv " + mobLevel,
         baseName: def.name,
+        prefixes: prefixIds,
         level: mobLevel,
         levelMultiplier: multiplier,
         description: def.description,
         image: def.image,
         stats: stats,
         skills: skills,
-        hp: Math.max(0, (Number(def.hp) || 0) * multiplier),
-        maxHp: Math.max(0, (Number(def.hp) || 0) * multiplier),
+        hp: hp,
+        maxHp: hp,
         mana: Math.max(0, (Number(def.mana) || 0) * multiplier),
         maxMana: Math.max(0, (Number(def.mana) || 0) * multiplier),
         sp: Math.max(0, (Number(def.sp) || 0) * multiplier),
         maxSp: Math.max(0, (Number(def.sp) || 0) * multiplier),
-        attack: Math.max(0, (Number(def.attack) || 0) * multiplier),
-        armor: Math.max(0, (Number(def.armor) || 0) * multiplier),
+        attack: attack,
+        armor: armor,
+        hitBonus: hitBonus,
+        critBonus: critBonus,
         healOnAttack: Math.max(0, Number(def.healOnAttack) || 0),
-        fleeMultiplier: Math.max(0, Number(def.fleeMultiplier) || 1),
+        fleeMultiplier: fleeMultiplier,
         hungerOnAttack: Math.max(0, Number(def.hungerOnAttack) || 0),
-        attackSpeedMs: Math.max(100, Number(def.attackSpeedMs) || COMBAT_ATTACK_SPEED_BASE_MS),
+        attackSpeedMs: attackSpeedMs,
         attackTimerMs: 0,
     };
+}
+
+function getMobPrefix(id) {
+    const key = String(id || "").toLowerCase();
+    return MOB_PREFIXES[key] || null;
+}
+
+function normalizeMobPrefixes(prefixes) {
+    if (!prefixes) return [];
+
+    const list = Array.isArray(prefixes) ? prefixes : [prefixes];
+    const seen = {};
+
+    return list.map(function (entry) {
+        if (entry && typeof entry === "object" && entry.id) return entry.id;
+        return entry;
+    }).map(function (entry) {
+        return String(entry || "").toLowerCase();
+    }).filter(function (key) {
+        if (!MOB_PREFIXES[key] || seen[key]) return false;
+        seen[key] = true;
+        return true;
+    });
 }
 
 function addCombatSkillExp(key, amount) {
@@ -885,7 +968,7 @@ function updateCombat(diff) {
     renderCombatOverlay();
 }
 
-function enterCombat(mobId) {
+function enterCombat(mobId, options) {
     if (activeCombat) return false;
     if (typeof player === "undefined" || !player || Number(player.hp) <= 0) {
         if (typeof logMessage === "function") logMessage("You are in no shape to fight.");
@@ -900,10 +983,16 @@ function enterCombat(mobId) {
     if (typeof closeMapTravelDialog === "function") closeMapTravelDialog();
 
     const resolvedMobId = mobId && MOBS[mobId] ? mobId : getRandomMobId();
+    const settings = options && typeof options === "object" ? options : {};
 
     activeCombat = {
         player: createPlayerCombatant(),
-        enemy: createMobCombatant(resolvedMobId),
+        enemy: createMobCombatant(
+            resolvedMobId,
+            settings.level,
+            settings.prefixes
+        ),
+        forced: settings.forced === true,
         finished: false,
         result: false,
         autoCloseTimer: null,
