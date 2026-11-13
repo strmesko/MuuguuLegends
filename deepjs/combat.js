@@ -39,6 +39,30 @@ const MOBS = Object.freeze({
         armor: 0.5,
         attackSpeedMs: COMBAT_ATTACK_SPEED_BASE_MS,
     }),
+    angrybird: Object.freeze({
+        id: "angrybird",
+        name: "Angry bird",
+        description: "A tiny furious bird. Mostly feathers, anger and bad decisions.",
+        image: "images/combat/mobs/angrybird.png",
+        stats: Object.freeze({
+            str: 1,
+            agi: 10,
+            vit: 1,
+            per: 1,
+            int: 1,
+            ins: 1,
+            sou: 1,
+            luck: 1,
+            speed: 100,
+        }),
+        skills: Object.freeze({ dodging: 6 }),
+        hp: 1,
+        mana: 0,
+        sp: 1,
+        attack: 0,
+        armor: 0.1,
+        attackSpeedMs: 500,
+    }),
 });
 
 function getMobLevelForTile(x, y) {
@@ -54,6 +78,12 @@ function getMobLevelForTile(x, y) {
 function getMobLevelMultiplier(level) {
     const normalized = Math.max(1, Math.floor(Number(level) || 1));
     return Math.pow(MOB_LEVEL_STAT_MULTIPLIER, normalized - 1);
+}
+
+function getRandomMobId() {
+    const ids = Object.keys(MOBS);
+    if (!ids.length) return "catterpuwa";
+    return ids[Math.floor(Math.random() * ids.length)];
 }
 
 function isCombatActive() {
@@ -555,9 +585,11 @@ function enterCombat(mobId) {
     if (typeof stopActiveTimedActions === "function") stopActiveTimedActions();
     if (typeof closeMapTravelDialog === "function") closeMapTravelDialog();
 
+    const resolvedMobId = mobId && MOBS[mobId] ? mobId : getRandomMobId();
+
     activeCombat = {
         player: createPlayerCombatant(),
-        enemy: createMobCombatant(mobId),
+        enemy: createMobCombatant(resolvedMobId),
         finished: false,
         result: false,
         autoCloseTimer: null,

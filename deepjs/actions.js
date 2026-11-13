@@ -191,7 +191,7 @@ const ACTIONS = [
         id: "entercombat",
         label: "Enter combat",
         tags: ["combat"],
-        description: "Fight a Catterpuwa. All other actions are blocked until combat ends.",
+        description: "Fight a random mob. All other actions are blocked until combat ends.",
         kind: ACTION_KIND.Instant,
         initialState: Activity.Idle,
         isVisible: function () {
@@ -206,7 +206,7 @@ const ACTIONS = [
         unavailableMessage: "You cannot enter combat right now.",
         run: function () {
             return typeof enterCombat === "function"
-                ? enterCombat("catterpuwa")
+                ? enterCombat()
                 : false;
         },
     },
