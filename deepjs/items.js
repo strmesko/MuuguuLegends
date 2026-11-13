@@ -76,6 +76,9 @@ function getResourceImageFolder(itemName) {
         if (definition.jelly) {
             return "jelly";
         }
+        if (definition.sweets) {
+            return "cooking";
+        }
         if (definition.alchemy) {
             return "alchemy";
         }

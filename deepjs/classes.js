@@ -535,6 +535,7 @@ const RESOURCE_IDS = Object.freeze({
     MEDIUM_MOB_SPIRIT: 6110,
     BIG_MOB_SPIRIT: 6111,
     GRAND_MOB_SPIRIT: 6112,
+    SUGAR: 6113,
 });
 
 const RESOURCE_DEFS = {
@@ -616,6 +617,7 @@ const RESOURCE_DEFS = {
     [RESOURCE_IDS.MEDIUM_MOB_SPIRIT]: { name: "Medium mob spirit", weight: 0.1, unitType: "kg", description: "A dense, medium mob spirit.", category: RESOURCE_CATEGORIES.Intermediate, wizardy: true, mobSpirit: true },
     [RESOURCE_IDS.BIG_MOB_SPIRIT]: { name: "Big mob spirit", weight: 0.1, unitType: "kg", description: "A powerful big mob spirit.", category: RESOURCE_CATEGORIES.Intermediate, wizardy: true, mobSpirit: true },
     [RESOURCE_IDS.GRAND_MOB_SPIRIT]: { name: "Grand mob spirit", weight: 0.1, unitType: "kg", description: "A grand mob spirit of immense power.", category: RESOURCE_CATEGORIES.Intermediate, wizardy: true, mobSpirit: true },
+    [RESOURCE_IDS.SUGAR]: { name: "Sugar", weight: 0.1, unitType: "kg", description: "Sweet white crystals ground from sugarcane or beetroot.", category: RESOURCE_CATEGORIES.Intermediate, sweets: true },
     [RESOURCE_IDS.ROCKS]: { name: "Rocks", weight: 2, unitType: "", description: "Common rocks which can be founded everywhere. Yeah it's somewhat heavy", category: RESOURCE_CATEGORIES.Raw },
     [RESOURCE_IDS.BRANCHES]: { name: "Branches", weight: 0.5, unitType: "", description: "just light version of branch", category: RESOURCE_CATEGORIES.Raw },
     [RESOURCE_IDS.STICKS]: { name: "Sticks", weight: 2, unitType: "", description: "A big stick", category: RESOURCE_CATEGORIES.Raw },
@@ -1238,6 +1240,18 @@ CROP_DEFS.forEach(function (plant, index) {
     );
 });
 
+// Named lookups for plants that have their own production recipes. The ids are
+// generated above, so these must be resolved after the registration loops.
+function getPlantResourceId(name) {
+    const plant = PLANT_DEFS.find(function (entry) {
+        return entry.name === name;
+    });
+    return plant ? plant.id : null;
+}
+
+const SUGARCANE_RESOURCE_ID = getPlantResourceId("Sugarcane");
+const BEETROOT_RESOURCE_ID = getPlantResourceId("Beetroot");
+
 // Flour is generated for every seed crop. It is Food so it remains edible and
 // receives the usual food stat binding, but the resource panel groups it under
 // Intermediate -> Cooking -> Flour.
@@ -1843,6 +1857,13 @@ const MORTAR_OUTPUT_PER_BATCH = 1;
 const MORTAR_STAMINA_PER_BATCH = 1;
 const MORTAR_ALCHEMY_EXP = 5;
 const MORTAR_AGI_EXP = 0.5;
+// "Make sugar" actions: 0.5 sugarcane or beetroot becomes 0.1 sugar per
+// effectiveness unit. Cooking and Vitality drive the work.
+const SUGAR_INPUT_PER_BATCH = 0.5;
+const SUGAR_OUTPUT_PER_BATCH = 0.1;
+const SUGAR_STAMINA_PER_BATCH = 0.5;
+const SUGAR_COOKING_EXP = 5;
+const SUGAR_VIT_EXP = 0.5;
 // "Smelt ore" actions: each effectiveness unit consumes 10 ore and 100 Heat
 // Units and produces 1 metal bar. Vitality, Smithing and Smelt power drive it.
 const SMELT_ORE_PER_BATCH = 10;

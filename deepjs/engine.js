@@ -1740,6 +1740,62 @@ const PRODUCTION_RECIPES = Object.freeze({
         precision: 4,
         roundConsumed: true,
     }),
+    makesugarfromsugarcane: Object.freeze({
+        actionId: "makesugarfromsugarcane",
+        inputs: Object.freeze([
+            Object.freeze({
+                resourceId: SUGARCANE_RESOURCE_ID,
+                amountPerBatch: SUGAR_INPUT_PER_BATCH,
+            }),
+        ]),
+        outputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.SUGAR,
+                amountPerBatch: SUGAR_OUTPUT_PER_BATCH,
+            }),
+        ]),
+        staminaPerBatch: SUGAR_STAMINA_PER_BATCH,
+        getEffectiveness: getMakeSugarEffectiveness,
+        getQuality: function () {
+            return getMakeSugarQuality(SUGARCANE_RESOURCE_ID);
+        },
+        experience: Object.freeze([
+            Object.freeze({ key: "cooking", amountPerBatch: SUGAR_COOKING_EXP }),
+            Object.freeze({ key: "vit", amountPerBatch: SUGAR_VIT_EXP }),
+        ]),
+        validate: getMakeSugarGrindingError,
+        tiredMessage: "You are too tired to make sugar",
+        precision: 4,
+        roundConsumed: true,
+    }),
+    makesugarfrombeetroot: Object.freeze({
+        actionId: "makesugarfrombeetroot",
+        inputs: Object.freeze([
+            Object.freeze({
+                resourceId: BEETROOT_RESOURCE_ID,
+                amountPerBatch: SUGAR_INPUT_PER_BATCH,
+            }),
+        ]),
+        outputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.SUGAR,
+                amountPerBatch: SUGAR_OUTPUT_PER_BATCH,
+            }),
+        ]),
+        staminaPerBatch: SUGAR_STAMINA_PER_BATCH,
+        getEffectiveness: getMakeSugarEffectiveness,
+        getQuality: function () {
+            return getMakeSugarQuality(BEETROOT_RESOURCE_ID);
+        },
+        experience: Object.freeze([
+            Object.freeze({ key: "cooking", amountPerBatch: SUGAR_COOKING_EXP }),
+            Object.freeze({ key: "vit", amountPerBatch: SUGAR_VIT_EXP }),
+        ]),
+        validate: getMakeSugarGrindingError,
+        tiredMessage: "You are too tired to make sugar",
+        precision: 4,
+        roundConsumed: true,
+    }),
 });
 
 function runProductionRecipe(diff, recipeId) {
@@ -1861,6 +1917,31 @@ function getMakeMortarQuality() {
 
 function runMakeMortarProduction(diff) {
     runProductionRecipe(diff, "makemortar");
+}
+
+// "Make sugar": 0.5 sugarcane or beetroot is ground into 0.1 sugar per
+// effectiveness unit. Cooking and Vitality drive the work and require the Big
+// Grinding stone, just like flour.
+function getMakeSugarEffectiveness() {
+    return getCraftingEffectiveness("vit", "cooking");
+}
+
+function getMakeSugarQuality(inputResourceId) {
+    return getProductionQuality(["cooking"], [inputResourceId]);
+}
+
+function getMakeSugarGrindingError() {
+    return typeof hasBigGrindingStone === "function" && hasBigGrindingStone()
+        ? null
+        : "You need a Big Grinding stone to make sugar";
+}
+
+function runMakeSugarFromSugarcaneProduction(diff) {
+    runProductionRecipe(diff, "makesugarfromsugarcane");
+}
+
+function runMakeSugarFromBeetrootProduction(diff) {
+    runProductionRecipe(diff, "makesugarfrombeetroot");
 }
 
 // "Smelt ore" actions: Vitality, Smithing and the current tile's Smelt power

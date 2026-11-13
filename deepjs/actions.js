@@ -369,6 +369,58 @@ const ACTIONS = [
         run: runGrindFlourProduction,
     },
     {
+        id: "makesugarfromsugarcane",
+        label: "Make sugar from sugarcane",
+        tags: ["Production"],
+        description: "Grind sugarcane into sugar with a Big Grinding stone.<br>Every second 0.5 Sugarcane becomes 0.1 Sugar. Trains Cooking and Vitality.",
+        kind: ACTION_KIND.Timed,
+        initialState: Activity.Idle,
+        startMessage: "You start making sugar from sugarcane",
+        stopMessage: "You stop making sugar from sugarcane",
+        isVisible: function () {
+            return typeof hasBigGrindingStone === "function"
+                && hasBigGrindingStone()
+                && getEffectiveLevel("cooking") >= 1
+                && !!resources[SUGARCANE_RESOURCE_ID]
+                && resources[SUGARCANE_RESOURCE_ID].amount >= SUGAR_INPUT_PER_BATCH
+                && player.stamina >= SUGAR_STAMINA_PER_BATCH;
+        },
+        isComplete: function () {
+            return typeof hasBigGrindingStone !== "function"
+                || !hasBigGrindingStone()
+                || !resources[SUGARCANE_RESOURCE_ID]
+                || resources[SUGARCANE_RESOURCE_ID].amount < SUGAR_INPUT_PER_BATCH;
+        },
+        completeMessage: "You have no sugarcane left to make sugar",
+        run: runMakeSugarFromSugarcaneProduction,
+    },
+    {
+        id: "makesugarfrombeetroot",
+        label: "Make sugar from beetroots",
+        tags: ["Production"],
+        description: "Grind beetroots into sugar with a Big Grinding stone.<br>Every second 0.5 Beetroot becomes 0.1 Sugar. Trains Cooking and Vitality.",
+        kind: ACTION_KIND.Timed,
+        initialState: Activity.Idle,
+        startMessage: "You start making sugar from beetroots",
+        stopMessage: "You stop making sugar from beetroots",
+        isVisible: function () {
+            return typeof hasBigGrindingStone === "function"
+                && hasBigGrindingStone()
+                && getEffectiveLevel("cooking") >= 1
+                && !!resources[BEETROOT_RESOURCE_ID]
+                && resources[BEETROOT_RESOURCE_ID].amount >= SUGAR_INPUT_PER_BATCH
+                && player.stamina >= SUGAR_STAMINA_PER_BATCH;
+        },
+        isComplete: function () {
+            return typeof hasBigGrindingStone !== "function"
+                || !hasBigGrindingStone()
+                || !resources[BEETROOT_RESOURCE_ID]
+                || resources[BEETROOT_RESOURCE_ID].amount < SUGAR_INPUT_PER_BATCH;
+        },
+        completeMessage: "You have no beetroots left to make sugar",
+        run: runMakeSugarFromBeetrootProduction,
+    },
+    {
         id: "makefibers",
         label: "Make fibers",
         tags: ["Production"],

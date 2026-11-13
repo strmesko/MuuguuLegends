@@ -439,11 +439,12 @@
       ensureResourceBranch('intermediate-resources-items', 'smithing', 'smithing', 'Heat units and refined metal bars for smithing');
       ensureResourceBranch('intermediate-resources-items', 'cooking', 'Cooking', 'Flour and other cooking intermediates');
       ensureResourceBranch('cooking-items', 'flour', 'Flour', 'Stone-ground flour made with a Big Grinding stone');
-      ensureResourceBranch('cooking-items', 'maple', 'Maple', 'Maple sirup from Maple extractors');
+      ensureResourceBranch('cooking-items', 'sweets', 'Sweets', 'Maple sirup and sugar from sweet plants');
       ensureResourceBranch('intermediate-resources-items', 'wizardy', 'Wizardy', 'Arcane and spirit remains');
       ensureResourceBranch('wizardy-items', 'mob-spirit', 'Mob spirit', 'Spirit drops from slain mobs');
-      if (resource && resource.id === RESOURCE_IDS.MAPLE_SIRUP) {
-        return document.getElementById('maple-items');
+      if (resource && (resource.id === RESOURCE_IDS.MAPLE_SIRUP
+          || resource.id === RESOURCE_IDS.SUGAR)) {
+        return document.getElementById('sweets-items');
       }
       if (isFlourFoodResource(resource)) {
         return document.getElementById('flour-items');
