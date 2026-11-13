@@ -409,7 +409,9 @@
       if (isMushroomResource(resource)) return document.getElementById('mushrooms-items');
       if (isNutResource(resource)) return document.getElementById('nuts-items');
       if (isFruitResource(resource)) return document.getElementById('fruits-items');
-      if (resource && resource.id === RESOURCE_IDS.BUG_MEAT) return document.getElementById('meat-items');
+      if (resource && RESOURCE_DEFS[resource.id] && RESOURCE_DEFS[resource.id].meat) {
+        return document.getElementById('meat-items');
+      }
       if (resource && resource.id === RESOURCE_IDS.JELLY) return document.getElementById('jelly-items');
       if (isEdibleHerbResource(resource)) return document.getElementById('food-herbs-items');
       return document.getElementById('berries-items');
@@ -423,13 +425,11 @@
       ensureResourceBranch('raw-resources-items', 'wild-herbs', 'herbs', 'Medical and spice herbs gathered with Forage');
       ensureResourceBranch('wild-herbs-items', 'medicinal-herbs', 'medicinal', 'Healing herbs used by herbalists');
       ensureResourceBranch('wild-herbs-items', 'spice-herbs', 'spices', 'Aromatic herbs for cooking');
-      ensureResourceBranch('raw-resources-items', 'raw-meat', 'Meat', 'Raw meat from creatures');
 
       if (isVegetableFoodResource(resource)) return document.getElementById('vegetables-items');
       if (isCropFoodResource(resource)) return document.getElementById('crops-items');
       if (isMedicalHerbResource(resource)) return document.getElementById('medicinal-herbs-items');
       if (isSpiceHerbResource(resource)) return document.getElementById('spice-herbs-items');
-      if (resource && resource.id === RESOURCE_IDS.CHICKEN_MEAT) return document.getElementById('raw-meat-items');
       return document.getElementById('nature-resources-items');
     }
     function getIntermediateResourceContainer(resource){
@@ -480,9 +480,6 @@
       if (isFlourFoodResource(resource)) return getIntermediateResourceContainer(resource);
       if (resource && resource.id === RESOURCE_IDS.MAPLE_SIRUP) {
         return getIntermediateResourceContainer(resource);
-      }
-      if (resource && resource.id === RESOURCE_IDS.CHICKEN_MEAT) {
-        return getRawResourceContainer(resource);
       }
       if (isFoodResource(resource)) return getFoodResourceContainer(resource);
       if (isRawResource(resource)) return getRawResourceContainer(resource);

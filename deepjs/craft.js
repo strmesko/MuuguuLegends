@@ -70,7 +70,10 @@ function createLeafClothingRecipe(id, itemId, fibers) {
 }
 
 const KEBOB_INGREDIENT_IDS = Object.freeze(
-    MUSHROOM_RESOURCE_IDS.concat(VEGETABLE_RESOURCE_IDS)
+    MUSHROOM_RESOURCE_IDS.concat(
+        VEGETABLE_RESOURCE_IDS,
+        [RESOURCE_IDS.BUG_MEAT, RESOURCE_IDS.CHICKEN_MEAT]
+    )
 );
 
 // Metal tools, metal cutlery and metal pots use the matching metal bars.
