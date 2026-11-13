@@ -527,6 +527,7 @@ const RESOURCE_IDS = Object.freeze({
     BUG_MEAT: 6102,
     CHICKEN_MEAT: 6103,
     JELLY: 6104,
+    SPIRIT_ASPIC: 6105,
 });
 
 const RESOURCE_DEFS = {
@@ -600,6 +601,7 @@ const RESOURCE_DEFS = {
     [RESOURCE_IDS.BUG_MEAT]: { name: "Bug meat", weight: 0.5, unitType: "kg", description: "A fresh chunk of bug meat. It twitches faintly.", category: RESOURCE_CATEGORIES.Food, Tastymeter: 6, meat: true },
     [RESOURCE_IDS.CHICKEN_MEAT]: { name: "Chicken Meat", weight: 0.5, unitType: "kg", description: "Fresh meat from a very angry bird. Probably safe to eat.", category: RESOURCE_CATEGORIES.Food, Tastymeter: 7, meat: true },
     [RESOURCE_IDS.JELLY]: { name: "Jelly", weight: 0.5, unitType: "kg", description: "A wobbly blue jelly. It jiggles when you look at it.", category: RESOURCE_CATEGORIES.Food, Tastymeter: 5, jelly: true },
+    [RESOURCE_IDS.SPIRIT_ASPIC]: { name: "Spirit aspic", weight: 0.1, unitType: "kg", description: "A cold, ghostly gel that refuses to stop wobbling.", category: RESOURCE_CATEGORIES.Intermediate, alchemy: true },
     [RESOURCE_IDS.ROCKS]: { name: "Rocks", weight: 2, unitType: "", description: "Common rocks which can be founded everywhere. Yeah it's somewhat heavy", category: RESOURCE_CATEGORIES.Raw },
     [RESOURCE_IDS.BRANCHES]: { name: "Branches", weight: 0.5, unitType: "", description: "just light version of branch", category: RESOURCE_CATEGORIES.Raw },
     [RESOURCE_IDS.STICKS]: { name: "Sticks", weight: 2, unitType: "", description: "A big stick", category: RESOURCE_CATEGORIES.Raw },

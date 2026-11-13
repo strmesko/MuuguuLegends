@@ -459,7 +459,8 @@
           || resource.id === RESOURCE_IDS.WOODEN_BEAMS)) {
         return ensureResourceBranch('intermediate-resources-items', 'carpentry', 'carpentry', 'Shafts, handles, planks, beams and other carpentry materials');
       }
-      if (resource && resource.id === RESOURCE_IDS.ASH) {
+      if (resource && (resource.id === RESOURCE_IDS.ASH
+        || resource.id === RESOURCE_IDS.SPIRIT_ASPIC)) {
         return ensureResourceBranch('intermediate-resources-items', 'alchemy', 'alchemy', 'Ash and other alchemical materials');
       }
       ensureResourceBranch('intermediate-resources-items', 'herbs', 'herbs', 'Alchemical and magical herbs gathered with Forage');

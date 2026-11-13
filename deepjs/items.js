@@ -76,6 +76,9 @@ function getResourceImageFolder(itemName) {
         if (definition.jelly) {
             return "jelly";
         }
+        if (definition.alchemy) {
+            return "alchemy";
+        }
         if (definition.category === RESOURCE_CATEGORIES.Food) {
             return "berries";
         }

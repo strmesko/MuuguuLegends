@@ -139,6 +139,31 @@ const MOBS = Object.freeze({
         attackSpeedMs: COMBAT_ATTACK_SPEED_BASE_MS,
         healOnAttack: 0.1,
     }),
+    hungryghost: Object.freeze({
+        id: "hungryghost",
+        name: "Hungry ghost",
+        description: "A restless spirit with an endless appetite.",
+        image: "images/combat/mobs/hungryghost.png",
+        stats: Object.freeze({
+            str: 1,
+            agi: 2,
+            vit: 1,
+            per: 1,
+            int: 1,
+            ins: 1,
+            sou: 1,
+            luck: 1,
+            speed: 100,
+        }),
+        hp: 2.4,
+        mana: 0,
+        sp: 4,
+        attack: 0.2,
+        armor: 0.5,
+        attackSpeedMs: COMBAT_ATTACK_SPEED_BASE_MS,
+        fleeMultiplier: 5,
+        hungerOnAttack: 1,
+    }),
 });
 
 function getMobLevelForTile(x, y) {
@@ -177,6 +202,9 @@ const MOB_LOOT = Object.freeze({
     ]),
     jellopa: Object.freeze([
         Object.freeze({ resourceId: RESOURCE_IDS.JELLY, amount: 1 }),
+    ]),
+    hungryghost: Object.freeze([
+        Object.freeze({ resourceId: RESOURCE_IDS.SPIRIT_ASPIC, amount: 1 }),
     ]),
 });
 
@@ -339,11 +367,13 @@ function getCombatDefence(combatant) {
 }
 
 function getCombatFlee(combatant) {
-    return 10
+    const base = 10
         + getCombatantStat(combatant, "agi")
         + getCombatantStat(combatant, "speed") / 2
         + getCombatantSkill(combatant, "tactics")
         + getCombatantSkill(combatant, "dodging");
+    const multiplier = Number(combatant && combatant.fleeMultiplier);
+    return base * (Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1);
 }
 
 function getCombatHitChance(attacker, defender) {
@@ -469,6 +499,8 @@ function createMobCombatant(mobId, level) {
         attack: Math.max(0, (Number(def.attack) || 0) * multiplier),
         armor: Math.max(0, (Number(def.armor) || 0) * multiplier),
         healOnAttack: Math.max(0, Number(def.healOnAttack) || 0),
+        fleeMultiplier: Math.max(0, Number(def.fleeMultiplier) || 1),
+        hungerOnAttack: Math.max(0, Number(def.hungerOnAttack) || 0),
         attackSpeedMs: Math.max(100, Number(def.attackSpeedMs) || COMBAT_ATTACK_SPEED_BASE_MS),
         attackTimerMs: 0,
     };
@@ -691,25 +723,36 @@ function finishCombat(victory) {
     }, COMBAT_AUTO_CLOSE_DELAY_MS);
 }
 
-function applyMobAttackHeal(attacker) {
+function applyMobAttackEffects(attacker) {
     if (!attacker || attacker.kind !== "mob") return;
-    const fraction = Number(attacker.healOnAttack);
-    if (!Number.isFinite(fraction) || fraction <= 0) return;
-    if (attacker.hp >= attacker.maxHp) return;
 
-    const heal = Math.max(0.01, roundCombatDamage(attacker.maxHp * fraction));
-    attacker.hp = Math.min(
-        attacker.maxHp,
-        roundCombatDamage(attacker.hp + heal)
-    );
-    logCombat(attacker.name + " regenerates "
-        + formatCombatStat(heal) + " HP.");
+    const fraction = Number(attacker.healOnAttack);
+    if (Number.isFinite(fraction) && fraction > 0 && attacker.hp < attacker.maxHp) {
+        const heal = Math.max(0.01, roundCombatDamage(attacker.maxHp * fraction));
+        attacker.hp = Math.min(
+            attacker.maxHp,
+            roundCombatDamage(attacker.hp + heal)
+        );
+        logCombat(attacker.name + " regenerates "
+            + formatCombatStat(heal) + " HP.");
+    }
+
+    const hungerFactor = Number(attacker.hungerOnAttack);
+    if (Number.isFinite(hungerFactor) && hungerFactor > 0
+        && typeof addHunger === "function") {
+        const hunger = getCombatAttack(attacker) * hungerFactor;
+        if (hunger > 0) {
+            addHunger(hunger);
+            logCombat(attacker.name + " drains your fullness ("
+                + formatCombatStat(hunger) + " hunger).");
+        }
+    }
 }
 
 function performCombatAttack(attacker, defender) {
     if (!activeCombat || activeCombat.finished) return;
 
-    applyMobAttackHeal(attacker);
+    applyMobAttackEffects(attacker);
 
     const hitChance = getCombatHitChance(attacker, defender);
     if (Math.random() * 100 >= hitChance) {
