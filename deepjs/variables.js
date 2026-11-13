@@ -53,7 +53,7 @@ const DIET_BASICS_TECHNOLOGY = new Technology(
             && player.autism.lvl >= 5;
     },
     null,
-    6,
+    7,
     [
         "Unlocks the automatic eating threshold in Habits.",
         "Allows choosing a priority stat; food bound to it is eaten first.",
@@ -61,6 +61,7 @@ const DIET_BASICS_TECHNOLOGY = new Technology(
         "During auto-eating, if no cooked food is in the inventory, automatically cooks a random dish without bonus ingredients.",
         "During auto-cooking, fills every available bonus ingredient slot.",
         "During auto-cooking, chooses ingredients bound to the priority stat.",
+        "Before auto-cooking, crafts missing ingredient items (such as flat bread) and includes their cost when deciding whether the dish is affordable.",
     ]
 );
 const HARVEST_THE_YUMMIES_TECHNOLOGY = new Technology(

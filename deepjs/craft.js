@@ -2403,10 +2403,6 @@ function buildAutoCookChoices(recipe, level, priorityStat) {
     const resultDefinition = recipe && getItemDefinition(recipe.itemId);
     if (!resultDefinition || !resultDefinition.food) return null;
 
-    // Recipes with several mandatory pick slots (salads) or with an inventory
-    // item requirement (shawerma) are left for manual crafting.
-    if (getCraftChoiceSlots(recipe).length || getCraftItemChoice(recipe)) return null;
-
     const choiceIds = getCraftChoiceResourceIds(recipe);
     const choiceAmount = Math.max(1, Number(recipe.choiceAmount) || 1);
     const bonusAmount = Math.max(1, Number(recipe.bonusChoiceAmount) || 1);
@@ -2425,15 +2421,46 @@ function buildAutoCookChoices(recipe, level, priorityStat) {
         if (choiceResourceId == null) return null;
     }
 
+    // Mandatory ingredient slots (salads, soup) are filled the same way.
+    const slotChoices = {};
+    const slots = getCraftChoiceSlots(recipe);
+    for (let index = 0; index < slots.length; index++) {
+        const slot = slots[index];
+        const amount = Math.max(1, Number(slot.amount) || 1);
+        const picked = pickAutoCookResource(
+            slot.resourceIds,
+            amount,
+            remaining,
+            ingredientPriority
+        );
+        if (picked == null) return null;
+        slotChoices[slot.id] = picked;
+    }
+
+    // Inventory ingredient: use whatever is already in the bag. A mandatory
+    // one may be crafted just in time at DietBasics level 7.
+    let itemInstanceId = null;
+    const itemChoice = getCraftItemChoice(recipe);
+    if (itemChoice) {
+        const items = getCraftItemChoices(recipe);
+        if (items.length) {
+            const picked = items[Math.floor(Math.random() * items.length)];
+            itemInstanceId = picked.instanceId;
+        } else if (itemChoice.optional !== true && level < 7) {
+            return null;
+        }
+    }
+
     const bonusResourceIds = [];
+    const bonusCandidateIds = getCraftBonusResourceIds(recipe);
     for (let index = 0; index < bonusCount; index++) {
-        if (level < 5 || !choiceIds.length) {
+        if (level < 5 || !bonusCandidateIds.length) {
             bonusResourceIds.push(null);
             continue;
         }
 
         const bonusResourceId = pickAutoCookResource(
-            choiceIds,
+            bonusCandidateIds,
             bonusAmount,
             remaining,
             ingredientPriority
@@ -2444,7 +2471,42 @@ function buildAutoCookChoices(recipe, level, priorityStat) {
     return {
         choiceResourceId: choiceResourceId,
         bonusResourceIds: bonusResourceIds,
+        slotChoices: slotChoices,
+        itemInstanceId: itemInstanceId,
     };
+}
+
+// Level 7: find the recipe for a mandatory inventory ingredient that must be
+// crafted before the dish itself.
+function getAutoCookPreCraftRecipe(recipe) {
+    const itemChoice = getCraftItemChoice(recipe);
+    if (!itemChoice || itemChoice.optional === true) return null;
+    if (getCraftItemChoices(recipe).length) return null;
+
+    const allowedIds = getCraftItemChoiceIds(itemChoice);
+    return CRAFT_RECIPES.find(function (candidate) {
+        return allowedIds.indexOf(candidate.itemId) !== -1
+            && canCraftRecipe(candidate);
+    }) || null;
+}
+
+// Combined resource cost of the dish and its pre-crafted ingredient, so the
+// auto-cooker never spends resources it still needs for the main recipe.
+function canAffordCraftIngredients(recipe, ingredientRecipe) {
+    const needed = Object.create(null);
+
+    [recipe, ingredientRecipe].forEach(function (entry) {
+        if (!entry) return;
+        getCraftRequirements(entry).forEach(function (requirement) {
+            const resourceId = Number(requirement.resourceId);
+            const amount = Math.max(1, Number(requirement.amount) || 1);
+            needed[resourceId] = (needed[resourceId] || 0) + amount;
+        });
+    });
+
+    return Object.keys(needed).every(function (resourceId) {
+        return getResourceAmount(Number(resourceId)) >= needed[resourceId];
+    });
 }
 
 function tryAutoCookRecipe(recipe, level, priorityStat) {
@@ -2453,6 +2515,12 @@ function tryAutoCookRecipe(recipe, level, priorityStat) {
 
     const previousChoice = selectedCraftChoiceByRecipe[recipe.id];
     const previousBonusChoices = selectedCraftBonusChoicesByRecipe[recipe.id];
+    const previousSlotChoices = selectedCraftSlotChoicesByRecipe[recipe.id];
+    const hadItemChoice = Object.prototype.hasOwnProperty.call(
+        selectedCraftItemByRecipe,
+        recipe.id
+    );
+    const previousItemChoice = selectedCraftItemByRecipe[recipe.id];
 
     if (choices.choiceResourceId != null) {
         selectedCraftChoiceByRecipe[recipe.id] = choices.choiceResourceId;
@@ -2460,10 +2528,44 @@ function tryAutoCookRecipe(recipe, level, priorityStat) {
         delete selectedCraftChoiceByRecipe[recipe.id];
     }
     selectedCraftBonusChoicesByRecipe[recipe.id] = choices.bonusResourceIds;
+    if (getCraftChoiceSlots(recipe).length) {
+        selectedCraftSlotChoicesByRecipe[recipe.id] = Object.assign(
+            {},
+            choices.slotChoices
+        );
+    }
+    if (getCraftItemChoice(recipe)) {
+        selectedCraftItemByRecipe[recipe.id] = choices.itemInstanceId;
+    }
 
     let crafted = false;
     try {
-        if (canCraftRecipe(recipe) && hasFreeInventorySlot()) {
+        if (level >= 7) {
+            const ingredientRecipe = getAutoCookPreCraftRecipe(recipe);
+            if (ingredientRecipe) {
+                // Never spend an ingredient before the dish itself is
+                // guaranteed to be cookable (tool, station and power gates).
+                const dishReady = hasCraftToolPower(recipe)
+                    && canMeetCraftStationRequirements(recipe)
+                    && (recipe.requiresCookingPower !== true
+                        || getCraftCookingPower() > 0);
+                if (!dishReady
+                    || !canAffordCraftIngredients(recipe, ingredientRecipe)
+                    || !canCraftRecipe(ingredientRecipe)
+                    || !hasFreeInventorySlot()) {
+                    return false;
+                }
+
+                if (!performCraft(ingredientRecipe)) return false;
+                // The fresh ingredient is now part of the inventory; drop the
+                // explicit "none" so the mandatory pick selects it.
+                delete selectedCraftItemByRecipe[recipe.id];
+            }
+        }
+
+        const canFit = hasFreeInventorySlot()
+            || getCraftInventoryIngredientItems(recipe).length > 0;
+        if (canCraftRecipe(recipe) && canFit) {
             crafted = performCraft(recipe);
         }
     } finally {
@@ -2479,9 +2581,21 @@ function tryAutoCookRecipe(recipe, level, priorityStat) {
             selectedCraftBonusChoicesByRecipe[recipe.id] = previousBonusChoices;
         }
 
+        if (previousSlotChoices === undefined) {
+            delete selectedCraftSlotChoicesByRecipe[recipe.id];
+        } else {
+            selectedCraftSlotChoicesByRecipe[recipe.id] = previousSlotChoices;
+        }
+
+        if (hadItemChoice) {
+            selectedCraftItemByRecipe[recipe.id] = previousItemChoice;
+        } else {
+            delete selectedCraftItemByRecipe[recipe.id];
+        }
+
         // Auto-cooking temporarily changes the ingredient selection, so put
         // the manual crafting UI back the way the player left it.
-        if (crafted && typeof renderCraftPanels === "function") {
+        if (typeof renderCraftPanels === "function") {
             renderCraftPanels();
         }
     }
@@ -2500,9 +2614,14 @@ function autoCookDietFood() {
     const priorityStat = level >= 6 && typeof getDietPriorityStat === "function"
         ? getDietPriorityStat()
         : null;
-    const recipes = getCraftRecipesByCategory("food").slice();
 
-    // Random dish order, so future food recipes are picked randomly too.
+    // Only the Meals section is auto-cooked; bread, dough and raw pasta are
+    // intermediate products and must not be eaten straight from the pot.
+    const recipes = getCraftRecipesByCategory("food").filter(function (recipe) {
+        return getCraftRecipeGroupId(recipe) === "meals";
+    });
+
+    // Random dish order: every attempt starts with a random available meal.
     for (let index = recipes.length - 1; index > 0; index--) {
         const swapIndex = Math.floor(Math.random() * (index + 1));
         const temporary = recipes[index];
