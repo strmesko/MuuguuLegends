@@ -123,6 +123,10 @@ function getItemImagePath(itemName) {
     if (normalizedName.endsWith("stickkebob")) {
         return GEAR_IMAGE_DIRECTORY + "kebobonstick.png";
     }
+    // Same for porridge: the grain names the dish, the icon is always a bowl.
+    if (normalizedName.endsWith("porridge")) {
+        return GEAR_IMAGE_DIRECTORY + "porridge.png";
+    }
 
     const resourceFolder = getResourceImageFolder(normalizedName);
 

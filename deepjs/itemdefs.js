@@ -44,6 +44,7 @@ const ITEM_IDS = Object.freeze({
     WOODEN_MUG: ITEM_ID_BASE + 34,
     CARVED_WOODEN_PLATE: ITEM_ID_BASE + 35,
     CLAY_POT: ITEM_ID_BASE + 36,
+    PORRIDGE: ITEM_ID_BASE + 37,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -688,6 +689,20 @@ const ITEM_DEFS = Object.freeze({
         primaryStat: "sou",
         food: Object.freeze({ hungerRestore: 100 }),
         description: "A hot skewer of mushrooms or vegetables cooked over a fire. Restores hunger and grants potential when eaten.",
+    }),
+    [ITEM_IDS.PORRIDGE]: Object.freeze({
+        id: ITEM_IDS.PORRIDGE,
+        name: "Porridge",
+        kind: ITEM_KINDS.Consumable,
+        stackable: false,
+        weight: 0.5,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: "porridge",
+        primaryStat: "sou",
+        food: Object.freeze({ hungerRestore: 120 }),
+        description: "A thick bowl of grain porridge cooked in a pot over a campfire. Warm, filling and impossible to rush.",
     }),
     [ITEM_IDS.LADLE]: Object.freeze({
         id: ITEM_IDS.LADLE,

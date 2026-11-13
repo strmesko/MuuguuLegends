@@ -76,6 +76,11 @@ const KEBOB_INGREDIENT_IDS = Object.freeze(
     )
 );
 
+// Porridge accepts any grain that can be ground into flour as its main
+// ingredient, and any kebob ingredient as the optional bonus.
+const PORRIDGE_GRAIN_IDS = Object.freeze(CROP_RESOURCE_IDS.slice());
+const PORRIDGE_BONUS_INGREDIENT_IDS = KEBOB_INGREDIENT_IDS;
+
 // Metal tools, metal cutlery and metal pots use the matching metal bars.
 // Tools and cutlery also need a wooden handle/shaft; pots do not.
 function createMetalVariantRecipes() {
@@ -143,10 +148,31 @@ const CRAFT_RECIPES = Object.freeze([
         ]),
         choiceResourceIds: KEBOB_INGREDIENT_IDS,
         choiceAmount: 1,
+        resultNameSuffix: " stick kebob",
         bonusChoiceSlotsFromCooking: true,
         bonusChoiceAmount: 1,
         requiresCookingPower: true,
         multiplyQualityByCookingPower: true,
+    }),
+    Object.freeze({
+        id: "porridge",
+        category: "food",
+        itemId: ITEM_IDS.PORRIDGE,
+        skill: "cooking",
+        stat: "sou",
+        resources: Object.freeze([]),
+        choiceResourceIds: PORRIDGE_GRAIN_IDS,
+        choiceAmount: 1,
+        choiceLabel: "Choose grain:",
+        resultNameSuffix: " porridge",
+        bonusChoiceSlots: 1,
+        bonusChoiceResourceIds: PORRIDGE_BONUS_INGREDIENT_IDS,
+        bonusChoiceAmount: 1,
+        requiresCookingPower: true,
+        multiplyQualityByCookingPower: true,
+        requiresEquippedSlot: "pot",
+        requiresWater: true,
+        requiresCampfire: true,
     }),
     createCutleryRecipe("ladle", ITEM_IDS.LADLE, 1),
     createCutleryRecipe("wooden-fork", ITEM_IDS.WOODEN_FORK, 3),
@@ -309,10 +335,18 @@ function getCookingBonusSlotCount() {
     return Math.max(1, Math.floor(Math.sqrt(cooking)));
 }
 
-function getCraftBonusChoices(recipe) {
-    if (!recipe || recipe.bonusChoiceSlotsFromCooking !== true) return [];
+function getCraftBonusSlotCount(recipe) {
+    if (!recipe) return 0;
+    if (recipe.bonusChoiceSlotsFromCooking === true) {
+        return getCookingBonusSlotCount();
+    }
+    return Math.max(0, Math.floor(Number(recipe.bonusChoiceSlots) || 0));
+}
 
-    const count = getCookingBonusSlotCount();
+function getCraftBonusChoices(recipe) {
+    const count = getCraftBonusSlotCount(recipe);
+    if (count <= 0) return [];
+
     let choices = selectedCraftBonusChoicesByRecipe[recipe.id];
     if (!Array.isArray(choices)) choices = [];
 
@@ -325,6 +359,17 @@ function getCraftBonusChoices(recipe) {
 
     selectedCraftBonusChoicesByRecipe[recipe.id] = choices;
     return choices;
+}
+
+// Bonus ingredients usually reuse the main ingredient list, but a recipe may
+// accept a wider set (porridge takes grain as the base and anything edible as
+// the bonus).
+function getCraftBonusResourceIds(recipe) {
+    if (recipe && Array.isArray(recipe.bonusChoiceResourceIds)
+        && recipe.bonusChoiceResourceIds.length) {
+        return recipe.bonusChoiceResourceIds;
+    }
+    return getCraftChoiceResourceIds(recipe);
 }
 
 function setCraftBonusChoice(recipe, index, resourceId) {
@@ -342,7 +387,7 @@ function setCraftBonusChoice(recipe, index, resourceId) {
     }
 
     const chosen = Number(resourceId);
-    if (getCraftChoiceResourceIds(recipe).indexOf(chosen) === -1) {
+    if (getCraftBonusResourceIds(recipe).indexOf(chosen) === -1) {
         return false;
     }
 
@@ -401,7 +446,10 @@ function getCraftResultName(recipe) {
         const choice = getSelectedCraftChoice(recipe);
         const choiceDefinition = choice != null ? RESOURCE_DEFS[choice] : null;
         if (choiceDefinition) {
-            return choiceDefinition.name + " stick kebob";
+            const suffix = typeof recipe.resultNameSuffix === "string"
+                ? recipe.resultNameSuffix
+                : " stick kebob";
+            return choiceDefinition.name + suffix;
         }
     }
 
@@ -496,12 +544,103 @@ function getCraftQualityMultiplier(recipe) {
     return getCraftCookingPower();
 }
 
+function hasEquippedCraftSlot(slotId) {
+    return !!(typeof player !== "undefined"
+        && player
+        && player.equipment
+        && player.equipment[slotId]);
+}
+
+function getCraftSlotLabel(slotId) {
+    if (typeof EQUIPMENT_SLOT_GROUPS !== "undefined") {
+        for (const group of EQUIPMENT_SLOT_GROUPS) {
+            const slot = group.slots.find(function (entry) {
+                return entry.id === slotId;
+            });
+            if (slot) return slot.label;
+        }
+    }
+    return String(slotId || "");
+}
+
+// A campfire has to be built and finished on the current tile.
+function hasCampfireOnCurrentTile() {
+    if (typeof currentTile === "undefined" || !currentTile) return false;
+    if (typeof BUILDING_IDS === "undefined" || !BUILDING_IDS.CAMPFIRE) return false;
+
+    if (typeof getBestCompletedBuildingQuality === "function") {
+        return getBestCompletedBuildingQuality(BUILDING_IDS.CAMPFIRE, currentTile) !== null;
+    }
+
+    return Array.isArray(currentTile.buildings) && currentTile.buildings.some(function (building) {
+        return !!building
+            && building.defId === BUILDING_IDS.CAMPFIRE
+            && building.completed === true;
+    });
+}
+
+// Station requirements: an equipped tool (the pot), water and a campfire.
+// Each entry reports whether it is satisfied and the message to log when it is
+// not, so the craft UI and performCraft share one source of truth.
+function getCraftStationRequirements(recipe) {
+    const requirements = [];
+    if (!recipe) return requirements;
+
+    if (recipe.requiresEquippedSlot) {
+        const slotId = String(recipe.requiresEquippedSlot);
+        const label = getCraftSlotLabel(slotId);
+        const equipped = hasEquippedCraftSlot(slotId);
+        requirements.push({
+            id: "slot-" + slotId,
+            label: label + " equipped",
+            short: label,
+            ok: equipped,
+            message: "You need a " + label.toLowerCase() + " equipped to cook "
+                + getCraftResultName(recipe),
+        });
+    }
+
+    if (recipe.requiresWater === true) {
+        const hasWater = typeof hasWaterOnCurrentTile === "function"
+            && hasWaterOnCurrentTile();
+        requirements.push({
+            id: "water",
+            label: "Water on this tile",
+            short: "Water",
+            ok: hasWater,
+            message: "You need water on this tile to cook " + getCraftResultName(recipe),
+        });
+    }
+
+    if (recipe.requiresCampfire === true) {
+        const hasCampfire = hasCampfireOnCurrentTile();
+        requirements.push({
+            id: "campfire",
+            label: "Campfire on this tile",
+            short: "Campfire",
+            ok: hasCampfire,
+            message: "You need a campfire on this tile to cook " + getCraftResultName(recipe),
+        });
+    }
+
+    return requirements;
+}
+
+function canMeetCraftStationRequirements(recipe) {
+    return getCraftStationRequirements(recipe).every(function (requirement) {
+        return requirement.ok;
+    });
+}
+
 function canCraftRecipe(recipe) {
     if (!recipe || !getCraftSkill(recipe)) return false;
     if (recipe.requiresCookingPower === true && getCraftCookingPower() <= 0) {
         return false;
     }
     if (!hasCraftToolPower(recipe)) {
+        return false;
+    }
+    if (!canMeetCraftStationRequirements(recipe)) {
         return false;
     }
     return canAffordCraft(recipe);
@@ -939,7 +1078,9 @@ function renderCraftResources(category) {
 
         const choiceLabel = document.createElement("label");
         choiceLabel.className = "craftchoice-label";
-        choiceLabel.innerText = "Choose mushroom or vegetable:";
+        choiceLabel.innerText = typeof recipe.choiceLabel === "string" && recipe.choiceLabel
+            ? recipe.choiceLabel
+            : "Choose mushroom or vegetable:";
         choiceLabel.htmlFor = "craftchoice-" + category.id + "-" + recipe.id;
 
         const currentChoice = getSelectedCraftChoice(recipe);
@@ -970,7 +1111,9 @@ function renderCraftResources(category) {
             bonusLabel.className = "craftchoice-label";
             bonusLabel.innerText = "Bonus ingredients (optional, "
                 + bonusChoices.length + " slot"
-                + (bonusChoices.length === 1 ? "" : "s") + " from Cooking):";
+                + (bonusChoices.length === 1 ? "" : "s")
+                + (recipe.bonusChoiceSlotsFromCooking === true ? " from Cooking" : "")
+                + "):";
             bonusBox.appendChild(bonusLabel);
 
             bonusChoices.forEach(function (selectedResourceId, index) {
@@ -983,7 +1126,7 @@ function renderCraftResources(category) {
 
                 const bonusSelect = createCraftIngredientSelect({
                     id: "craftbonus-" + category.id + "-" + recipe.id + "-" + index,
-                    resourceIds: getCraftChoiceResourceIds(recipe),
+                    resourceIds: getCraftBonusResourceIds(recipe),
                     selectedResourceId: selectedResourceId,
                     includeNone: true,
                     onSelect: function (resourceId) {
@@ -1064,6 +1207,26 @@ function renderCraftResources(category) {
         cookingRow.innerText = "Cooking power: " + round2(cookingPower)
             + " / 1 (quality x" + round2(Math.max(0, cookingPower)) + ")";
         panel.appendChild(cookingRow);
+    }
+
+    const stationRequirements = getCraftStationRequirements(recipe);
+    if (stationRequirements.length) {
+        const stationRow = document.createElement("div");
+        const stationState = stationRequirements.map(function (requirement) {
+            return (requirement.short || requirement.label) + ":"
+                + (requirement.ok ? "1" : "0");
+        }).join("|");
+        stationRow.className = "craftskillrow"
+            + (stationRequirements.every(function (requirement) {
+                return requirement.ok;
+            }) ? "" : " missing");
+        stationRow.dataset.craftStationGroup = "1";
+        stationRow.dataset.stationState = stationState;
+        stationRow.innerText = "Stations: " + stationRequirements.map(function (requirement) {
+            return (requirement.short || requirement.label)
+                + " " + (requirement.ok ? "yes" : "no");
+        }).join(", ");
+        panel.appendChild(stationRow);
     }
 }
 
@@ -1291,6 +1454,35 @@ function refreshCraftAvailability() {
                     renderCraftResources(category);
                 }
             }
+
+            // Station rows change with equipment and the tile (pot, water,
+            // campfire), so refresh them every tick as well.
+            const stationRequirements = getCraftStationRequirements(recipe);
+            if (stationRequirements.length) {
+                const stationRow = resourcesPanel.querySelector(
+                    "[data-craft-station-group]"
+                );
+                const stationState = stationRequirements.map(function (requirement) {
+                    return (requirement.short || requirement.label) + ":"
+                        + (requirement.ok ? "1" : "0");
+                }).join("|");
+                if (!stationRow) {
+                    renderCraftResources(category);
+                } else if (stationRow.dataset.stationState !== stationState) {
+                    stationRow.dataset.stationState = stationState;
+                    stationRow.innerText = "Stations: "
+                        + stationRequirements.map(function (requirement) {
+                            return (requirement.short || requirement.label)
+                                + " " + (requirement.ok ? "yes" : "no");
+                        }).join(", ");
+                    stationRow.classList.toggle(
+                        "missing",
+                        stationRequirements.some(function (requirement) {
+                            return !requirement.ok;
+                        })
+                    );
+                }
+            }
         }
 
         const button = document.getElementById(category.id + "craftbutton");
@@ -1471,6 +1663,14 @@ function performCraft(recipe) {
 
     if (!getCraftSkill(recipe)) {
         logMessage("You don't know how to craft " + resultName);
+        return false;
+    }
+
+    const missingStation = getCraftStationRequirements(recipe).find(function (requirement) {
+        return !requirement.ok;
+    });
+    if (missingStation) {
+        logMessage(missingStation.message);
         return false;
     }
 
