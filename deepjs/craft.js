@@ -318,11 +318,6 @@ const CRAFT_RECIPES = Object.freeze([
             label: "Choose flat bread:",
             rarityBoost: 1,
         }),
-        requiredToolPower: Object.freeze({
-            type: "cutting",
-            power: 2,
-            exclusive: true,
-        }),
     }),
     createCutleryRecipe("ladle", ITEM_IDS.LADLE, 1),
     createCutleryRecipe("wooden-fork", ITEM_IDS.WOODEN_FORK, 3),
