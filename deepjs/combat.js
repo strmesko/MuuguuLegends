@@ -12,6 +12,7 @@ const COMBAT_SKILL_KEYS = Object.freeze([
 const COMBAT_ATTACK_SPEED_BASE_MS = 5000;
 const COMBAT_ATTACK_SPEED_FACTOR = 0.03;
 const COMBAT_AUTO_CLOSE_DELAY_MS = 2500;
+const SPIRIT_SPEAK_COOLDOWN_MS = 3000;
 const MOB_LEVEL_TILES = 5;
 const MOB_LEVEL_STAT_MULTIPLIER = 1.05;
 const ASS_POISON_DURATION_SECONDS = 30;
@@ -884,6 +885,13 @@ function ensureCombatOverlay() {
 
     panel.appendChild(arena);
 
+    // Reserved space for active combat skills. Buttons are added here as
+    // skills are implemented, so the layout never jumps around.
+    const skillsBar = document.createElement("div");
+    skillsBar.id = "combatskills";
+    skillsBar.className = "combat-skills";
+    panel.appendChild(skillsBar);
+
     const result = document.createElement("div");
     result.id = "combatresult";
     result.className = "combatresult";
@@ -951,6 +959,104 @@ function renderCombatOverlay() {
     if (closeButton) {
         closeButton.style.display = activeCombat.finished ? "inline-block" : "none";
     }
+
+    renderCombatSkillButtons();
+}
+
+// --- active combat skills ---------------------------------------------------
+
+function getSpiritSpeakPower() {
+    const soul = typeof getEffectiveLevel === "function"
+        ? Math.max(0, Number(getEffectiveLevel("sou")) || 0)
+        : 0;
+    const skill = typeof getEffectiveLevel === "function"
+        ? Math.max(0, Number(getEffectiveLevel("spiritspeak")) || 0)
+        : 0;
+    return Math.sqrt(soul + skill);
+}
+
+function getSpiritSpeakHeal() {
+    return roundCombatDamage(getSpiritSpeakPower());
+}
+
+function getSpiritSpeakManaCost() {
+    return roundCombatDamage(getSpiritSpeakPower() * 3);
+}
+
+function renderCombatSkillButtons() {
+    const container = document.getElementById("combatskills");
+    if (!container) return;
+
+    let button = document.getElementById("combatskillspiritspeak");
+    if (!button) {
+        button = document.createElement("button");
+        button.type = "button";
+        button.id = "combatskillspiritspeak";
+        button.className = "combatskillbutton";
+        button.addEventListener("click", function (event) {
+            event.preventDefault();
+            castSpiritSpeak();
+        });
+        container.appendChild(button);
+    }
+
+    if (!activeCombat) {
+        button.disabled = true;
+        return;
+    }
+
+    const cooldownMs = Math.max(0, Number(activeCombat.spiritSpeakCooldownMs) || 0);
+    const cost = getSpiritSpeakManaCost();
+    const mana = Math.max(0, Number(player && player.mana) || 0);
+    const hp = Math.max(0, Number(player && player.hp) || 0);
+    const maxHp = Math.max(0, Number(player && player.maxhp) || 0);
+
+    button.disabled = activeCombat.finished
+        || cooldownMs > 0
+        || mana < cost
+        || hp <= 0
+        || hp >= maxHp;
+    button.innerText = cooldownMs > 0
+        ? "Spirit Speak (" + Math.ceil(cooldownMs / 1000) + "s)"
+        : "Spirit Speak (" + formatCombatStat(cost) + " mana)";
+    button.setAttribute("data-tooltip",
+        "Heals " + formatCombatStat(getSpiritSpeakHeal()) + " HP"
+        + "<br>Mana cost: " + formatCombatStat(cost)
+        + "<br>Cooldown: " + Math.round(SPIRIT_SPEAK_COOLDOWN_MS / 1000) + "s");
+}
+
+function castSpiritSpeak() {
+    if (!activeCombat || activeCombat.finished) return false;
+    if (typeof player === "undefined" || !player) return false;
+
+    const cooldownMs = Math.max(0, Number(activeCombat.spiritSpeakCooldownMs) || 0);
+    if (cooldownMs > 0) return false;
+
+    const cost = getSpiritSpeakManaCost();
+    const mana = Math.max(0, Number(player.mana) || 0);
+    if (mana < cost) return false;
+
+    const maxHp = Math.max(0, Number(player.maxhp) || 0);
+    const before = Math.max(0, Number(player.hp) || 0);
+    if (before <= 0 || before >= maxHp) return false;
+
+    player.hp = Math.min(maxHp, roundCombatDamage(before + getSpiritSpeakHeal()));
+    const healed = roundCombatDamage(player.hp - before);
+    player.mana = roundCombatDamage(Math.max(0, mana - cost));
+
+    if (activeCombat.player) {
+        activeCombat.player.hp = player.hp;
+        activeCombat.player.mana = player.mana;
+    }
+
+    activeCombat.spiritSpeakCooldownMs = SPIRIT_SPEAK_COOLDOWN_MS;
+
+    logCombat("You speak with spirits and heal "
+        + formatCombatStat(healed) + " hp");
+
+    if (typeof updateGUI === "function") updateGUI();
+    renderCombatOverlay();
+    return true;
 }
 
 function logCombat(message) {
@@ -1156,6 +1262,13 @@ function updateCombat(diff) {
         activeCombat.player.hp = Math.max(0, Number(player.hp) || 0);
     }
 
+    if (activeCombat.spiritSpeakCooldownMs > 0) {
+        activeCombat.spiritSpeakCooldownMs = Math.max(
+            0,
+            activeCombat.spiritSpeakCooldownMs - Math.max(0, Number(diff) || 0) * 1000
+        );
+    }
+
     if (activeCombat.player.hp <= 0) {
         finishCombat(false);
         return;
@@ -1229,6 +1342,7 @@ function enterCombat(mobId, options) {
         finished: false,
         result: false,
         autoCloseTimer: null,
+        spiritSpeakCooldownMs: 0,
     };
 
     logCombat("You enter combat with " + activeCombat.enemy.name + ".");

@@ -37,6 +37,7 @@ const LEARNED_SKILLS = [
     { barId: 'skillsplacehammerscrushworks', key: 'hammerscrushworks', label: 'Hammers crushworks', descriptionKey: 'hammerscrushworks' },
     { barId: 'skillsplacedodgedancing', key: 'dodgedancing', label: 'Dodge dancing', descriptionKey: 'dodgedancing' },
     { barId: 'skillsplacecritomancy', key: 'critomancy', label: 'Critomancy', descriptionKey: 'critomancy' },
+    { barId: 'skillsplacespiritspeak', key: 'spiritspeak', label: 'Spirit speak', descriptionKey: 'spiritspeak' },
 ];
 
 function updateCharacterHeader() {
