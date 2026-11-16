@@ -70,6 +70,29 @@ const ITEM_IDS = Object.freeze({
     TORTELLINI: ITEM_ID_BASE + 60,
     LASAGNE_SHEETS: ITEM_ID_BASE + 61,
     NOODLES: ITEM_ID_BASE + 62,
+    BONE_HELM: ITEM_ID_BASE + 63,
+    WOLF_HOOD: ITEM_ID_BASE + 64,
+    IRON_MASK: ITEM_ID_BASE + 65,
+    BEAST_NECKLACE: ITEM_ID_BASE + 66,
+    BONE_CHESTPLATE: ITEM_ID_BASE + 67,
+    SPIKED_PAULDRONS: ITEM_ID_BASE + 68,
+    HUNTER_CLOAK: ITEM_ID_BASE + 69,
+    WAR_BELT: ITEM_ID_BASE + 70,
+    LEATHER_GLOVES: ITEM_ID_BASE + 71,
+    BONE_BRACERS: ITEM_ID_BASE + 72,
+    PADDED_TROUSERS: ITEM_ID_BASE + 73,
+    IRON_GREAVES: ITEM_ID_BASE + 74,
+    STEEL_BOOTS: ITEM_ID_BASE + 75,
+    RING_OF_FURY: ITEM_ID_BASE + 76,
+    PREDATOR_BAND: ITEM_ID_BASE + 77,
+    FOCUS_EARRING: ITEM_ID_BASE + 78,
+    SWIFT_ANKLET: ITEM_ID_BASE + 79,
+    BONE_CLUB: ITEM_ID_BASE + 80,
+    IRON_SWORD: ITEM_ID_BASE + 81,
+    HUNTING_SPEAR: ITEM_ID_BASE + 82,
+    POISONED_DAGGER: ITEM_ID_BASE + 83,
+    BUTCHER_CLEAVER: ITEM_ID_BASE + 84,
+    GUARDBREAKER_AXE: ITEM_ID_BASE + 85,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -432,6 +455,35 @@ function createBakedFoodDefinition(id, name, icon, weight, hungerRestore, descri
         icon: icon,
         primaryStat: "sou",
         food: Object.freeze({ hungerRestore: hungerRestore }),
+        description: description,
+    });
+}
+
+// Combat gear shares one shape: a slot (or a list of interchangeable slots),
+// combat stats and an icon. Weapons also train a weapon skill.
+const RING_SLOT_IDS = Object.freeze(Array.from({ length: 10 }, function (_, index) {
+    return "ring" + (index + 1);
+}));
+
+function createCombatGearDefinition(id, name, slot, icon, stats, equipSlots, description, weaponSkill) {
+    const allowedSlots = Array.isArray(equipSlots) && equipSlots.length
+        ? equipSlots.slice()
+        : [slot];
+
+    return Object.freeze({
+        id: id,
+        name: name,
+        kind: ITEM_KINDS.Equipment,
+        slot: slot,
+        equipSlots: Object.freeze(allowedSlots),
+        stackable: false,
+        weight: 1,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 80,
+        icon: icon,
+        stats: Object.freeze(stats),
+        weaponSkill: WEAPON_SKILL_LABELS[weaponSkill] ? weaponSkill : null,
         description: description,
     });
 }
@@ -877,6 +929,128 @@ const ITEM_DEFS = Object.freeze({
         ITEM_IDS.TOAST_BREAD, "Toast bread", "toastbread", 0.3, 110,
         "A slice of bread toasted until crisp and warm."
     ),
+    // --- combat gear -------------------------------------------------------
+    [ITEM_IDS.BONE_HELM]: createCombatGearDefinition(
+        ITEM_IDS.BONE_HELM, "Bone helm", "head", "bonehelm",
+        { defence: 3, vit: 1 }, null,
+        "A helmet lashed together from bones. Ugly, but it stops teeth."
+    ),
+    [ITEM_IDS.WOLF_HOOD]: createCombatGearDefinition(
+        ITEM_IDS.WOLF_HOOD, "Wolf hood", "head", "wolfhood",
+        { defence: 4, agi: 1, flee: 6 }, null,
+        "A hood made from a wolf's head. The wolf no longer needs it."
+    ),
+    [ITEM_IDS.IRON_MASK]: createCombatGearDefinition(
+        ITEM_IDS.IRON_MASK, "Iron mask", "face", "ironmask",
+        { defence: 2, hit: 5 }, null,
+        "A narrow iron mask with eye slits. Keeps your face and your focus intact."
+    ),
+    [ITEM_IDS.BEAST_NECKLACE]: createCombatGearDefinition(
+        ITEM_IDS.BEAST_NECKLACE, "Beast fang necklace", "neck", "beastnecklace",
+        { attack: 2, critChance: 5 }, null,
+        "A necklace of predator fangs. It remembers how to bite."
+    ),
+    [ITEM_IDS.BONE_CHESTPLATE]: createCombatGearDefinition(
+        ITEM_IDS.BONE_CHESTPLATE, "Bone chestplate", "torso", "bonechestplate",
+        { defence: 7, vit: 2 }, null,
+        "Ribs of something large, strapped across your ribs."
+    ),
+    [ITEM_IDS.SPIKED_PAULDRONS]: createCombatGearDefinition(
+        ITEM_IDS.SPIKED_PAULDRONS, "Spiked pauldrons", "shoulders", "spikedpauldrons",
+        { defence: 3, attack: 2, attackPercent: 5 }, null,
+        "Shoulder guards with spikes. Shrugging now counts as an attack."
+    ),
+    [ITEM_IDS.HUNTER_CLOAK]: createCombatGearDefinition(
+        ITEM_IDS.HUNTER_CLOAK, "Hunter cloak", "back", "huntercloak",
+        { flee: 10, defence: 2, lootChance: 10 }, null,
+        "A patched cloak that smells of old blood and older luck."
+    ),
+    [ITEM_IDS.WAR_BELT]: createCombatGearDefinition(
+        ITEM_IDS.WAR_BELT, "War belt", "belt", "warbelt",
+        { attack: 2, defence: 1, doubleAttackChance: 5 }, null,
+        "A heavy belt with a weighted buckle. Good for follow-up swings."
+    ),
+    [ITEM_IDS.LEATHER_GLOVES]: createCombatGearDefinition(
+        ITEM_IDS.LEATHER_GLOVES, "Leather gloves", "glove1", "leathergloves",
+        { attack: 2, hit: 3 }, ["glove1", "glove2"],
+        "Stiff leather gloves. Your grip stops slipping at the worst moment."
+    ),
+    [ITEM_IDS.BONE_BRACERS]: createCombatGearDefinition(
+        ITEM_IDS.BONE_BRACERS, "Bone bracers", "wrist1", "bonebracers",
+        { defence: 2, attackPercent: 5 }, ["wrist1", "wrist2"],
+        "Bracers cut from hollow bones. Light, hard and slightly haunted."
+    ),
+    [ITEM_IDS.PADDED_TROUSERS]: createCombatGearDefinition(
+        ITEM_IDS.PADDED_TROUSERS, "Padded trousers", "pants", "paddedtrousers",
+        { defence: 4, vit: 1 }, null,
+        "Thick quilted trousers. The legs are usually the first thing to go."
+    ),
+    [ITEM_IDS.IRON_GREAVES]: createCombatGearDefinition(
+        ITEM_IDS.IRON_GREAVES, "Iron greaves", "legs", "irongreaves",
+        { defence: 5, agi: 1 }, null,
+        "Iron plates for the shins. Heavy, but they keep you standing."
+    ),
+    [ITEM_IDS.STEEL_BOOTS]: createCombatGearDefinition(
+        ITEM_IDS.STEEL_BOOTS, "Steel boots", "feet", "steelboots",
+        { defence: 3, flee: 6 }, null,
+        "Boots with steel caps. Kicking is now a valid debate tactic."
+    ),
+    [ITEM_IDS.RING_OF_FURY]: createCombatGearDefinition(
+        ITEM_IDS.RING_OF_FURY, "Ring of fury", "ring1", "ringoffury",
+        { attackPercent: 10, critChance: 5, critDamage: 10 }, RING_SLOT_IDS,
+        "A hot iron ring. Your anger finds the gaps in armour."
+    ),
+    [ITEM_IDS.PREDATOR_BAND]: createCombatGearDefinition(
+        ITEM_IDS.PREDATOR_BAND, "Predator band", "ring1", "predatorband",
+        { lootChance: 15, lootAmount: 20, mobLevelBonus: 1 }, RING_SLOT_IDS,
+        "A band of predator bone. It attracts stronger prey and better spoils."
+    ),
+    [ITEM_IDS.FOCUS_EARRING]: createCombatGearDefinition(
+        ITEM_IDS.FOCUS_EARRING, "Focus earring", "ear1", "focuseering",
+        { hit: 5, critChance: 3, critDamage: 10 }, ["ear1", "ear2"],
+        "A small polished stone. The world narrows to a single point."
+    ),
+    [ITEM_IDS.SWIFT_ANKLET]: createCombatGearDefinition(
+        ITEM_IDS.SWIFT_ANKLET, "Swift anklet", "ankle1", "swiftanklet",
+        { flee: 8, hit: 2, doubleAttackChance: 3 }, ["ankle1", "ankle2"],
+        "A light anklet that clicks when you move. Your feet learn the rhythm."
+    ),
+    [ITEM_IDS.BONE_CLUB]: createCombatGearDefinition(
+        ITEM_IDS.BONE_CLUB, "Bone club", "arm1", "boneclub",
+        { attack: 6, defence: 1 }, FORAGING_TOOL_SLOTS,
+        "A heavy femur with a wrapped grip. Simple and honest violence.",
+        "hammerscrushworks"
+    ),
+    [ITEM_IDS.IRON_SWORD]: createCombatGearDefinition(
+        ITEM_IDS.IRON_SWORD, "Iron sword", "arm1", "ironsword",
+        { attack: 8, hit: 4 }, FORAGING_TOOL_SLOTS,
+        "A straight iron blade with a short crossguard. Heavy enough to matter.",
+        "swordsswingin"
+    ),
+    [ITEM_IDS.HUNTING_SPEAR]: createCombatGearDefinition(
+        ITEM_IDS.HUNTING_SPEAR, "Hunting spear", "arm1", "huntingspear",
+        { attack: 7, hit: 3, flee: 3 }, FORAGING_TOOL_SLOTS,
+        "A long spear with a barbed head. Keeps the argument at a distance.",
+        "spearsspooning"
+    ),
+    [ITEM_IDS.POISONED_DAGGER]: createCombatGearDefinition(
+        ITEM_IDS.POISONED_DAGGER, "Poisoned dagger", "arm1", "poisoneddagger",
+        { attack: 5, critChance: 8, poisonOnHit: 20 }, FORAGING_TOOL_SLOTS,
+        "A thin blade coated in something the spiders taught you.",
+        "knifesstabbing"
+    ),
+    [ITEM_IDS.BUTCHER_CLEAVER]: createCombatGearDefinition(
+        ITEM_IDS.BUTCHER_CLEAVER, "Butcher cleaver", "arm1", "butchercleaver",
+        { attack: 6, lootAmount: 25 }, FORAGING_TOOL_SLOTS,
+        "A wide cleaver made for cutting meat. Excellent at getting more of it.",
+        "hammerscrushworks"
+    ),
+    [ITEM_IDS.GUARDBREAKER_AXE]: createCombatGearDefinition(
+        ITEM_IDS.GUARDBREAKER_AXE, "Guardbreaker axe", "arm1", "guardbreakeraxe",
+        { attack: 7, attackPercent: 10, weakenOnDefend: 20 }, FORAGING_TOOL_SLOTS,
+        "A notched axe with a hooked back. Every block leaves the enemy weaker.",
+        "axechopping"
+    ),
     [ITEM_IDS.LADLE]: Object.freeze({
         id: ITEM_IDS.LADLE,
         name: "Ladle",
@@ -1073,6 +1247,56 @@ const ITEM_STAT_DEFS = Object.freeze({
         label: "Defence",
         kind: "flat",
     }),
+    // Combat equipment stats. Percentage values are stored as points: 10
+    // means +10%.
+    attackPercent: Object.freeze({
+        label: "Attack",
+        kind: "percentStat",
+    }),
+    defencePercent: Object.freeze({
+        label: "Defence",
+        kind: "percentStat",
+    }),
+    hit: Object.freeze({
+        label: "Hit",
+        kind: "flat",
+    }),
+    flee: Object.freeze({
+        label: "Flee",
+        kind: "flat",
+    }),
+    critChance: Object.freeze({
+        label: "Crit chance",
+        kind: "percentStat",
+    }),
+    critDamage: Object.freeze({
+        label: "Crit damage",
+        kind: "percentStat",
+    }),
+    doubleAttackChance: Object.freeze({
+        label: "Double attack chance",
+        kind: "percentStat",
+    }),
+    lootChance: Object.freeze({
+        label: "Loot chance",
+        kind: "percentStat",
+    }),
+    lootAmount: Object.freeze({
+        label: "Loot amount",
+        kind: "percentStat",
+    }),
+    mobLevelBonus: Object.freeze({
+        label: "Mob level",
+        kind: "flat",
+    }),
+    poisonOnHit: Object.freeze({
+        label: "Poison on hit",
+        kind: "percentStat",
+    }),
+    weakenOnDefend: Object.freeze({
+        label: "Weaken on defence",
+        kind: "percentStat",
+    }),
     forageFindChance: Object.freeze({
         label: "chance to find something while foraging",
         kind: "multiplier",
@@ -1121,6 +1345,11 @@ function describeItemStat(statName, value) {
     }
 
     const label = meta ? meta.label : humanizeItemStatName(statName);
+
+    if (meta && meta.kind === "percentStat") {
+        return (amount >= 0 ? "+" : "") + amount + "% " + label;
+    }
+
     return (amount >= 0 ? "+" : "") + amount + " " + label;
 }
 

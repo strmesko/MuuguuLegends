@@ -17,6 +17,13 @@ const MOB_LEVEL_STAT_MULTIPLIER = 1.05;
 const ASS_POISON_DURATION_SECONDS = 30;
 const ASS_POISON_DAMAGE_PER_STACK_PER_SECOND = 0.05;
 const ASS_POISON_MAX_STACKS = 50;
+// Player-applied poison and weaken, granted by combat equipment.
+const MOB_POISON_DURATION_SECONDS = 10;
+const MOB_POISON_STACKS_PER_HIT = 2;
+const MOB_POISON_DAMAGE_PER_STACK_PER_SECOND = 0.25;
+const MOB_POISON_MAX_STACKS = 40;
+const MOB_WEAKEN_MAX_STACKS = 5;
+const MOB_WEAKEN_PER_STACK = 0.05;
 
 var assPoisonStacks = 0;
 var assPoisonRemaining = 0;
@@ -276,15 +283,26 @@ function dropMobLoot(combatant) {
     if (!drops.length) return;
 
     const quality = getMobLootQuality(combatant);
-    drops.forEach(function (drop) {
-        addResource(drop.resourceId, drop.amount, quality);
-        const definition = typeof RESOURCE_DEFS !== "undefined"
-            ? RESOURCE_DEFS[drop.resourceId]
-            : null;
-        const name = definition ? definition.name : "resource";
-        logCombat("You gather " + name + " x" + drop.amount
-            + " (Q" + formatCombatStat(quality) + ").");
-    });
+    const amountMultiplier = 1 + getCombatGearStat("lootAmount") / 100;
+    // Loot chance grants one extra full drop roll.
+    const rolls = 1 + (rollCombatGearChance("lootChance") ? 1 : 0);
+
+    for (let roll = 0; roll < rolls; roll++) {
+        drops.forEach(function (drop) {
+            const amount = Math.max(
+                1,
+                roundCombatDamage(drop.amount * amountMultiplier)
+            );
+            addResource(drop.resourceId, amount, quality);
+
+            const definition = typeof RESOURCE_DEFS !== "undefined"
+                ? RESOURCE_DEFS[drop.resourceId]
+                : null;
+            const name = definition ? definition.name : "resource";
+            logCombat("You gather " + name + " x" + formatCombatStat(amount)
+                + " (Q" + formatCombatStat(quality) + ").");
+        });
+    }
 }
 
 function formatCombatDuration(seconds) {
@@ -389,6 +407,17 @@ function getCombatantSkill(combatant, key) {
     return Number.isFinite(value) ? value : 0;
 }
 
+// Combat-only equipment stats, flat or in percentage points (10 = +10%).
+function getCombatGearStat(key) {
+    if (typeof getEquippedStatBonus !== "function") return 0;
+    return Math.max(0, Number(getEquippedStatBonus(key)) || 0);
+}
+
+function rollCombatGearChance(key) {
+    const chance = getCombatGearStat(key);
+    return chance > 0 && Math.random() * 100 < chance;
+}
+
 // Weapon skills trained by the items held in arm1/arm2. Every level adds 1%
 // damage and 1 hit while such an item is equipped. Dual-wielding the same
 // weapon type doubles experience gain only, not the bonus itself.
@@ -465,7 +494,16 @@ function getCombatAttack(combatant) {
         * (1 + tactics / 5 + anatomy / 2);
 
     if (combatant && combatant.kind === "player") {
-        return base * (1 + getPlayerWeaponSkillInfo().level / 100);
+        const percent = getCombatGearStat("attackPercent");
+        return base
+            * (1 + getPlayerWeaponSkillInfo().level / 100)
+            * (1 + percent / 100);
+    }
+
+    // Weaken stacks from the player's defensive gear reduce mob damage.
+    const weaken = Math.max(0, Number(combatant && combatant.weakenStacks) || 0);
+    if (weaken > 0) {
+        return base * Math.max(0.5, 1 - weaken * MOB_WEAKEN_PER_STACK);
     }
 
     return base;
@@ -474,8 +512,14 @@ function getCombatAttack(combatant) {
 function getCombatDefence(combatant) {
     const vitality = getCombatantStat(combatant, "vit");
     const tactics = getCombatantSkill(combatant, "tactics");
-    return getCombatantGearDefence(combatant)
+    let defence = getCombatantGearDefence(combatant)
         * (vitality * (1 + tactics / 100));
+
+    if (combatant && combatant.kind === "player") {
+        defence *= 1 + getCombatGearStat("defencePercent") / 100;
+    }
+
+    return defence;
 }
 
 function getCombatFlee(combatant) {
@@ -490,6 +534,7 @@ function getCombatFlee(combatant) {
     // Dodge dancing adds a flat 2 flee per level.
     if (combatant && combatant.kind === "player") {
         total += 2 * getPlayerCombatSkillLevel("dodgedancing");
+        total += getCombatGearStat("flee");
     }
 
     return total;
@@ -510,6 +555,7 @@ function getCombatHitChance(attacker, defender) {
     // Weapon skills add 1 hit per level.
     if (attacker && attacker.kind === "player") {
         chance += getPlayerWeaponSkillInfo().level;
+        chance += getCombatGearStat("hit");
     }
 
     return Math.max(5, Math.min(100, chance));
@@ -532,6 +578,7 @@ function getCombatCritChance(attacker) {
         if (critomancy > 0) {
             chance = (chance + critomancy) / Math.max(1, critomancy);
         }
+        chance += getCombatGearStat("critChance") / 100;
     }
 
     return Math.max(0, Math.min(0.95, chance));
@@ -544,6 +591,7 @@ function getCombatCritMultiplier(attacker) {
     // Critomancy adds 1% critical damage per level.
     if (attacker && attacker.kind === "player") {
         bonus += getPlayerCombatSkillLevel("critomancy");
+        bonus += getCombatGearStat("critDamage");
     }
 
     return 1.5 + bonus / 100;
@@ -615,7 +663,11 @@ function createMobCombatant(mobId, level, prefixes) {
         : 0;
     const mobLevel = Number.isFinite(Number(level))
         ? Math.max(1, Math.floor(Number(level)))
-        : getMobLevelForTile(tileX, tileY);
+        : Math.max(
+            1,
+            getMobLevelForTile(tileX, tileY)
+                + Math.floor(getCombatGearStat("mobLevelBonus"))
+        );
     const multiplier = getMobLevelMultiplier(mobLevel);
     const stats = {};
     const skills = {};
@@ -974,8 +1026,60 @@ function applyMobAttackEffects(attacker) {
     }
 }
 
-function performCombatAttack(attacker, defender) {
+// Equipment effects that trigger when the player lands a hit.
+function applyPlayerOnHitEffects(target) {
+    if (!target || target.kind !== "mob") return;
+
+    if (rollCombatGearChance("poisonOnHit")) {
+        target.poisonStacks = Math.min(
+            MOB_POISON_MAX_STACKS,
+            (Number(target.poisonStacks) || 0) + MOB_POISON_STACKS_PER_HIT
+        );
+        target.poisonRemaining = MOB_POISON_DURATION_SECONDS;
+        logCombat(target.name + " is poisoned ("
+            + target.poisonStacks + " stacks).");
+    }
+}
+
+// Equipment effects that trigger when a mob lands a hit on the player.
+function applyPlayerDefenceEffects(attacker) {
+    if (!attacker || attacker.kind !== "mob") return;
+
+    if (rollCombatGearChance("weakenOnDefend")) {
+        attacker.weakenStacks = Math.min(
+            MOB_WEAKEN_MAX_STACKS,
+            (Number(attacker.weakenStacks) || 0) + 1
+        );
+        logCombat(attacker.name + " is weakened ("
+            + attacker.weakenStacks + " stacks).");
+    }
+}
+
+function updateMobPoison(enemy, seconds) {
+    if (!enemy) return;
+
+    const stacks = Number(enemy.poisonStacks) || 0;
+    const remaining = Number(enemy.poisonRemaining) || 0;
+    if (stacks <= 0 || remaining <= 0) return;
+
+    const elapsed = Math.max(0, Number(seconds) || 0);
+    const activeSeconds = Math.min(elapsed, remaining);
+    const damage = roundCombatDamage(
+        stacks * MOB_POISON_DAMAGE_PER_STACK_PER_SECOND * activeSeconds
+    );
+
+    if (damage > 0) {
+        enemy.hp = Math.max(0, roundCombatDamage(enemy.hp - damage));
+    }
+
+    enemy.poisonRemaining = Math.max(0, remaining - elapsed);
+    if (enemy.poisonRemaining <= 0) enemy.poisonStacks = 0;
+}
+
+function performCombatAttack(attacker, defender, options) {
     if (!activeCombat || activeCombat.finished) return;
+
+    const settings = options || {};
 
     applyMobAttackEffects(attacker);
 
@@ -1017,6 +1121,22 @@ function performCombatAttack(attacker, defender) {
         + formatCombatStat(damage) + " damage."
         + (crit ? " Critical!" : ""));
 
+    if (attacker.kind === "player") {
+        applyPlayerOnHitEffects(defender);
+    } else if (attacker.kind === "mob" && defender.kind === "player") {
+        applyPlayerDefenceEffects(attacker);
+    }
+
+    // Equipment can grant a free follow-up hit. It never chains further.
+    if (attacker.kind === "player"
+        && settings.extra !== true
+        && defender.hp > 0
+        && rollCombatGearChance("doubleAttackChance")) {
+        logCombat("Double attack!");
+        performCombatAttack(attacker, defender, { extra: true });
+        if (!activeCombat || activeCombat.finished) return;
+    }
+
     if (defender.hp <= 0) {
         finishCombat(defender.kind === "mob");
     }
@@ -1040,6 +1160,13 @@ function updateCombat(diff) {
         finishCombat(false);
         return;
     }
+    if (activeCombat.enemy.hp <= 0) {
+        finishCombat(true);
+        return;
+    }
+
+    // Equipment poison keeps ticking on the enemy while combat runs.
+    updateMobPoison(activeCombat.enemy, Math.max(0, Number(diff) || 0));
     if (activeCombat.enemy.hp <= 0) {
         finishCombat(true);
         return;
