@@ -538,6 +538,7 @@ const RESOURCE_IDS = Object.freeze({
     GRAND_MOB_SPIRIT: 6112,
     SUGAR: 6113,
     EGG: 6115,
+    LINEN_CLOTH: 6116,
 });
 
 const RESOURCE_DEFS = {
@@ -612,6 +613,7 @@ const RESOURCE_DEFS = {
     [RESOURCE_IDS.CHICKEN_MEAT]: { name: "Chicken Meat", weight: 0.5, unitType: "kg", description: "Fresh meat from a very angry bird. Probably safe to eat.", category: RESOURCE_CATEGORIES.Food, Tastymeter: 7, meat: true },
     [RESOURCE_IDS.JELLY]: { name: "Jelly", weight: 0.5, unitType: "kg", description: "A wobbly blue jelly. It jiggles when you look at it.", category: RESOURCE_CATEGORIES.Food, Tastymeter: 5, jelly: true },
     [RESOURCE_IDS.EGG]: { name: "Egg", weight: 0.05, unitType: "kg", description: "A fresh egg, still warm from the nest. Handle it gently.", category: RESOURCE_CATEGORIES.Food, Tastymeter: 6, egg: true },
+    [RESOURCE_IDS.LINEN_CLOTH]: { name: "Linen cloth", weight: 0.2, unitType: "kg", description: "Woven flax cloth, soft and sturdy. The first real textile of a settled tailor.", category: RESOURCE_CATEGORIES.Intermediate, tailoring: true },
     [RESOURCE_IDS.SPIRIT_ASPIC]: { name: "Spirit aspic", weight: 0.1, unitType: "kg", description: "A cold, ghostly gel that refuses to stop wobbling.", category: RESOURCE_CATEGORIES.Intermediate, alchemy: true },
     [RESOURCE_IDS.MOB_SPIRIT_DROPS]: { name: "Mob spirit drops", weight: 0.1, unitType: "kg", description: "A single drop of condensed mob spirit.", category: RESOURCE_CATEGORIES.Intermediate, wizardy: true, mobSpirit: true },
     [RESOURCE_IDS.MOB_SPIRIT_TEARS]: { name: "Mob spirit tears", weight: 0.1, unitType: "kg", description: "A frozen tear shed by a slain mob spirit.", category: RESOURCE_CATEGORIES.Intermediate, wizardy: true, mobSpirit: true },
@@ -1965,6 +1967,12 @@ const FIBER_STAMINA_PER_BATCH = 3;
 const FIBER_SURVIVAL_EXP = 5;
 const FIBER_ROPEMAKING_EXP = 3;
 const FIBER_TAILORING_EXP = 2;
+// "Make linen cloth" action: 10 fibers -> 1 linen cloth per effectiveness unit.
+const LINEN_CLOTH_FIBERS_PER_BATCH = 10;
+const LINEN_CLOTH_OUTPUT_PER_BATCH = 1;
+const LINEN_CLOTH_STAMINA_PER_BATCH = 3;
+const LINEN_CLOTH_TAILORING_EXP = 5;
+const LINEN_CLOTH_AGI_EXP = 0.5;
 // "Make shafts" action: 1 stick -> 1 shaft per effectiveness unit.
 const SHAFT_STICKS_PER_BATCH = 1;
 const SHAFT_OUTPUT_PER_BATCH = 1;

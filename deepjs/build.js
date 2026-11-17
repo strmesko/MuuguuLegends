@@ -23,6 +23,7 @@ const BUILDING_IDS = Object.freeze({
     SMELTER: "smelter",
     BIG_GRINDING_STONE: "big-grinding-stone",
     OIL_PRESS: "oil-press",
+    LOOM: "loom",
     MAPLE_EXTRACTOR: "maple-extractor",
 });
 
@@ -106,6 +107,35 @@ function setSelectedMapleMetalSheetId(resourceId) {
     return true;
 }
 
+const LOOM_NAIL_CHOICES = Object.freeze([
+    RESOURCE_IDS.IRON_NAILS,
+    RESOURCE_IDS.COPPER_NAILS,
+    RESOURCE_IDS.TIN_NAILS,
+    RESOURCE_IDS.BRONZE_NAILS,
+    RESOURCE_IDS.STEEL_NAILS,
+    RESOURCE_IDS.GOLD_NAILS,
+]);
+
+let selectedLoomNailId = LOOM_NAIL_CHOICES[0];
+
+function getSelectedLoomNailId() {
+    if (LOOM_NAIL_CHOICES.indexOf(selectedLoomNailId) === -1) {
+        selectedLoomNailId = LOOM_NAIL_CHOICES[0];
+    }
+    return selectedLoomNailId;
+}
+
+function setSelectedLoomNailId(resourceId) {
+    const id = Number(resourceId);
+    if (LOOM_NAIL_CHOICES.indexOf(id) === -1) return false;
+
+    selectedLoomNailId = id;
+    if (typeof renderFurniturePanels === "function") {
+        renderFurniturePanels();
+    }
+    return true;
+}
+
 function getBuildingBuildRequirements(def) {
     if (!def) return [];
 
@@ -124,11 +154,17 @@ function getBuildingBuildRequirements(def) {
         });
     }
 
+    if (def.id === BUILDING_IDS.LOOM) {
+        requirements.push({
+            resourceId: getSelectedLoomNailId(),
+            amount: 50,
+        });
+    }
+
     return requirements;
 }
 
-function createMapleMetalChoiceBox() {
-    const box = document.createElement("div");
+function createMapleMetalChoiceBox() {    const box = document.createElement("div");
     box.className = "craftchoice";
 
     const label = document.createElement("label");
@@ -164,6 +200,47 @@ function createMapleMetalChoiceBox() {
     select.value = String(getSelectedMapleMetalSheetId());
     select.addEventListener("change", function () {
         setSelectedMapleMetalSheetId(Number(select.value));
+    });
+    box.appendChild(select);
+    return box;
+}
+
+function createLoomNailChoiceBox() {
+    const box = document.createElement("div");
+    box.className = "craftchoice";
+
+    const label = document.createElement("label");
+    label.className = "craftchoice-label";
+    label.innerText = "Choose nails:";
+    label.htmlFor = "loom-nail-choice";
+    box.appendChild(label);
+
+    if (typeof createCraftIngredientSelect === "function") {
+        box.appendChild(createCraftIngredientSelect({
+            id: "loom-nail-choice",
+            resourceIds: LOOM_NAIL_CHOICES,
+            selectedResourceId: getSelectedLoomNailId(),
+            includeNone: false,
+            onSelect: function (resourceId) {
+                setSelectedLoomNailId(resourceId);
+            },
+        }));
+        return box;
+    }
+
+    const select = document.createElement("select");
+    select.id = "loom-nail-choice";
+    LOOM_NAIL_CHOICES.forEach(function (resourceId) {
+        const option = document.createElement("option");
+        option.value = String(resourceId);
+        option.innerText = RESOURCE_DEFS[resourceId]
+            ? RESOURCE_DEFS[resourceId].name
+            : String(resourceId);
+        select.appendChild(option);
+    });
+    select.value = String(getSelectedLoomNailId());
+    select.addEventListener("change", function () {
+        setSelectedLoomNailId(Number(select.value));
     });
     box.appendChild(select);
     return box;
@@ -524,8 +601,7 @@ const BUILDING_DEFS = Object.freeze({
         iconClass: "fa-circle-o-notch",
         effectText: "Enables Grind Flour on this tile. Grinds every seed resource into flour while you stay here.",
     }),
-    [BUILDING_IDS.OIL_PRESS]: Object.freeze({
-        id: BUILDING_IDS.OIL_PRESS,
+    [BUILDING_IDS.OIL_PRESS]: Object.freeze({        id: BUILDING_IDS.OIL_PRESS,
         name: "Oil press",
         category: FURNITURE_CATEGORY.id,
         description: "A sturdy wooden press with a heavy stone weight. It squeezes oil out of oil-bearing seeds and olives.",
@@ -540,6 +616,22 @@ const BUILDING_DEFS = Object.freeze({
         effects: Object.freeze([]),
         iconClass: "fa-tint",
         effectText: "Enables Press Oil on this tile. Presses oil-bearing seeds and olives into oil while you stay here.",
+    }),
+    [BUILDING_IDS.LOOM]: Object.freeze({
+        id: BUILDING_IDS.LOOM,
+        name: "Loom",
+        category: FURNITURE_CATEGORY.id,
+        description: "A sturdy wooden frame strung with strong cords. It turns plant fibers into proper linen cloth.",
+        resources: Object.freeze([
+            Object.freeze({ resourceId: RESOURCE_IDS.SHAFTS, amount: 250 }),
+            Object.freeze({ resourceId: RESOURCE_IDS.WOODEN_PLANK, amount: 100 }),
+        ]),
+        workPoints: 15000,
+        roomSpace: 3,
+        skill: "carpentry",
+        effects: Object.freeze([]),
+        iconClass: "fa-th",
+        effectText: "Enables Make linen cloth on this tile. Loom quality increases both the amount of fibers processed and the quality of the cloth.",
     }),
     [BUILDING_IDS.MAPLE_EXTRACTOR]: Object.freeze({
         id: BUILDING_IDS.MAPLE_EXTRACTOR,
@@ -1191,6 +1283,17 @@ function getOilPressQuality(tile) {
 
 function hasOilPress(tile) {
     return getOilPressQuality(tile) !== null;
+}
+
+function getLoomQuality(tile) {
+    return getBestCompletedBuildingQuality(
+        BUILDING_IDS.LOOM,
+        tile
+    );
+}
+
+function hasLoom(tile) {
+    return getLoomQuality(tile) !== null;
 }
 
 // Any completed building tagged SleepingPlace can improve sleep quality.
@@ -3077,6 +3180,9 @@ function renderFurnitureResources() {
 
     if (def.id === BUILDING_IDS.MAPLE_EXTRACTOR) {
         panel.appendChild(createMapleMetalChoiceBox());
+    }
+    if (def.id === BUILDING_IDS.LOOM) {
+        panel.appendChild(createLoomNailChoiceBox());
     }
 
     getBuildingBuildRequirements(def).forEach(function (requirement) {

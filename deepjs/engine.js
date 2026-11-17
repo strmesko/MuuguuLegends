@@ -1615,6 +1615,35 @@ const PRODUCTION_RECIPES = Object.freeze({
         tiredMessage: "You are too tired to make fibers",
         precision: 2,
     }),
+    makelinencloth: Object.freeze({
+        actionId: "makelinencloth",
+        inputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.FIBERS,
+                amountPerBatch: LINEN_CLOTH_FIBERS_PER_BATCH,
+            }),
+        ]),
+        outputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.LINEN_CLOTH,
+                amountPerBatch: LINEN_CLOTH_OUTPUT_PER_BATCH,
+            }),
+        ]),
+        staminaPerBatch: LINEN_CLOTH_STAMINA_PER_BATCH,
+        getEffectiveness: getMakeLinenClothEffectiveness,
+        getQuality: getMakeLinenClothQuality,
+        experience: Object.freeze([
+            Object.freeze({ key: "tailoring", amountPerBatch: LINEN_CLOTH_TAILORING_EXP }),
+            Object.freeze({ key: "agi", amountPerBatch: LINEN_CLOTH_AGI_EXP }),
+        ]),
+        validate: function () {
+            return typeof hasLoom === "function" && hasLoom()
+                ? null
+                : "You need a completed Loom to make linen cloth";
+        },
+        tiredMessage: "You are too tired to make linen cloth",
+        precision: 2,
+    }),
     makeshafts: Object.freeze({
         actionId: "makeshafts",
         inputs: Object.freeze([
@@ -1812,6 +1841,29 @@ function runProductionRecipe(diff, recipeId) {
 
 function runMakeFibersProduction(diff) {
     runProductionRecipe(diff, "makefibers");
+}
+
+// "Make linen cloth": each effectiveness unit turns 10 fibers into 1 cloth.
+// Tailoring and Agility drive the work; Loom quality increases throughput and
+// adds a flat quality bonus on top of the standard production formula.
+function getMakeLinenClothEffectiveness() {
+    const loomQuality = typeof getLoomQuality === "function"
+        ? Math.max(0, Number(getLoomQuality()) || 0)
+        : 0;
+    return getCraftingEffectiveness("agi", "tailoring")
+        * (1 + 0.1 * loomQuality);
+}
+
+function getMakeLinenClothQuality() {
+    const loomQuality = typeof getLoomQuality === "function"
+        ? Math.max(0, Number(getLoomQuality()) || 0)
+        : 0;
+    return getProductionQuality(["tailoring"], [RESOURCE_IDS.FIBERS])
+        + 0.1 * loomQuality;
+}
+
+function runMakeLinenClothProduction(diff) {
+    runProductionRecipe(diff, "makelinencloth");
 }
 
 // "Make shafts": each effectiveness unit turns 1 stick into 1 shaft.

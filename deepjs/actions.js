@@ -473,6 +473,32 @@ const ACTIONS = [
         run: runMakeFibersProduction,
     },
     {
+        id: "makelinencloth",
+        label: "Make linen cloth",
+        tags: ["Production"],
+        description: "Weave plant fibers into linen cloth on a Loom.<br>Every effectiveness unit turns 10 Fibers into 1 Linen cloth. Trains Tailoring and Agility. Loom quality increases processing amount and final quality.",
+        kind: ACTION_KIND.Timed,
+        initialState: Activity.Idle,
+        startMessage: "You start weaving linen cloth",
+        stopMessage: "You stop weaving linen cloth",
+        isVisible: function () {
+            return typeof hasLoom === "function"
+                && hasLoom()
+                && getEffectiveLevel("tailoring") >= 1
+                && !!resources[RESOURCE_IDS.FIBERS]
+                && resources[RESOURCE_IDS.FIBERS].amount >= LINEN_CLOTH_FIBERS_PER_BATCH
+                && player.stamina >= LINEN_CLOTH_STAMINA_PER_BATCH;
+        },
+        isComplete: function () {
+            return typeof hasLoom !== "function"
+                || !hasLoom()
+                || !resources[RESOURCE_IDS.FIBERS]
+                || resources[RESOURCE_IDS.FIBERS].amount < LINEN_CLOTH_FIBERS_PER_BATCH;
+        },
+        completeMessage: "You have no fibers left to weave",
+        run: runMakeLinenClothProduction,
+    },
+    {
         id: "makeshafts",
         label: "Make shafts",
         tags: ["Production"],
