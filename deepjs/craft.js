@@ -56,6 +56,7 @@ const CRAFT_GROUP_NAMES = Object.freeze({
     sauces: "Sauces",
     italian: "Italian",
     soviet: "Soviet",
+    pizza: "Pizza",
     other: "Other",
 });
 
@@ -461,9 +462,6 @@ const ITALIAN_DISH_RECIPES = Object.freeze([
     createItalianDishRecipe("polenta", ITEM_IDS.POLENTA, [
         [ITALIAN_MAIZE_FLOUR_ID, 3],
     ], { stations: true }),
-    createItalianDishRecipe("pizza-margherita", ITEM_IDS.PIZZA_MARGHERITA, [
-        [SAUCE_TOMATO_ID, 2], [SAUCE_OREGANO_ID, 1],
-    ], { itemChoiceId: ITEM_IDS.FLAT_BREAD, itemLabel: "Choose flat bread:", campfire: true }),
     createItalianDishRecipe("bruschetta", ITEM_IDS.BRUSCHETTA, [
         [SAUCE_TOMATO_ID, 2], [SAUCE_GARLIC_ID, 1],
     ], { itemChoiceId: ITEM_IDS.TOAST_BREAD, itemLabel: "Choose toast bread:" }),
@@ -673,6 +671,134 @@ const SOVIET_DISH_RECIPES = Object.freeze([
         [SOVIET_WHEAT_FLOUR_ID, 3], [RESOURCE_IDS.EGG, 2],
         [RESOURCE_IDS.SUGAR, 3],
     ], { station: "campfire" }),
+]);
+
+// Pizzas all share a flat bread base, a chosen oil and a campfire. The
+// toppings are the only difference, which keeps the section easy to extend.
+function createPizzaRecipe(id, itemId, resources, options) {
+    const settings = options || {};
+    const recipe = {
+        id: "pizza-" + id,
+        category: "food",
+        itemId: itemId,
+        skill: "cooking",
+        stat: "sou",
+        group: "pizza",
+        resultNameSuffix: "",
+        requiresCampfire: true,
+        resources: Object.freeze(resources.map(function (resource) {
+            return Object.freeze({
+                resourceId: resource[0],
+                amount: resource[1],
+            });
+        })),
+        itemChoice: Object.freeze({
+            itemId: ITEM_IDS.FLAT_BREAD,
+            label: "Choose flat bread:",
+        }),
+    };
+
+    if (settings.berries === true) {
+        recipe.choiceResourceIds = SOVIET_BERRY_IDS;
+        recipe.choiceAmount = 1;
+        recipe.choiceLabel = "Choose berries:";
+    } else {
+        recipe.choiceResourceIds = OIL_RESOURCE_IDS;
+        recipe.choiceAmount = 1;
+        recipe.choiceLabel = "Choose oil:";
+    }
+
+    return Object.freeze(recipe);
+}
+
+const PIZZA_RECIPES = Object.freeze([
+    createPizzaRecipe("margherita", ITEM_IDS.PIZZA_MARGHERITA, [
+        [SAUCE_TOMATO_ID, 2], [SAUCE_OREGANO_ID, 1],
+    ]),
+    createPizzaRecipe("diavola", ITEM_IDS.PIZZA_DIAVOLA, [
+        [SAUCE_TOMATO_ID, 2], [RESOURCE_IDS.CHICKEN_MEAT, 2], [SAUCE_CHILI_ID, 2],
+    ]),
+    createPizzaRecipe("capricciosa", ITEM_IDS.PIZZA_CAPRICCIOSA, [
+        [SAUCE_TOMATO_ID, 2], [RESOURCE_IDS.BUTTON_MUSHROOM, 2],
+        [RESOURCE_IDS.CHICKEN_MEAT, 1], [SAUCE_BELL_PEPPER_ID, 1],
+        [RESOURCE_IDS.OLIVES, 1],
+    ]),
+    createPizzaRecipe("quattro-stagioni", ITEM_IDS.PIZZA_QUATTRO_STAGIONI, [
+        [SAUCE_TOMATO_ID, 2], [RESOURCE_IDS.BUTTON_MUSHROOM, 1],
+        [RESOURCE_IDS.CHICKEN_MEAT, 1], [SAUCE_BELL_PEPPER_ID, 1],
+        [RESOURCE_IDS.OLIVES, 1],
+    ]),
+    createPizzaRecipe("funghi", ITEM_IDS.PIZZA_FUNGHI, [
+        [SAUCE_TOMATO_ID, 2], [RESOURCE_IDS.BUTTON_MUSHROOM, 3],
+        [SAUCE_OREGANO_ID, 1],
+    ]),
+    createPizzaRecipe("pollo", ITEM_IDS.PIZZA_POLLO, [
+        [SAUCE_TOMATO_ID, 2], [RESOURCE_IDS.CHICKEN_MEAT, 2],
+        [SAUCE_ONION_ID, 2],
+    ]),
+    createPizzaRecipe("bbq-chicken", ITEM_IDS.PIZZA_BBQ_CHICKEN, [
+        [SAUCE_TOMATO_ID, 2], [RESOURCE_IDS.CHICKEN_MEAT, 2],
+        [RESOURCE_IDS.SUGAR, 1], [SAUCE_PAPRIKA_ID, 1],
+    ]),
+    createPizzaRecipe("pesto", ITEM_IDS.PIZZA_PESTO, [
+        [SAUCE_TOMATO_ID, 1], [SAUCE_WILD_BASIL_ID, 3],
+        [RESOURCE_IDS.PINE_NUTS, 2], [SAUCE_GARLIC_ID, 1],
+    ]),
+    createPizzaRecipe("marinara", ITEM_IDS.PIZZA_MARINARA, [
+        [SAUCE_TOMATO_ID, 3], [SAUCE_GARLIC_ID, 2], [SAUCE_OREGANO_ID, 2],
+    ]),
+    createPizzaRecipe("napoletana", ITEM_IDS.PIZZA_NAPOLETANA, [
+        [SAUCE_TOMATO_ID, 2], [SAUCE_GARLIC_ID, 2], [SAUCE_OREGANO_ID, 1],
+    ]),
+    createPizzaRecipe("mediterranean", ITEM_IDS.PIZZA_MEDITERRANEAN, [
+        [SAUCE_TOMATO_ID, 2], [RESOURCE_IDS.OLIVES, 2],
+        [SAUCE_ONION_ID, 1], [SAUCE_OREGANO_ID, 1],
+    ]),
+    createPizzaRecipe("vegetariana", ITEM_IDS.PIZZA_VEGETARIANA, [
+        [SAUCE_TOMATO_ID, 2], [4006, 2], [SAUCE_BELL_PEPPER_ID, 1],
+        [SAUCE_ONION_ID, 1],
+    ]),
+    createPizzaRecipe("spinaci", ITEM_IDS.PIZZA_SPINACI, [
+        [SAUCE_TOMATO_ID, 2], [4013, 3],
+        [RESOURCE_IDS.BUTTON_MUSHROOM, 2], [SAUCE_GARLIC_ID, 1],
+    ]),
+    createPizzaRecipe("patate", ITEM_IDS.PIZZA_PATATE, [
+        [SOVIET_POTATO_ID, 3], [3006, 2],
+    ]),
+    createPizzaRecipe("cipolla", ITEM_IDS.PIZZA_CIPOLLA, [
+        [SAUCE_TOMATO_ID, 2], [SAUCE_ONION_ID, 3], [SAUCE_CHILI_ID, 1],
+    ]),
+    createPizzaRecipe("uovo", ITEM_IDS.PIZZA_UOVO, [
+        [SAUCE_TOMATO_ID, 2], [RESOURCE_IDS.EGG, 2], [SAUCE_ONION_ID, 1],
+    ]),
+    createPizzaRecipe("rustica", ITEM_IDS.PIZZA_RUSTICA, [
+        [SAUCE_TOMATO_ID, 2], [4023, 2], [SAUCE_BELL_PEPPER_ID, 1],
+    ]),
+    createPizzaRecipe("zucca", ITEM_IDS.PIZZA_ZUCCA, [
+        [4005, 3], [3005, 2],
+    ]),
+    createPizzaRecipe("barbabietola", ITEM_IDS.PIZZA_BARBABIETOLA, [
+        [SAUCE_TOMATO_ID, 2], [SOVIET_BEETROOT_ID, 3], [SAUCE_GARLIC_ID, 1],
+    ]),
+    createPizzaRecipe("cavolo", ITEM_IDS.PIZZA_CAVOLO, [
+        [SAUCE_TOMATO_ID, 2], [SOVIET_CABBAGE_ID, 3], [SAUCE_ONION_ID, 1],
+    ]),
+    createPizzaRecipe("piselli", ITEM_IDS.PIZZA_PISELLI, [
+        [SAUCE_TOMATO_ID, 2], [SOVIET_GREEN_PEAS_ID, 3], [SAUCE_ONION_ID, 1],
+    ]),
+    createPizzaRecipe("mais", ITEM_IDS.PIZZA_MAIS, [
+        [SAUCE_TOMATO_ID, 2], [4110, 3], [SAUCE_BELL_PEPPER_ID, 1],
+    ]),
+    createPizzaRecipe("aglio-erbe", ITEM_IDS.PIZZA_AGLIO_ERBE, [
+        [SAUCE_TOMATO_ID, 2], [SAUCE_GARLIC_ID, 3],
+        [SAUCE_WILD_BASIL_ID, 2], [SAUCE_OREGANO_ID, 1],
+    ]),
+    createPizzaRecipe("dolce", ITEM_IDS.PIZZA_DOLCE, [
+        [RESOURCE_IDS.APPLES, 3], [RESOURCE_IDS.SUGAR, 2],
+    ]),
+    createPizzaRecipe("frutti-bosco", ITEM_IDS.PIZZA_FRUTTI_BOSCO, [
+        [RESOURCE_IDS.SUGAR, 2],
+    ], { berries: true }),
 ]);
 
 // Flour-and-water cooking recipes: one flour of choice plus water on the tile.
@@ -1117,6 +1243,7 @@ const CRAFT_RECIPES = Object.freeze([
     ...SAUCE_RECIPES,
     ...ITALIAN_DISH_RECIPES,
     ...SOVIET_DISH_RECIPES,
+    ...PIZZA_RECIPES,
     ...METAL_VARIANT_RECIPES,
 ]);
 

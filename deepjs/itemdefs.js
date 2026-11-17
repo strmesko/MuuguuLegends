@@ -179,6 +179,30 @@ const ITEM_IDS = Object.freeze({
     APPLE_CHARLOTTE: ITEM_ID_BASE + 169,
     NAPOLEON_CAKE: ITEM_ID_BASE + 170,
     HONEY_CAKE: ITEM_ID_BASE + 171,
+    PIZZA_DIAVOLA: ITEM_ID_BASE + 172,
+    PIZZA_CAPRICCIOSA: ITEM_ID_BASE + 173,
+    PIZZA_QUATTRO_STAGIONI: ITEM_ID_BASE + 174,
+    PIZZA_FUNGHI: ITEM_ID_BASE + 175,
+    PIZZA_POLLO: ITEM_ID_BASE + 176,
+    PIZZA_BBQ_CHICKEN: ITEM_ID_BASE + 177,
+    PIZZA_PESTO: ITEM_ID_BASE + 178,
+    PIZZA_MARINARA: ITEM_ID_BASE + 179,
+    PIZZA_NAPOLETANA: ITEM_ID_BASE + 180,
+    PIZZA_MEDITERRANEAN: ITEM_ID_BASE + 181,
+    PIZZA_VEGETARIANA: ITEM_ID_BASE + 182,
+    PIZZA_SPINACI: ITEM_ID_BASE + 183,
+    PIZZA_PATATE: ITEM_ID_BASE + 184,
+    PIZZA_CIPOLLA: ITEM_ID_BASE + 185,
+    PIZZA_UOVO: ITEM_ID_BASE + 186,
+    PIZZA_RUSTICA: ITEM_ID_BASE + 187,
+    PIZZA_ZUCCA: ITEM_ID_BASE + 188,
+    PIZZA_BARBABIETOLA: ITEM_ID_BASE + 189,
+    PIZZA_CAVOLO: ITEM_ID_BASE + 190,
+    PIZZA_PISELLI: ITEM_ID_BASE + 191,
+    PIZZA_MAIS: ITEM_ID_BASE + 192,
+    PIZZA_AGLIO_ERBE: ITEM_ID_BASE + 193,
+    PIZZA_DOLCE: ITEM_ID_BASE + 194,
+    PIZZA_FRUTTI_BOSCO: ITEM_ID_BASE + 195,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -758,6 +782,54 @@ SOVIET_DISH_ITEM_DEFINITIONS.forEach(function (dish) {
     });
 });
 
+// Pizza varieties share the flat bread base and campfire, and differ by their
+// toppings. Cheese is not a resource in the game, so these are topping-led
+// pizzas rather than cheese-heavy ones.
+const PIZZA_ITEM_DEFINITIONS = Object.freeze([
+    Object.freeze({ id: ITEM_IDS.PIZZA_DIAVOLA, name: "Pizza Diavola", icon: "pizzadiavola", hunger: 165, description: "Chicken, chili and tomato on a blistering flat bread base. Devilishly hot." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_CAPRICCIOSA, name: "Pizza Capricciosa", icon: "pizzacapricciosa", hunger: 170, description: "Mushrooms, chicken, peppers and olives scattered over tomato. The capricious classic." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_QUATTRO_STAGIONI, name: "Pizza Quattro Stagioni", icon: "pizzaquattrostagioni", hunger: 175, description: "Four seasons in topping form: mushroom, chicken, pepper and olive." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_FUNGHI, name: "Pizza Funghi", icon: "pizzafunghi", hunger: 150, description: "A forest of mushrooms over tomato and oregano. Simple and earthy." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_POLLO, name: "Pizza Pollo", icon: "pizzapollo", hunger: 165, description: "Chicken and sweet onion on a tomato base. A filling everyday pizza." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_BBQ_CHICKEN, name: "Pizza BBQ Chicken", icon: "pizzabbqchicken", hunger: 175, description: "Smoky sweet tomato, paprika and chicken. Barbecue energy without the grill." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_PESTO, name: "Pizza Pesto", icon: "pizzapesto", hunger: 160, description: "Basil, pine nuts and garlic over oiled flat bread. Green, fragrant and nutty." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_MARINARA, name: "Pizza Marinara", icon: "pizzamarinara", hunger: 140, description: "Tomato, garlic and oregano with nothing to hide. The sailor's plain pizza." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_NAPOLETANA, name: "Pizza Napoletana", icon: "pizzanapoletana", hunger: 150, description: "Tomato, garlic and oregano with a generous oil finish. Naples in a flat round." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_MEDITERRANEAN, name: "Pizza Mediterranean", icon: "pizzamediterranean", hunger: 160, description: "Olives, tomato, onion and oregano. A sunny southern sea on a crust." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_VEGETARIANA, name: "Pizza Vegetariana", icon: "pizzavegetariana", hunger: 150, description: "Zucchini, peppers and onion piled over tomato. The garden on a pizza." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_SPINACI, name: "Pizza Spinaci", icon: "pizzaspinaci", hunger: 145, description: "Spinach, mushrooms and garlic over a tomato base. Dark green and savoury." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_PATATE, name: "Pizza Patate", icon: "pizzapatate", hunger: 155, description: "Thin potato slices and rosemary on oiled flat bread. A sturdy northern pizza." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_CIPOLLA, name: "Pizza Cipolla", icon: "pizzacipolla", hunger: 140, description: "Sweet onion and chili over tomato. Sharp, hot and unapologetic." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_UOVO, name: "Pizza Uovo", icon: "pizzauovo", hunger: 155, description: "Egg and onion baked onto a tomato base. Breakfast meets dinner." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_RUSTICA, name: "Pizza Rustica", icon: "pizzarustica", hunger: 160, description: "Eggplant, pepper and tomato on a rustic crust. Country cooking, city shape." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_ZUCCA, name: "Pizza Zucca", icon: "pizzazucca", hunger: 150, description: "Sweet pumpkin and sage over oiled flat bread. Autumn on a pizza." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_BARBABIETOLA, name: "Pizza Barbabietola", icon: "pizzabarbabietola", hunger: 145, description: "Beetroot and garlic over tomato. Earthy, pink and surprisingly good." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_CAVOLO, name: "Pizza Cavolo", icon: "pizzacavolo", hunger: 140, description: "Cabbage and onion baked until sweet. A thrifty pizza with character." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_PISELLI, name: "Pizza Piselli", icon: "pizzapiselli", hunger: 145, description: "Green peas and onion over tomato. Sweet little green pockets." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_MAIS, name: "Pizza Mais", icon: "pizzamais", hunger: 150, description: "Golden maize kernels and peppers on a tomato base. Sweet and sunny." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_AGLIO_ERBE, name: "Pizza Aglio e Erbe", icon: "pizzaaglioerbe", hunger: 140, description: "Garlic, basil and oregano with a slick of oil. The herb garden, baked." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_DOLCE, name: "Pizza Dolce", icon: "pizzadolce", hunger: 150, description: "Apple slices and sugar on a baked flat bread. Dessert disguised as dinner." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_FRUTTI_BOSCO, name: "Pizza Frutti di Bosco", icon: "pizzafruttibosco", hunger: 145, description: "Forest berries and sugar on a warm flat bread. A sweet Soviet-Italian hybrid." }),
+]);
+
+const PIZZA_ITEM_DEFS = {};
+PIZZA_ITEM_DEFINITIONS.forEach(function (pizza) {
+    PIZZA_ITEM_DEFS[pizza.id] = Object.freeze({
+        id: pizza.id,
+        name: pizza.name,
+        kind: ITEM_KINDS.Consumable,
+        stackable: false,
+        weight: 0.55,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: pizza.icon,
+        primaryStat: "sou",
+        food: Object.freeze({ hungerRestore: pizza.hunger }),
+        description: pizza.description,
+    });
+});
+
 function getItemWeaponSkill(item) {
     if (!item) return null;
 
@@ -1118,6 +1190,7 @@ const ITEM_DEFS = Object.freeze({
     ...SAUCE_ITEM_DEFS,
     ...ITALIAN_DISH_ITEM_DEFS,
     ...SOVIET_DISH_ITEM_DEFS,
+    ...PIZZA_ITEM_DEFS,
     [ITEM_IDS.HANDY_STICK]: createForagingToolDefinition(
         ITEM_IDS.HANDY_STICK, "Handy Stick", "handystick",
         { type: "digging", power: 1 },
