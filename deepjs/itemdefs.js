@@ -203,6 +203,32 @@ const ITEM_IDS = Object.freeze({
     PIZZA_AGLIO_ERBE: ITEM_ID_BASE + 193,
     PIZZA_DOLCE: ITEM_ID_BASE + 194,
     PIZZA_FRUTTI_BOSCO: ITEM_ID_BASE + 195,
+    SOY_SAUCE: ITEM_ID_BASE + 300,
+    HOISIN_SAUCE: ITEM_ID_BASE + 301,
+    SRIRACHA: ITEM_ID_BASE + 302,
+    GOCHUJANG_SAUCE: ITEM_ID_BASE + 303,
+    PONZU_SAUCE: ITEM_ID_BASE + 304,
+    PLUM_SAUCE: ITEM_ID_BASE + 305,
+    KOREAN_BBQ_SAUCE: ITEM_ID_BASE + 306,
+    GYOZA_SAUCE: ITEM_ID_BASE + 307,
+    TEMPURA_SAUCE: ITEM_ID_BASE + 308,
+    RAMEN: ITEM_ID_BASE + 310,
+    PAD_THAI: ITEM_ID_BASE + 311,
+    FRIED_RICE: ITEM_ID_BASE + 312,
+    CHICKEN_TERIYAKI: ITEM_ID_BASE + 313,
+    BULGOGI: ITEM_ID_BASE + 314,
+    BIBIMBAP: ITEM_ID_BASE + 315,
+    GYOZA: ITEM_ID_BASE + 316,
+    SPRING_ROLLS: ITEM_ID_BASE + 317,
+    TEMPURA: ITEM_ID_BASE + 318,
+    CHICKEN_KATSU: ITEM_ID_BASE + 319,
+    JAPANESE_CURRY: ITEM_ID_BASE + 320,
+    KUNG_PAO_CHICKEN: ITEM_ID_BASE + 321,
+    SWEET_SOUR_CHICKEN: ITEM_ID_BASE + 322,
+    CHOW_MEIN: ITEM_ID_BASE + 323,
+    NASI_GORENG: ITEM_ID_BASE + 324,
+    OKONOMIYAKI: ITEM_ID_BASE + 325,
+    YAKITORI: ITEM_ID_BASE + 326,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -830,6 +856,74 @@ PIZZA_ITEM_DEFINITIONS.forEach(function (pizza) {
     });
 });
 
+const ASIAN_SAUCE_ITEM_DEFINITIONS = Object.freeze([
+    Object.freeze({ id: ITEM_IDS.SOY_SAUCE, name: "Soy Sauce", icon: "soysauce", hunger: 10, description: "A dark, salty fermented soybean sauce. The backbone of East Asian cooking." }),
+    Object.freeze({ id: ITEM_IDS.HOISIN_SAUCE, name: "Hoisin Sauce", icon: "hoisinsauce", hunger: 25, description: "Thick, sweet and savoury bean sauce with garlic and chili. Cantonese roast companion." }),
+    Object.freeze({ id: ITEM_IDS.SRIRACHA, name: "Sriracha", icon: "sriracha", hunger: 20, description: "A bright red chili and garlic sauce. Thai heat in a bottle." }),
+    Object.freeze({ id: ITEM_IDS.GOCHUJANG_SAUCE, name: "Gochujang Sauce", icon: "gochujangsauce", hunger: 25, description: "Fermented chili, soybean and garlic paste. Korean depth and fire." }),
+    Object.freeze({ id: ITEM_IDS.PONZU_SAUCE, name: "Ponzu Sauce", icon: "ponzusauce", hunger: 15, description: "Soy sauce sharpened with citrus and mushroom. A Japanese dipping sauce." }),
+    Object.freeze({ id: ITEM_IDS.PLUM_SAUCE, name: "Plum Sauce", icon: "plumsauce", hunger: 30, description: "Sweet-tart plum sauce with chili and garlic. Chinese duck and spring roll dip." }),
+    Object.freeze({ id: ITEM_IDS.KOREAN_BBQ_SAUCE, name: "Korean BBQ Sauce", icon: "koreanbbqsauce", hunger: 30, description: "Soy, sugar, sesame and chili glaze. Korean grill favourite." }),
+    Object.freeze({ id: ITEM_IDS.GYOZA_SAUCE, name: "Gyoza Sauce", icon: "gyozasauce", hunger: 20, description: "Soy, citrus, chili and garlic dip for dumplings. Japanese izakaya staple." }),
+    Object.freeze({ id: ITEM_IDS.TEMPURA_SAUCE, name: "Tempura Sauce", icon: "tempurasauce", hunger: 20, description: "Light soy, ginger and sugar dipping broth for fried food." }),
+]);
+
+const ASIAN_SAUCE_ITEM_DEFS = {};
+ASIAN_SAUCE_ITEM_DEFINITIONS.forEach(function (sauce) {
+    ASIAN_SAUCE_ITEM_DEFS[sauce.id] = Object.freeze({
+        id: sauce.id,
+        name: sauce.name,
+        kind: ITEM_KINDS.Consumable,
+        stackable: false,
+        weight: 0.25,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: sauce.icon,
+        primaryStat: "sou",
+        food: Object.freeze({ hungerRestore: sauce.hunger }),
+        description: sauce.description,
+    });
+});
+
+const ASIAN_DISH_ITEM_DEFINITIONS = Object.freeze([
+    Object.freeze({ id: ITEM_IDS.RAMEN, name: "Ramen", icon: "ramen", hunger: 170, description: "Noodle soup with egg, chicken and a deep soybean broth. Japanese comfort in a bowl." }),
+    Object.freeze({ id: ITEM_IDS.PAD_THAI, name: "Pad Thai", icon: "padthai", hunger: 165, description: "Stir-fried noodles with egg, chicken, citrus and soybean savour. Thai street classic." }),
+    Object.freeze({ id: ITEM_IDS.FRIED_RICE, name: "Fried Rice", icon: "friedrice", hunger: 150, description: "Rice tossed with egg, peas, carrot and soy flavour. East Asian everyday food." }),
+    Object.freeze({ id: ITEM_IDS.CHICKEN_TERIYAKI, name: "Chicken Teriyaki", icon: "chickenteriyaki", hunger: 175, description: "Chicken glazed with sweet soy and ginger. Japanese home cooking." }),
+    Object.freeze({ id: ITEM_IDS.BULGOGI, name: "Bulgogi", icon: "bulgogi", hunger: 180, description: "Sweet soy and sesame marinated chicken, seared hot. Korean barbecue favourite." }),
+    Object.freeze({ id: ITEM_IDS.BIBIMBAP, name: "Bibimbap", icon: "bibimbap", hunger: 170, description: "Rice with egg, vegetables, sesame and savoury soybean dressing. Korean mixed bowl." }),
+    Object.freeze({ id: ITEM_IDS.GYOZA, name: "Gyoza", icon: "gyoza", hunger: 150, description: "Pan-fried dumplings filled with chicken, cabbage and garlic. Japanese izakaya staple." }),
+    Object.freeze({ id: ITEM_IDS.SPRING_ROLLS, name: "Spring Rolls", icon: "springrolls", hunger: 140, description: "Crisp rolls of cabbage, carrot and soybean savour. Chinese takeaway classic." }),
+    Object.freeze({ id: ITEM_IDS.TEMPURA, name: "Tempura", icon: "tempura", hunger: 145, description: "Light battered vegetables fried until crisp. Portuguese-Japanese import." }),
+    Object.freeze({ id: ITEM_IDS.CHICKEN_KATSU, name: "Chicken Katsu", icon: "chickenkatsu", hunger: 175, description: "Breaded chicken cutlet fried golden. Japanese comfort with a crunchy shell." }),
+    Object.freeze({ id: ITEM_IDS.JAPANESE_CURRY, name: "Japanese Curry", icon: "japanesecurry", hunger: 180, description: "Rice with chicken, potato, carrot and a thick spiced curry sauce. Japanese yoshoku." }),
+    Object.freeze({ id: ITEM_IDS.KUNG_PAO_CHICKEN, name: "Kung Pao Chicken", icon: "kungpaochicken", hunger: 170, description: "Chicken, chili and nuts in a hot sweet soybean sauce. Sichuan wok classic." }),
+    Object.freeze({ id: ITEM_IDS.SWEET_SOUR_CHICKEN, name: "Sweet and Sour Chicken", icon: "sweetsourchicken", hunger: 165, description: "Chicken, peppers and citrus in a sticky sweet-sour sauce. Chinese restaurant staple." }),
+    Object.freeze({ id: ITEM_IDS.CHOW_MEIN, name: "Chow Mein", icon: "chowmein", hunger: 155, description: "Stir-fried noodles with cabbage, carrot and soybean savour. Chinese street food." }),
+    Object.freeze({ id: ITEM_IDS.NASI_GORENG, name: "Nasi Goreng", icon: "nasigoreng", hunger: 160, description: "Indonesian fried rice with egg, chicken, chili and soybean seasoning." }),
+    Object.freeze({ id: ITEM_IDS.OKONOMIYAKI, name: "Okonomiyaki", icon: "okonomiyaki", hunger: 155, description: "Cabbage and flour pancake with egg and savoury soybean glaze. Japanese griddle food." }),
+    Object.freeze({ id: ITEM_IDS.YAKITORI, name: "Yakitori", icon: "yakitori", hunger: 160, description: "Skewered chicken glazed with sweet soy and garlic. Japanese street grill." }),
+]);
+
+const ASIAN_DISH_ITEM_DEFS = {};
+ASIAN_DISH_ITEM_DEFINITIONS.forEach(function (dish) {
+    ASIAN_DISH_ITEM_DEFS[dish.id] = Object.freeze({
+        id: dish.id,
+        name: dish.name,
+        kind: ITEM_KINDS.Consumable,
+        stackable: false,
+        weight: 0.5,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: dish.icon,
+        primaryStat: "sou",
+        food: Object.freeze({ hungerRestore: dish.hunger }),
+        description: dish.description,
+    });
+});
+
 function getItemWeaponSkill(item) {
     if (!item) return null;
 
@@ -1191,6 +1285,8 @@ const ITEM_DEFS = Object.freeze({
     ...ITALIAN_DISH_ITEM_DEFS,
     ...SOVIET_DISH_ITEM_DEFS,
     ...PIZZA_ITEM_DEFS,
+    ...ASIAN_SAUCE_ITEM_DEFS,
+    ...ASIAN_DISH_ITEM_DEFS,
     [ITEM_IDS.HANDY_STICK]: createForagingToolDefinition(
         ITEM_IDS.HANDY_STICK, "Handy Stick", "handystick",
         { type: "digging", power: 1 },

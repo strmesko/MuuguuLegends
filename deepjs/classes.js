@@ -1221,6 +1221,7 @@ const CROP_DEFS = [
     { name: "Finger Millet", climate: PLANT_CLIMATES.Arid, difficulty: 5, amount: 0.03 },
     { name: "Pearl Millet", climate: PLANT_CLIMATES.Arid, difficulty: 5, amount: 0.04 },
     { name: "Proso Millet", climate: PLANT_CLIMATES.Temperate, difficulty: 5, amount: 0.03 },
+    { name: "Soybean", climate: PLANT_CLIMATES.Garden, difficulty: 5, amount: 0.05 },
 ];
 
 VEGETABLE_DEFS.forEach(function (plant, index) {
@@ -1400,6 +1401,11 @@ const SPICE_DEFINITIONS = [
     { key: "mushroom-powder", name: "Mushroom Powder", bonus: { vit: 1, ins: 1 }, flavour: "deep and earthy" },
     { key: "tomato-powder", name: "Tomato Powder", bonus: { sou: 1, vit: 1 }, flavour: "sweet and concentrated" },
     { key: "beet-powder", name: "Beet Powder", bonus: { vit: 1, str: 1 }, flavour: "earthy and sweet" },
+    { key: "shichimi-togarashi", name: "Shichimi Togarashi", bonus: { str: 1, per: 1 }, flavour: "hot, citrusy and nutty" },
+    { key: "nanami-togarashi", name: "Nanami Togarashi", bonus: { str: 1, ins: 1 }, flavour: "fragrant and sharply hot" },
+    { key: "wasabi-powder", name: "Wasabi Powder", bonus: { agi: 1, str: 1 }, flavour: "fierce and green" },
+    { key: "furikake", name: "Furikake", bonus: { per: 1, vit: 1 }, flavour: "savoury and seaside-like" },
+    { key: "gochugaru", name: "Gochugaru", bonus: { str: 1, vit: 1 }, flavour: "sweet, smoky and hot" },
 ];
 
 SPICE_DEFINITIONS.forEach(function (entry, index) {
