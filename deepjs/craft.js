@@ -66,41 +66,12 @@ function getCraftRecipeGroupName(groupId) {
     return CRAFT_GROUP_NAMES[groupId] || "Other";
 }
 
-// Survival 101 gates crafting recipes by level.
-const SURVIVAL_RECIPE_LEVELS = Object.freeze({
-    "kebob-on-stick": 3,
-    "leaf-shirt": 4,
-    "leaf-trousers": 4,
-    "leaf-leggings": 4,
-    "leaf-boots": 4,
-    "leaf-of-nature": 5,
-    "leaf-hood": 5,
-    "leaf-mask": 5,
-    "leaf-necklace": 5,
-    "leaf-shoulderpads": 5,
-    "leaf-cloak": 5,
-    "leaf-belt": 5,
-    "leaf-glove-i": 5,
-    "leaf-wristband-i": 5,
-    "leaf-anklet-i": 5,
-    "leaf-survival-pounch": 6,
-    "leaf-straw-basket-backpack": 6,
-    "stone-axe": 7,
-    "stone-hammer": 7,
-    "flint-spear": 8,
-    "flint-knife": 8,
-    "flint-pickaxe": 8,
-});
-
-function getCraftSurvivalLevel(recipe) {
-    return recipe ? (SURVIVAL_RECIPE_LEVELS[recipe.id] || 0) : 0;
-}
-
+// Crafting recipes ask the shared technology unlock table. A recipe without
+// an entry is always available.
 function isCraftRecipeUnlocked(recipe) {
-    const level = getCraftSurvivalLevel(recipe);
-    if (level <= 0) return true;
-    return typeof isSurvival101Unlocked === "function"
-        && isSurvival101Unlocked(level);
+    if (!recipe) return false;
+    if (typeof isContentUnlocked !== "function") return true;
+    return isContentUnlocked("craft", recipe.id);
 }
 
 const TOOL_RECIPE_GROUPS = Object.freeze({

@@ -1631,8 +1631,8 @@ const PRODUCTION_RECIPES = Object.freeze({
             Object.freeze({ key: "agi", amountPerBatch: STRINGS_AGI_EXP }),
         ]),
         validate: function () {
-            return typeof isSurvival101Unlocked === "function"
-                && isSurvival101Unlocked(1)
+            return typeof isContentUnlocked === "function"
+                && isContentUnlocked("action", "makestrings")
                 ? null
                 : "You need Survival 101 level 1 to make strings";
         },

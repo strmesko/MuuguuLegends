@@ -453,15 +453,15 @@ const ACTIONS = [
         stopMessage: "You stop making strings",
         requiredSurvivalLevel: 1,
         isVisible: function () {
-            return typeof isSurvival101Unlocked === "function"
-                && isSurvival101Unlocked(1)
+            return typeof isContentUnlocked === "function"
+                && isContentUnlocked("action", "makestrings")
                 && !!resources[RESOURCE_IDS.FIBERS]
                 && resources[RESOURCE_IDS.FIBERS].amount >= STRINGS_FIBERS_PER_BATCH
                 && player.stamina >= STRINGS_STAMINA_PER_BATCH;
         },
         isComplete: function () {
-            return typeof isSurvival101Unlocked !== "function"
-                || !isSurvival101Unlocked(1)
+            return typeof isContentUnlocked !== "function"
+                || !isContentUnlocked("action", "makestrings")
                 || !resources[RESOURCE_IDS.FIBERS]
                 || resources[RESOURCE_IDS.FIBERS].amount < STRINGS_FIBERS_PER_BATCH;
         },

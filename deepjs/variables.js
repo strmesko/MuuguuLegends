@@ -171,7 +171,10 @@ const SURVIVAL_101_TECHNOLOGY = new Technology(
         "Unlocks the Stone Axe and Stone Hammer.",
         "Unlocks the Flint Spear, Flint Knife and Flint Pickaxe.",
         "Unlocks building the Tent and Leaf Bedroll.",
-    ]
+    ],
+    function () {
+        refreshUnlockedContent();
+    }
 );
 
 const BUILDINGS_TECHNOLOGY = new Technology(
@@ -192,32 +195,94 @@ const BUILDINGS_TECHNOLOGY = new Technology(
         "Unlocks building the Log cabin.",
         "Unlocks building the Stone shed.",
         "Unlocks building the Clay House.",
-    ]
+    ],
+    function () {
+        refreshUnlockedContent();
+    }
 );
 
 const TECHNOLOGIES = [LAZY_BASICS_TECHNOLOGY, COZY_SCIENCE_TECHNOLOGY, DIET_BASICS_TECHNOLOGY, HARVEST_THE_YUMMIES_TECHNOLOGY, SCIENTIFIC_PLANS_TECHNOLOGY, SKILL_POTENTIAL_TECHNOLOGY, NOT_SO_WORTHLESS_TECHNOLOGY, SURVIVAL_101_TECHNOLOGY, BUILDINGS_TECHNOLOGY];
 
-// Survival 101 unlocks: crafting recipes, buildings and the Make strings
-// action all check this helper instead of reading the technology directly.
-function getSurvival101Level() {
-    return typeof SURVIVAL_101_TECHNOLOGY === "undefined"
-        ? 0
-        : Math.max(0, Number(SURVIVAL_101_TECHNOLOGY.level) || 0);
+// --- unified content unlocks ------------------------------------------------
+// Every gated crafting recipe, building and action declares its technology
+// requirement once, here. Craft, build and action code all ask these helpers,
+// so a new gate only needs one entry instead of a check in every system.
+const CONTENT_UNLOCK_TECHNOLOGIES = Object.freeze({
+    survival101: SURVIVAL_101_TECHNOLOGY,
+    buildings: BUILDINGS_TECHNOLOGY,
+});
+
+const CONTENT_UNLOCK_REQUIREMENTS = Object.freeze({
+    // Survival 101: crafting
+    "craft:kebob-on-stick": Object.freeze({ technology: "survival101", level: 3 }),
+    "craft:leaf-shirt": Object.freeze({ technology: "survival101", level: 4 }),
+    "craft:leaf-trousers": Object.freeze({ technology: "survival101", level: 4 }),
+    "craft:leaf-leggings": Object.freeze({ technology: "survival101", level: 4 }),
+    "craft:leaf-boots": Object.freeze({ technology: "survival101", level: 4 }),
+    "craft:leaf-of-nature": Object.freeze({ technology: "survival101", level: 5 }),
+    "craft:leaf-hood": Object.freeze({ technology: "survival101", level: 5 }),
+    "craft:leaf-mask": Object.freeze({ technology: "survival101", level: 5 }),
+    "craft:leaf-necklace": Object.freeze({ technology: "survival101", level: 5 }),
+    "craft:leaf-shoulderpads": Object.freeze({ technology: "survival101", level: 5 }),
+    "craft:leaf-cloak": Object.freeze({ technology: "survival101", level: 5 }),
+    "craft:leaf-belt": Object.freeze({ technology: "survival101", level: 5 }),
+    "craft:leaf-glove-i": Object.freeze({ technology: "survival101", level: 5 }),
+    "craft:leaf-wristband-i": Object.freeze({ technology: "survival101", level: 5 }),
+    "craft:leaf-anklet-i": Object.freeze({ technology: "survival101", level: 5 }),
+    "craft:leaf-survival-pounch": Object.freeze({ technology: "survival101", level: 6 }),
+    "craft:leaf-straw-basket-backpack": Object.freeze({ technology: "survival101", level: 6 }),
+    "craft:stone-axe": Object.freeze({ technology: "survival101", level: 7 }),
+    "craft:stone-hammer": Object.freeze({ technology: "survival101", level: 7 }),
+    "craft:flint-spear": Object.freeze({ technology: "survival101", level: 8 }),
+    "craft:flint-knife": Object.freeze({ technology: "survival101", level: 8 }),
+    "craft:flint-pickaxe": Object.freeze({ technology: "survival101", level: 8 }),
+    // Survival 101: buildings and actions
+    "building:campfire": Object.freeze({ technology: "survival101", level: 2 }),
+    "building:tent": Object.freeze({ technology: "survival101", level: 9 }),
+    "building:leaf-bedroll": Object.freeze({ technology: "survival101", level: 9 }),
+    "action:makestrings": Object.freeze({ technology: "survival101", level: 1 }),
+    // Buildings technology: houses
+    "building:stone-house": Object.freeze({ technology: "buildings", level: 1 }),
+    "building:log-cabin": Object.freeze({ technology: "buildings", level: 2 }),
+    "building:stone-shed": Object.freeze({ technology: "buildings", level: 3 }),
+    "building:clay-house": Object.freeze({ technology: "buildings", level: 4 }),
+});
+
+function getContentUnlockRequirement(contentType, contentId) {
+    if (!contentType || !contentId) return null;
+    return CONTENT_UNLOCK_REQUIREMENTS[String(contentType) + ":" + String(contentId)]
+        || null;
 }
 
-function isSurvival101Unlocked(requiredLevel) {
-    return getSurvival101Level() >= Math.max(0, Number(requiredLevel) || 0);
+function getContentUnlockTechnology(technologyKey) {
+    return CONTENT_UNLOCK_TECHNOLOGIES[technologyKey] || null;
 }
 
-// Buildings technology unlocks the four house blueprints.
-function getBuildingsTechLevel() {
-    return typeof BUILDINGS_TECHNOLOGY === "undefined"
-        ? 0
-        : Math.max(0, Number(BUILDINGS_TECHNOLOGY.level) || 0);
+function getContentUnlockLevel(contentType, contentId) {
+    const requirement = getContentUnlockRequirement(contentType, contentId);
+    return requirement ? Math.max(0, Number(requirement.level) || 0) : 0;
 }
 
-function isBuildingsTechUnlocked(requiredLevel) {
-    return getBuildingsTechLevel() >= Math.max(0, Number(requiredLevel) || 0);
+function isContentUnlocked(contentType, contentId) {
+    const requirement = getContentUnlockRequirement(contentType, contentId);
+    if (!requirement) return true;
+
+    const technology = getContentUnlockTechnology(requirement.technology);
+    if (!technology) return false;
+
+    const currentLevel = Math.max(0, Number(technology.level) || 0);
+    return currentLevel >= Math.max(0, Number(requirement.level) || 0);
+}
+
+// Called when a gating technology gains a level, so open panels immediately
+// show the newly unlocked recipes, buildings and actions.
+function refreshUnlockedContent() {
+    if (typeof renderCraftPanels === "function") renderCraftPanels();
+    if (typeof renderBuildPanels === "function") renderBuildPanels();
+    if (typeof renderBuildingsPanels === "function") renderBuildingsPanels();
+    if (typeof renderHousesPanels === "function") renderHousesPanels();
+    if (typeof renderFurniturePanels === "function") renderFurniturePanels();
+    if (typeof refreshActionButtons === "function") refreshActionButtons();
 }
 
 const DIET_AUTO_EAT_MIN_PERCENT = 1;

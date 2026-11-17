@@ -68,46 +68,12 @@ const BUILDING_CATEGORIES = Object.freeze([
     BUILDING_IMPROVE_CATEGORY,
 ]);
 
-// Survival 101 gates camping buildings, the Buildings technology gates houses.
-const SURVIVAL_BUILDING_LEVELS = Object.freeze({
-    campfire: 2,
-    tent: 9,
-    "leaf-bedroll": 9,
-});
-
-const BUILDINGS_TECH_LEVELS = Object.freeze({
-    "stone-house": 1,
-    "log-cabin": 2,
-    "stone-shed": 3,
-    "clay-house": 4,
-});
-
-function getBuildingSurvivalLevel(def) {
-    return def ? (SURVIVAL_BUILDING_LEVELS[def.id] || 0) : 0;
-}
-
-function getBuildingTechLevel(def) {
-    return def ? (BUILDINGS_TECH_LEVELS[def.id] || 0) : 0;
-}
-
+// Buildings ask the shared technology unlock table. A building without an
+// entry is always available.
 function isBuildingUnlocked(def) {
     if (!def) return false;
-
-    const survivalLevel = getBuildingSurvivalLevel(def);
-    if (survivalLevel > 0
-        && !(typeof isSurvival101Unlocked === "function"
-            && isSurvival101Unlocked(survivalLevel))) {
-        return false;
-    }
-
-    const buildingsLevel = getBuildingTechLevel(def);
-    if (buildingsLevel > 0
-        && !(typeof isBuildingsTechUnlocked === "function"
-            && isBuildingsTechUnlocked(buildingsLevel))) {
-        return false;
-    }
-
-    return true;
+    if (typeof isContentUnlocked !== "function") return true;
+    return isContentUnlocked("building", def.id);
 }
 
 const MAPLE_METAL_SHEET_CHOICES = Object.freeze([
