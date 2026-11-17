@@ -59,7 +59,7 @@ const DIET_BASICS_TECHNOLOGY = new Technology(
         "Allows choosing a priority stat; food bound to it is eaten first.",
         "Eats cooked food from the inventory before raw edible resources.",
         "During auto-eating, if no cooked food is in the inventory, automatically cooks a random dish without bonus ingredients.",
-        "During auto-cooking, fills every available bonus ingredient slot.",
+        "During auto-cooking, fills every available bonus ingredient slot with spices, sauces and other suitable extras when the habit is enabled.",
         "During auto-cooking, chooses ingredients bound to the priority stat.",
         "Before auto-cooking, crafts missing ingredient items (such as flat bread) and includes their cost when deciding whether the dish is affordable.",
     ]
@@ -471,6 +471,14 @@ var HABIT_CATEGORIES = [
                 requiredTechnology: "dietBasics",
                 requiredLevel: 2,
                 control: "select",
+            },
+            {
+                id: "dietAutoCookExtras",
+                name: "Auto-cook bonus ingredients",
+                description: "DietBasics level 5: automatically add available spices, sauces and other bonus ingredients when auto-cooking.",
+                requiredTechnology: "dietBasics",
+                requiredLevel: 5,
+                defaultEnabled: true,
             },
         ],
     },

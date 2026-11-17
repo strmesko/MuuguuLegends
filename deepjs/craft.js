@@ -3856,6 +3856,9 @@ function refreshCraftAvailability() {
 // --- automatic food crafting ----------------------------------------------
 
 function getAutoCookBonusSlotCount(recipe) {
+    if (typeof getCraftBonusSlotCount === "function") {
+        return getCraftBonusSlotCount(recipe);
+    }
     if (!recipe || recipe.bonusChoiceSlotsFromCooking !== true) return 0;
     return typeof getCookingBonusSlotCount === "function"
         ? getCookingBonusSlotCount()
@@ -3903,7 +3906,10 @@ function buildAutoCookChoices(recipe, level, priorityStat) {
     const choiceIds = getCraftChoiceResourceIds(recipe);
     const choiceAmount = Math.max(1, Number(recipe.choiceAmount) || 1);
     const bonusAmount = Math.max(1, Number(recipe.bonusChoiceAmount) || 1);
-    const bonusCount = getAutoCookBonusSlotCount(recipe);
+    const extrasEnabled = level >= 5
+        && (typeof isHabitEnabled !== "function"
+            || isHabitEnabled("dietAutoCookExtras"));
+    const bonusCount = extrasEnabled ? getAutoCookBonusSlotCount(recipe) : 0;
     const remaining = getAutoCookResourceSnapshot();
     const ingredientPriority = level >= 6 ? priorityStat : null;
 
@@ -3965,11 +3971,29 @@ function buildAutoCookChoices(recipe, level, priorityStat) {
         bonusResourceIds.push(bonusResourceId == null ? null : bonusResourceId);
     }
 
+    const sauceInstanceIds = [];
+    if (extrasEnabled && typeof getCraftSauceSlotCount === "function") {
+        const sauceCount = getCraftSauceSlotCount(recipe);
+        const sauceItems = getCraftSauceInventoryItems().slice();
+        for (let index = sauceItems.length - 1; index > 0; index--) {
+            const swapIndex = Math.floor(Math.random() * (index + 1));
+            const temporary = sauceItems[index];
+            sauceItems[index] = sauceItems[swapIndex];
+            sauceItems[swapIndex] = temporary;
+        }
+        for (let index = 0; index < sauceCount; index++) {
+            sauceInstanceIds.push(
+                sauceItems[index] ? sauceItems[index].instanceId : null
+            );
+        }
+    }
+
     return {
         choiceResourceId: choiceResourceId,
         bonusResourceIds: bonusResourceIds,
         slotChoices: slotChoices,
         itemInstanceId: itemInstanceId,
+        sauceInstanceIds: sauceInstanceIds,
     };
 }
 
@@ -4018,6 +4042,11 @@ function tryAutoCookRecipe(recipe, level, priorityStat) {
         recipe.id
     );
     const previousItemChoice = selectedCraftItemByRecipe[recipe.id];
+    const hadSauceChoices = Object.prototype.hasOwnProperty.call(
+        selectedCraftSauceItemsByRecipe,
+        recipe.id
+    );
+    const previousSauceChoices = selectedCraftSauceItemsByRecipe[recipe.id];
 
     if (choices.choiceResourceId != null) {
         selectedCraftChoiceByRecipe[recipe.id] = choices.choiceResourceId;
@@ -4033,6 +4062,12 @@ function tryAutoCookRecipe(recipe, level, priorityStat) {
     }
     if (getCraftItemChoice(recipe)) {
         selectedCraftItemByRecipe[recipe.id] = choices.itemInstanceId;
+    }
+    if (choices.sauceInstanceIds.length) {
+        selectedCraftSauceItemsByRecipe[recipe.id] =
+            choices.sauceInstanceIds.slice();
+    } else {
+        delete selectedCraftSauceItemsByRecipe[recipe.id];
     }
 
     let crafted = false;
@@ -4090,6 +4125,12 @@ function tryAutoCookRecipe(recipe, level, priorityStat) {
             delete selectedCraftItemByRecipe[recipe.id];
         }
 
+        if (hadSauceChoices) {
+            selectedCraftSauceItemsByRecipe[recipe.id] = previousSauceChoices;
+        } else {
+            delete selectedCraftSauceItemsByRecipe[recipe.id];
+        }
+
         // Auto-cooking temporarily changes the ingredient selection, so put
         // the manual crafting UI back the way the player left it.
         if (typeof renderCraftPanels === "function") {
@@ -4098,6 +4139,16 @@ function tryAutoCookRecipe(recipe, level, priorityStat) {
     }
 
     return crafted;
+}
+
+function getAutoCookRecipes() {
+    return getCraftRecipesByCategory("food").filter(function (recipe) {
+        const definition = typeof getItemDefinition === "function"
+            ? getItemDefinition(recipe.itemId)
+            : null;
+        if (!definition || !definition.food) return false;
+        return getCraftRecipeTags(recipe).indexOf("ingredient") === -1;
+    });
 }
 
 function autoCookDietFood() {
@@ -4112,11 +4163,7 @@ function autoCookDietFood() {
         ? getDietPriorityStat()
         : null;
 
-    // Only the Meals section is auto-cooked; bread, dough and raw pasta are
-    // intermediate products and must not be eaten straight from the pot.
-    const recipes = getCraftRecipesByCategory("food").filter(function (recipe) {
-        return getCraftRecipeGroupId(recipe) === "meals";
-    });
+    const recipes = getAutoCookRecipes();
 
     // Random dish order: every attempt starts with a random available meal.
     for (let index = recipes.length - 1; index > 0; index--) {
