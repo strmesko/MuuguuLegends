@@ -50,6 +50,21 @@ function updateCharacterHeader() {
     if (levelText) levelText.innerText = "lv" + player.lvl;
 }
 
+function refreshNumberFormatDisplay() {
+    if (typeof updateGUI === "function") updateGUI();
+    if (typeof renderCraftPanels === "function") renderCraftPanels();
+    if (typeof renderBuildPanels === "function") renderBuildPanels();
+    if (typeof renderBuildingsPanels === "function") renderBuildingsPanels();
+    if (typeof renderHousesPanels === "function") renderHousesPanels();
+    if (typeof renderFurniturePanels === "function") renderFurniturePanels();
+    if (typeof renderImprovePanels === "function") renderImprovePanels();
+    if (typeof renderInventorySlots === "function") renderInventorySlots();
+    if (typeof renderEquipmentItems === "function") renderEquipmentItems();
+    if (typeof updateLearnedSkillsGUI === "function") updateLearnedSkillsGUI();
+    if (typeof renderHabitCategories === "function") renderHabitCategories();
+    if (typeof updateHabitSettings === "function") updateHabitSettings();
+}
+
 function updateGUI() {
     calculateStats();
     updateCharacterHeader();

@@ -2485,3 +2485,30 @@ ul.resource-tree li a:before {
   font-size: 0.9em;
   text-align: right;
 }
+
+/* Number format selector in Options. */
+.numberformatrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: calc(100% - 8px);
+  margin: 4px;
+  padding: 6px 8px;
+  color: #23351b;
+  background: #e8f6c8;
+  border: 2px solid #9fce49;
+  border-radius: 4px;
+}
+.numberformatlabel {
+  flex: 1 1 auto;
+  font-weight: bold;
+}
+.numberformatselect {
+  flex: 0 1 auto;
+  min-width: 150px;
+  padding: 2px 4px;
+  color: #23351b;
+  background: #fbfff2;
+  border: 1px solid #6b8f3a;
+  border-radius: 3px;
+}

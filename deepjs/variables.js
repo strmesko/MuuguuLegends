@@ -293,6 +293,16 @@ var dietAutoEatThresholdPercent = DIET_AUTO_EAT_DEFAULT_PERCENT;
 var dietPriorityStat = "";
 var dietAutoCookCategory = "";
 var harvestTreePriorityStat = "";
+var numberFormat = "standard";
+const NUMBER_FORMAT_OPTIONS = Object.freeze([
+    Object.freeze({ value: "standard", label: "Standard" }),
+    Object.freeze({ value: "suffix", label: "Suffix (1.23K)" }),
+    Object.freeze({ value: "scientific", label: "Scientific" }),
+    Object.freeze({ value: "engineering", label: "Engineering" }),
+]);
+const NUMBER_SUFFIX_UNITS = Object.freeze([
+    "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc",
+]);
 const DIET_AUTO_COOK_CATEGORIES = Object.freeze([
     "soviet",
     "arabic",
@@ -301,6 +311,187 @@ const DIET_AUTO_COOK_CATEGORIES = Object.freeze([
     "pizza",
     "shawarma",
 ]);
+
+function getNumberFormat() {
+    return NUMBER_FORMAT_OPTIONS.some(function (option) {
+        return option.value === numberFormat;
+    }) ? numberFormat : "standard";
+}
+
+function trimFormattedNumber(value) {
+    return value.replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
+}
+
+function formatSuffixNumber(value) {
+    const sign = value < 0 ? "-" : "";
+    const absolute = Math.abs(value);
+    if (!Number.isFinite(absolute)) return String(value);
+    if (absolute < 1000) {
+        return sign + trimFormattedNumber(absolute.toFixed(2));
+    }
+
+    let tier = Math.floor(Math.log10(absolute) / 3);
+    tier = Math.min(tier, NUMBER_SUFFIX_UNITS.length - 1);
+    const scaled = absolute / Math.pow(1000, tier);
+    return sign + trimFormattedNumber(scaled.toFixed(2))
+        + NUMBER_SUFFIX_UNITS[tier];
+}
+
+function formatScientificNumber(value) {
+    if (!Number.isFinite(value) || value === 0) return String(value);
+    return trimFormattedNumber(value.toExponential(2));
+}
+
+function formatEngineeringNumber(value) {
+    if (!Number.isFinite(value) || value === 0) return String(value);
+    const sign = value < 0 ? "-" : "";
+    const absolute = Math.abs(value);
+    let exponent = Math.floor(Math.log10(absolute));
+    exponent = Math.floor(exponent / 3) * 3;
+    const mantissa = absolute / Math.pow(10, exponent);
+    return sign + trimFormattedNumber(mantissa.toFixed(2))
+        + "e" + (exponent >= 0 ? "+" : "") + exponent;
+}
+
+function formatGameNumber(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return String(value);
+
+    switch (getNumberFormat()) {
+        case "suffix":
+            return formatSuffixNumber(numeric);
+        case "scientific":
+            return formatScientificNumber(numeric);
+        case "engineering":
+            return formatEngineeringNumber(numeric);
+        default:
+            return String(numeric);
+    }
+}
+
+function formatDisplayText(text) {
+    if (getNumberFormat() === "standard") return String(text);
+    return String(text).replace(/-?\d+(?:\.\d+)?/g, function (match, offset, whole) {
+        const rest = whole.slice(offset + match.length);
+        // Percent values are explicitly excluded from the number format.
+        if (/^\s*%/.test(rest)) return match;
+        const value = Number(match);
+        if (!Number.isFinite(value)) return match;
+        return formatGameNumber(value);
+    });
+}
+
+function formatDisplayMarkup(markup) {
+    if (getNumberFormat() === "standard") return markup;
+    return String(markup).split(/(<[^>]*>)/).map(function (part) {
+        return part.charAt(0) === "<" ? part : formatDisplayText(part);
+    }).join("");
+}
+
+function formatTextNodes(root) {
+    if (!root || getNumberFormat() === "standard") return;
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode: function (node) {
+            const parent = node.parentElement;
+            if (!parent) return NodeFilter.FILTER_REJECT;
+            const tag = parent.tagName;
+            if (tag === "SCRIPT" || tag === "STYLE") {
+                return NodeFilter.FILTER_REJECT;
+            }
+            return /\d/.test(node.nodeValue || "")
+                ? NodeFilter.FILTER_ACCEPT
+                : NodeFilter.FILTER_REJECT;
+        },
+    });
+    let node = walker.nextNode();
+    while (node) {
+        const raw = node.nodeValue;
+        const formatted = formatDisplayText(raw);
+        if (formatted !== raw) node.nodeValue = formatted;
+        node = walker.nextNode();
+    }
+}
+
+function installNumberFormatHooks() {
+    if (typeof HTMLElement === "undefined" || HTMLElement.prototype.numberFormatHooked) {
+        return;
+    }
+    HTMLElement.prototype.numberFormatHooked = true;
+
+    const innerTextDescriptor = Object.getOwnPropertyDescriptor(
+        HTMLElement.prototype,
+        "innerText"
+    );
+    if (innerTextDescriptor && innerTextDescriptor.set) {
+        Object.defineProperty(HTMLElement.prototype, "innerText", {
+            configurable: true,
+            enumerable: innerTextDescriptor.enumerable,
+            get: innerTextDescriptor.get,
+            set: function (value) {
+                innerTextDescriptor.set.call(this, formatDisplayText(value));
+            },
+        });
+    }
+
+    const textContentDescriptor = Object.getOwnPropertyDescriptor(
+        Node.prototype,
+        "textContent"
+    );
+    if (textContentDescriptor && textContentDescriptor.set) {
+        Object.defineProperty(Node.prototype, "textContent", {
+            configurable: true,
+            enumerable: textContentDescriptor.enumerable,
+            get: textContentDescriptor.get,
+            set: function (value) {
+                textContentDescriptor.set.call(this, formatDisplayText(value));
+            },
+        });
+    }
+
+    const innerHtmlDescriptor = Object.getOwnPropertyDescriptor(
+        Element.prototype,
+        "innerHTML"
+    );
+    if (innerHtmlDescriptor && innerHtmlDescriptor.set) {
+        Object.defineProperty(Element.prototype, "innerHTML", {
+            configurable: true,
+            enumerable: innerHtmlDescriptor.enumerable,
+            get: innerHtmlDescriptor.get,
+            set: function (value) {
+                innerHtmlDescriptor.set.call(this, value);
+                formatTextNodes(this);
+            },
+        });
+    }
+
+    const originalSetAttribute = Element.prototype.setAttribute;
+    Element.prototype.setAttribute = function (name, value) {
+        if (String(name).toLowerCase() === "data-tooltip") {
+            return originalSetAttribute.call(
+                this,
+                name,
+                formatDisplayMarkup(value)
+            );
+        }
+        return originalSetAttribute.call(this, name, value);
+    };
+}
+
+function setNumberFormat(value) {
+    const next = NUMBER_FORMAT_OPTIONS.some(function (option) {
+        return option.value === value;
+    }) ? value : "standard";
+    numberFormat = next;
+
+    const select = document.getElementById("numberformatselect");
+    if (select) select.value = next;
+
+    if (typeof refreshNumberFormatDisplay === "function") {
+        refreshNumberFormatDisplay();
+    }
+}
+
+installNumberFormatHooks();
 const HARVEST_TREES_FOCUS_COST = 2;
 
 function clampDietAutoEatThreshold(value) {

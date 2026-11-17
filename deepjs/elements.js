@@ -208,6 +208,34 @@
         loadSlotButtons.push(loadButton);
     }
     optionsContent.appendChild(debugFilterButton);
+
+    const numberFormatRow = document.createElement('label');
+    numberFormatRow.className = 'numberformatrow';
+    numberFormatRow.setAttribute(
+        'data-tooltip',
+        'Format of all displayed numbers except percentages.'
+    );
+
+    const numberFormatLabel = document.createElement('span');
+    numberFormatLabel.className = 'numberformatlabel';
+    numberFormatLabel.innerText = 'Number format:';
+    numberFormatRow.appendChild(numberFormatLabel);
+
+    const numberFormatSelect = document.createElement('select');
+    numberFormatSelect.id = 'numberformatselect';
+    numberFormatSelect.className = 'numberformatselect';
+    NUMBER_FORMAT_OPTIONS.forEach(function (optionDefinition) {
+        const option = document.createElement('option');
+        option.value = optionDefinition.value;
+        option.innerText = optionDefinition.label;
+        numberFormatSelect.appendChild(option);
+    });
+    numberFormatSelect.value = getNumberFormat();
+    numberFormatSelect.addEventListener('change', function () {
+        setNumberFormat(numberFormatSelect.value);
+    });
+    numberFormatRow.appendChild(numberFormatSelect);
+    optionsContent.appendChild(numberFormatRow);
     actionContent.appendChild(actionText);
     resourcePanel.appendChild(charState);
     charState.appendChild(playerNameInput);

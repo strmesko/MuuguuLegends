@@ -128,6 +128,7 @@
             maxActions: maxActions,
             actionsCount: actionsCount,
             showDebugMessages: showDebugMessages,
+            numberFormat: numberFormat,
             actionStates: Object.assign({}, actionStates),
             actionVisibility: Object.assign({}, actionVisibility),
             previousTimedActionIds: previousTimedActionIds.slice(),
@@ -305,6 +306,7 @@
             maxActions: saveData.maxActions ?? saveData.maxactions,
             actionsCount: saveData.actionsCount ?? saveData.actionscount,
             showDebugMessages: saveData.showDebugMessages ?? true,
+            numberFormat: saveData.numberFormat ?? "standard",
             actionStates: normalizeActionStates(saveData),
             actionVisibility: saveData.actionVisibility ?? {},
             previousTimedActionIds: normalizePreviousTimedActionIds(saveData.previousTimedActionIds, saveData.previousTimedActionId),
@@ -479,6 +481,9 @@
         maxActions = saved.maxActions;
         actionsCount = saved.actionsCount;
         showDebugMessages = saved.showDebugMessages;
+        numberFormat = NUMBER_FORMAT_OPTIONS.some(function (option) {
+            return option.value === saved.numberFormat;
+        }) ? saved.numberFormat : "standard";
         dayDreamUnlocked = saved.dayDreamUnlocked === true;
         researchUnlocked = saved.researchUnlocked === true;
         previousTimedActionIds = normalizePreviousTimedActionIds(
@@ -893,6 +898,11 @@
             updateTechnologyButtons();
             updateCharacterHeader();
             updateDebugFilterButton();
+            const numberFormatSelect = document.getElementById('numberformatselect');
+            if (numberFormatSelect) numberFormatSelect.value = getNumberFormat();
+            if (typeof refreshNumberFormatDisplay === "function") {
+                refreshNumberFormatDisplay();
+            }
             restoreMap();
             if (typeof renderInventorySlots === "function") renderInventorySlots();
             if (typeof renderEquipmentItems === "function") renderEquipmentItems();
