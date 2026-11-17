@@ -627,11 +627,12 @@ const BUILDING_DEFS = Object.freeze({
             Object.freeze({ resourceId: RESOURCE_IDS.WOODEN_PLANK, amount: 100 }),
         ]),
         workPoints: 15000,
-        roomSpace: 3,
+        roomSpace: 4,
+        maxPerTile: 1,
         skill: "carpentry",
         effects: Object.freeze([]),
         iconClass: "fa-th",
-        effectText: "Enables Make linen cloth on this tile. Loom quality increases both the amount of fibers processed and the quality of the cloth.",
+        effectText: "Enables Make linen cloth on this tile. Only one Loom can be built per tile. Loom quality increases both the amount of fibers processed and the quality of the cloth.",
     }),
     [BUILDING_IDS.MAPLE_EXTRACTOR]: Object.freeze({
         id: BUILDING_IDS.MAPLE_EXTRACTOR,
@@ -1115,6 +1116,14 @@ function canImproveBuilding(building) {
 function canBuildBuilding(def) {
     if (!def || !currentTile) return false;
     if (!isBuildingUnlocked(def)) return false;
+    if (def.maxPerTile != null && Array.isArray(currentTile.buildings)) {
+        const builtCount = currentTile.buildings.filter(function (building) {
+            return !!building && building.defId === def.id && !building.removed;
+        }).length;
+        if (builtCount >= Math.max(0, Number(def.maxPerTile) || 0)) {
+            return false;
+        }
+    }
     if (getCurrentTileEmptySpace() < (def.emptySpace || 0)) return false;
     if (getCurrentTileRoomSpace() < (def.roomSpace || 0)) return false;
     if (getCharacterDiggingPower() < (Number(def.requiredDiggingPower) || 0)) {
