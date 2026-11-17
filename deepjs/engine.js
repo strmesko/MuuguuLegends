@@ -3681,21 +3681,29 @@ function staminaRegen(timeAmount){
     }
     player.stamina = round2(player.stamina);
 }
+const HUNGER_PER_HP_REGEN = 5;
+
 function hpRegen(timeAmount){
     var regenAmount = round2(Math.pow((getEffectiveLevel("vit") * getEffectiveLevel("regeneration") * (getEffectiveLevel("sou")* 0.01))/5, 1/2) * timeAmount * getSleepRegenMultiplier() * getGlobalPropertyMultiplier("hpregen") * getHearthfireRegenMultiplier() * getHungerRegenMultiplier() * getWellFedRegenMultiplier());
+    let healed = 0;
     if (player.hp == player.maxhp) {}
     else if (player.hp + regenAmount > player.maxhp){
         player.regeneration.addexp(round2((player.maxhp - player.hp)/ regenAmount * timeAmount));
         player.vit.addexp(round2((player.maxhp - player.hp)/ regenAmount / 10 * timeAmount));
+        healed = player.maxhp - player.hp;
         player.hp = player.maxhp;
         
     } else {
         player.vit.addexp(0.1);
         player.regeneration.addexp(1);
+        healed = regenAmount;
         player.hp += regenAmount;
         
     }
     player.hp = round2(player.hp);
+    if (healed > 0) {
+        addHunger(round2(healed * HUNGER_PER_HP_REGEN));
+    }
 }
 function manaRegen(timeAmount){
     var regenAmount = round2(Math.pow((getEffectiveLevel("int") * getEffectiveLevel("meditation") * (getEffectiveLevel("sou")* 0.01)), 1/2) * timeAmount * getSleepRegenMultiplier() * getGlobalPropertyMultiplier("manaregen") * getHearthfireRegenMultiplier() * (typeof getDarkManaRegenMultiplier === "function" ? getDarkManaRegenMultiplier() : 1) * getHungerManaRegenMultiplier() * getWellFedRegenMultiplier());
