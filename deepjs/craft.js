@@ -202,6 +202,25 @@ const CRAFT_RECIPE_TAGS = Object.freeze({
     "asian-nasi-goreng": ["meat", "fried", "spicy"],
     "asian-okonomiyaki": ["fried", "vegetarian"],
     "asian-yakitori": ["meat", "fried", "streetfood"],
+    "asian-mapo-chicken": ["meat", "spicy", "fried"],
+    "asian-char-siu-chicken": ["meat", "fried", "sweet"],
+    "asian-wonton-soup": ["soup", "meat", "dumplings"],
+    "asian-hot-sour-soup": ["soup", "spicy", "vegetarian"],
+    "asian-egg-drop-soup": ["soup", "vegetarian"],
+    "asian-sichuan-noodles": ["pasta", "spicy", "vegetarian"],
+    "asian-steamed-dumplings": ["dumplings", "meat"],
+    "asian-tom-yum-soup": ["soup", "spicy", "vegetarian"],
+    "asian-thai-green-curry": ["meat", "spicy"],
+    "asian-thai-red-curry": ["meat", "spicy"],
+    "asian-massaman-curry": ["meat"],
+    "asian-thai-basil-chicken": ["meat", "spicy", "fried"],
+    "asian-coconut-rice": ["vegetarian"],
+    "asian-mango-sticky-rice": ["dessert", "sweet", "vegetarian"],
+    "asian-pho": ["soup", "meat", "pasta"],
+    "asian-banh-mi": ["meat"],
+    "asian-vietnamese-spring-rolls": ["fried", "meat", "streetfood"],
+    "asian-bun-cha": ["meat", "pasta", "fried"],
+    "asian-vietnamese-curry": ["meat"],
 });
 
 function getCraftRecipeTags(recipe) {
@@ -564,6 +583,9 @@ const ASIAN_SAUCE_RECIPES = Object.freeze([
     createSauceRecipe("tempura-sauce", ITEM_IDS.TEMPURA_SAUCE, [
         [SAUCE_GINGER_ID, 1], [RESOURCE_IDS.SUGAR, 1],
     ], { oil: false, itemId: ITEM_IDS.SOY_SAUCE, itemLabel: "Choose soy sauce:" }),
+    createSauceRecipe("bean-paste", ITEM_IDS.BEAN_PASTE, [
+        [ASIAN_SOYBEAN_ID, 3], [4101, 2], [ASIAN_SALT_ID, 1],
+    ], { oil: false, station: "pot" }),
 ]);
 
 // Italian dishes. Boiled pasta, rice and polenta need a pot, water and a
@@ -1117,6 +1139,80 @@ const ASIAN_DISH_RECIPES = Object.freeze([
         [RESOURCE_IDS.SUGAR, 1], [SAUCE_GARLIC_ID, 1],
         [RESOURCE_IDS.STICKS, 1],
     ], { station: "pan" }),
+    createAsianDishRecipe("mapo-chicken", ITEM_IDS.MAPO_CHICKEN, [
+        [RESOURCE_IDS.CHICKEN_MEAT, 3], [SAUCE_CHILI_ID, 2],
+        [SAUCE_GARLIC_ID, 2],
+    ], { itemChoiceId: ITEM_IDS.BEAN_PASTE, itemLabel: "Choose bean paste:", station: "pan" }),
+    createAsianDishRecipe("char-siu-chicken", ITEM_IDS.CHAR_SIU_CHICKEN, [
+        [RESOURCE_IDS.CHICKEN_MEAT, 3], [RESOURCE_IDS.SUGAR, 2],
+        [SAUCE_GARLIC_ID, 1], [SAUCE_SESAME_ID, 1],
+    ], { itemChoiceId: ITEM_IDS.BEAN_PASTE, itemLabel: "Choose bean paste:", station: "pan" }),
+    createAsianDishRecipe("wonton-soup", ITEM_IDS.WONTON_SOUP, [
+        [SOVIET_WHEAT_FLOUR_ID, 3], [RESOURCE_IDS.CHICKEN_MEAT, 2],
+        [SAUCE_ONION_ID, 1], [RESOURCE_IDS.EGG, 1],
+    ], { station: "pot" }),
+    createAsianDishRecipe("hot-sour-soup", ITEM_IDS.HOT_SOUR_SOUP, [
+        [RESOURCE_IDS.BUTTON_MUSHROOM, 2], [RESOURCE_IDS.EGG, 2],
+        [SAUCE_CHILI_ID, 1], [RESOURCE_IDS.LEMONS, 1], [ASIAN_SOYBEAN_ID, 1],
+    ], { station: "pot" }),
+    createAsianDishRecipe("egg-drop-soup", ITEM_IDS.EGG_DROP_SOUP, [
+        [RESOURCE_IDS.EGG, 2], [ASIAN_SOYBEAN_ID, 1],
+        [SAUCE_ONION_ID, 1], [ASIAN_SALT_ID, 1],
+    ], { station: "pot" }),
+    createAsianDishRecipe("sichuan-noodles", ITEM_IDS.SICHUAN_NOODLES, [
+        [SAUCE_CHILI_ID, 2], [SAUCE_GARLIC_ID, 2], [ASIAN_SOYBEAN_ID, 1],
+    ], { itemChoiceId: ITEM_IDS.NOODLES, itemLabel: "Choose noodles:", station: "pan" }),
+    createAsianDishRecipe("steamed-dumplings", ITEM_IDS.STEAMED_DUMPLINGS, [
+        [SOVIET_WHEAT_FLOUR_ID, 3], [RESOURCE_IDS.CHICKEN_MEAT, 2],
+        [SOVIET_CABBAGE_ID, 2], [SAUCE_GARLIC_ID, 1],
+    ], { station: "pot" }),
+    createAsianDishRecipe("tom-yum-soup", ITEM_IDS.TOM_YUM_SOUP, [
+        [RESOURCE_IDS.BUTTON_MUSHROOM, 2], [SAUCE_CHILI_ID, 2],
+        [RESOURCE_IDS.LEMONS, 1], [SAUCE_GINGER_ID, 1], [SAUCE_ONION_ID, 1],
+    ], { station: "pot" }),
+    createAsianDishRecipe("thai-green-curry", ITEM_IDS.THAI_GREEN_CURRY, [
+        [RESOURCE_IDS.COCONUTS, 1], [SAUCE_WILD_BASIL_ID, 2],
+        [SAUCE_CHILI_ID, 2], [RESOURCE_IDS.CHICKEN_MEAT, 2],
+    ], { station: "pot" }),
+    createAsianDishRecipe("thai-red-curry", ITEM_IDS.THAI_RED_CURRY, [
+        [RESOURCE_IDS.COCONUTS, 1], [SAUCE_CHILI_ID, 2],
+        [RESOURCE_IDS.CHICKEN_MEAT, 2], [SAUCE_GINGER_ID, 1],
+    ], { station: "pot" }),
+    createAsianDishRecipe("massaman-curry", ITEM_IDS.MASSAMAN_CURRY, [
+        [RESOURCE_IDS.COCONUTS, 1], [SOVIET_POTATO_ID, 2],
+        [getSpiceResourceId("curry-powder"), 1], [RESOURCE_IDS.CHICKEN_MEAT, 2],
+    ], { station: "pot" }),
+    createAsianDishRecipe("thai-basil-chicken", ITEM_IDS.THAI_BASIL_CHICKEN, [
+        [RESOURCE_IDS.CHICKEN_MEAT, 3], [SAUCE_WILD_BASIL_ID, 2],
+        [SAUCE_CHILI_ID, 2], [ASIAN_SOYBEAN_ID, 1],
+    ], { station: "pan" }),
+    createAsianDishRecipe("coconut-rice", ITEM_IDS.COCONUT_RICE, [
+        [SOVIET_RICE_ID, 3], [RESOURCE_IDS.COCONUTS, 1],
+    ], { station: "pot" }),
+    createAsianDishRecipe("mango-sticky-rice", ITEM_IDS.MANGO_STICKY_RICE, [
+        [SOVIET_RICE_ID, 3], [RESOURCE_IDS.MANGOES, 2],
+        [RESOURCE_IDS.COCONUTS, 1], [RESOURCE_IDS.SUGAR, 1],
+    ], { station: "pot" }),
+    createAsianDishRecipe("pho", ITEM_IDS.PHO, [
+        [RESOURCE_IDS.CHICKEN_MEAT, 2], [SAUCE_ONION_ID, 1],
+        [SAUCE_GINGER_ID, 1], [SAUCE_WILD_BASIL_ID, 1],
+    ], { itemChoiceId: ITEM_IDS.NOODLES, itemLabel: "Choose noodles:", station: "pot" }),
+    createAsianDishRecipe("banh-mi", ITEM_IDS.BANH_MI, [
+        [RESOURCE_IDS.CHICKEN_MEAT, 2], [SOVIET_CUCUMBER_ID, 1],
+        [SOVIET_CARROT_ID, 1], [SAUCE_CHILI_ID, 1],
+    ], { itemChoiceId: ITEM_IDS.BREAD, itemLabel: "Choose bread:" }),
+    createAsianDishRecipe("vietnamese-spring-rolls", ITEM_IDS.VIETNAMESE_SPRING_ROLLS, [
+        [SOVIET_WHEAT_FLOUR_ID, 3], [SOVIET_CABBAGE_ID, 2],
+        [SOVIET_CARROT_ID, 1], [RESOURCE_IDS.CHICKEN_MEAT, 2],
+    ], { station: "pan" }),
+    createAsianDishRecipe("bun-cha", ITEM_IDS.BUN_CHA, [
+        [RESOURCE_IDS.CHICKEN_MEAT, 2], [SAUCE_WILD_BASIL_ID, 1],
+        [SAUCE_CHILI_ID, 1], [SAUCE_GARLIC_ID, 1],
+    ], { itemChoiceId: ITEM_IDS.NOODLES, itemLabel: "Choose noodles:", station: "pan" }),
+    createAsianDishRecipe("vietnamese-curry", ITEM_IDS.VIETNAMESE_CURRY, [
+        [RESOURCE_IDS.COCONUTS, 1], [RESOURCE_IDS.CHICKEN_MEAT, 2],
+        [SOVIET_POTATO_ID, 2], [getSpiceResourceId("curry-powder"), 1],
+    ], { station: "pot" }),
 ]);
 
 // Kitchen spices are resource outputs rather than items, so they use their own

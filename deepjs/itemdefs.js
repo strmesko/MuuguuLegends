@@ -212,6 +212,7 @@ const ITEM_IDS = Object.freeze({
     KOREAN_BBQ_SAUCE: ITEM_ID_BASE + 306,
     GYOZA_SAUCE: ITEM_ID_BASE + 307,
     TEMPURA_SAUCE: ITEM_ID_BASE + 308,
+    BEAN_PASTE: ITEM_ID_BASE + 309,
     RAMEN: ITEM_ID_BASE + 310,
     PAD_THAI: ITEM_ID_BASE + 311,
     FRIED_RICE: ITEM_ID_BASE + 312,
@@ -229,6 +230,25 @@ const ITEM_IDS = Object.freeze({
     NASI_GORENG: ITEM_ID_BASE + 324,
     OKONOMIYAKI: ITEM_ID_BASE + 325,
     YAKITORI: ITEM_ID_BASE + 326,
+    MAPO_CHICKEN: ITEM_ID_BASE + 327,
+    CHAR_SIU_CHICKEN: ITEM_ID_BASE + 328,
+    WONTON_SOUP: ITEM_ID_BASE + 329,
+    HOT_SOUR_SOUP: ITEM_ID_BASE + 330,
+    EGG_DROP_SOUP: ITEM_ID_BASE + 331,
+    SICHUAN_NOODLES: ITEM_ID_BASE + 332,
+    STEAMED_DUMPLINGS: ITEM_ID_BASE + 333,
+    TOM_YUM_SOUP: ITEM_ID_BASE + 334,
+    THAI_GREEN_CURRY: ITEM_ID_BASE + 335,
+    THAI_RED_CURRY: ITEM_ID_BASE + 336,
+    MASSAMAN_CURRY: ITEM_ID_BASE + 337,
+    THAI_BASIL_CHICKEN: ITEM_ID_BASE + 338,
+    COCONUT_RICE: ITEM_ID_BASE + 339,
+    MANGO_STICKY_RICE: ITEM_ID_BASE + 340,
+    PHO: ITEM_ID_BASE + 341,
+    BANH_MI: ITEM_ID_BASE + 342,
+    VIETNAMESE_SPRING_ROLLS: ITEM_ID_BASE + 343,
+    BUN_CHA: ITEM_ID_BASE + 344,
+    VIETNAMESE_CURRY: ITEM_ID_BASE + 345,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -866,6 +886,7 @@ const ASIAN_SAUCE_ITEM_DEFINITIONS = Object.freeze([
     Object.freeze({ id: ITEM_IDS.KOREAN_BBQ_SAUCE, name: "Korean BBQ Sauce", icon: "koreanbbqsauce", hunger: 30, description: "Soy, sugar, sesame and chili glaze. Korean grill favourite." }),
     Object.freeze({ id: ITEM_IDS.GYOZA_SAUCE, name: "Gyoza Sauce", icon: "gyozasauce", hunger: 20, description: "Soy, citrus, chili and garlic dip for dumplings. Japanese izakaya staple." }),
     Object.freeze({ id: ITEM_IDS.TEMPURA_SAUCE, name: "Tempura Sauce", icon: "tempurasauce", hunger: 20, description: "Light soy, ginger and sugar dipping broth for fried food." }),
+    Object.freeze({ id: ITEM_IDS.BEAN_PASTE, name: "Bean Paste", icon: "beanpaste", hunger: 20, description: "A thick savoury paste of fermented soybeans, wheat and salt. Deep umami for Chinese and Korean cooking." }),
 ]);
 
 const ASIAN_SAUCE_ITEM_DEFS = {};
@@ -904,6 +925,25 @@ const ASIAN_DISH_ITEM_DEFINITIONS = Object.freeze([
     Object.freeze({ id: ITEM_IDS.NASI_GORENG, name: "Nasi Goreng", icon: "nasigoreng", hunger: 160, description: "Indonesian fried rice with egg, chicken, chili and soybean seasoning." }),
     Object.freeze({ id: ITEM_IDS.OKONOMIYAKI, name: "Okonomiyaki", icon: "okonomiyaki", hunger: 155, description: "Cabbage and flour pancake with egg and savoury soybean glaze. Japanese griddle food." }),
     Object.freeze({ id: ITEM_IDS.YAKITORI, name: "Yakitori", icon: "yakitori", hunger: 160, description: "Skewered chicken glazed with sweet soy and garlic. Japanese street grill." }),
+    Object.freeze({ id: ITEM_IDS.MAPO_CHICKEN, name: "Mapo Chicken", icon: "mapochicken", hunger: 175, description: "Chicken simmered with bean paste, chili and garlic. Sichuan fire with deep savour." }),
+    Object.freeze({ id: ITEM_IDS.CHAR_SIU_CHICKEN, name: "Char Siu Chicken", icon: "charsiuchicken", hunger: 175, description: "Sweet bean-paste glazed chicken with sesame and garlic. Cantonese roast flavour." }),
+    Object.freeze({ id: ITEM_IDS.WONTON_SOUP, name: "Wonton Soup", icon: "wontonsoup", hunger: 160, description: "Thin flour parcels of chicken and onion in a clear savoury broth. Chinese comfort." }),
+    Object.freeze({ id: ITEM_IDS.HOT_SOUR_SOUP, name: "Hot and Sour Soup", icon: "hotsoursoup", hunger: 140, description: "Mushroom, egg, chili and citrus in a peppery broth. Chinese takeaway classic." }),
+    Object.freeze({ id: ITEM_IDS.EGG_DROP_SOUP, name: "Egg Drop Soup", icon: "eggdropsoup", hunger: 130, description: "Whisks of egg in a light soybean broth. Gentle Chinese comfort food." }),
+    Object.freeze({ id: ITEM_IDS.SICHUAN_NOODLES, name: "Sichuan Noodles", icon: "sichuannoodles", hunger: 165, description: "Noodles tossed with chili, garlic and soybean savour. Numbing Sichuan heat." }),
+    Object.freeze({ id: ITEM_IDS.STEAMED_DUMPLINGS, name: "Steamed Dumplings", icon: "steameddumplings", hunger: 150, description: "Soft steamed buns filled with chicken, cabbage and garlic. Chinese dim sum." }),
+    Object.freeze({ id: ITEM_IDS.TOM_YUM_SOUP, name: "Tom Yum Soup", icon: "tomyumsoup", hunger: 150, description: "Hot and sour Thai soup with mushroom, chili, ginger and citrus." }),
+    Object.freeze({ id: ITEM_IDS.THAI_GREEN_CURRY, name: "Thai Green Curry", icon: "thaigreencurry", hunger: 175, description: "Coconut curry with chicken, basil and green chili heat. Thai restaurant favourite." }),
+    Object.freeze({ id: ITEM_IDS.THAI_RED_CURRY, name: "Thai Red Curry", icon: "thairedcurry", hunger: 175, description: "Coconut curry coloured and fired by red chili, ginger and chicken." }),
+    Object.freeze({ id: ITEM_IDS.MASSAMAN_CURRY, name: "Massaman Curry", icon: "massamancurry", hunger: 180, description: "Mild coconut curry with potato, chicken and warm spices. Thai-Muslim comfort." }),
+    Object.freeze({ id: ITEM_IDS.THAI_BASIL_CHICKEN, name: "Thai Basil Chicken", icon: "thaibasilchicken", hunger: 165, description: "Chicken stir-fried with basil, chili and soybean savour. Thai street wok." }),
+    Object.freeze({ id: ITEM_IDS.COCONUT_RICE, name: "Coconut Rice", icon: "coconutrice", hunger: 140, description: "Rice simmered in coconut with a pinch of salt. Sweet, fragrant Southeast Asian side." }),
+    Object.freeze({ id: ITEM_IDS.MANGO_STICKY_RICE, name: "Mango Sticky Rice", icon: "mangostickyrice", hunger: 140, description: "Sweet coconut rice with ripe mango. Thai dessert stall favourite." }),
+    Object.freeze({ id: ITEM_IDS.PHO, name: "Pho", icon: "pho", hunger: 170, description: "Vietnamese noodle soup with chicken, ginger, onion and fresh basil." }),
+    Object.freeze({ id: ITEM_IDS.BANH_MI, name: "Banh Mi", icon: "banhmi", hunger: 160, description: "Crisp bread filled with chicken, cucumber, carrot and chili. Vietnamese street sandwich." }),
+    Object.freeze({ id: ITEM_IDS.VIETNAMESE_SPRING_ROLLS, name: "Vietnamese Spring Rolls", icon: "vietnamesespringrolls", hunger: 150, description: "Fresh-tasting rolls of cabbage, carrot and chicken with a chili dip." }),
+    Object.freeze({ id: ITEM_IDS.BUN_CHA, name: "Bun Cha", icon: "buncha", hunger: 170, description: "Noodles with grilled chicken, herbs and chili. Hanoi street lunch." }),
+    Object.freeze({ id: ITEM_IDS.VIETNAMESE_CURRY, name: "Vietnamese Curry", icon: "vietnamesecurry", hunger: 175, description: "Coconut chicken curry with potato and warm spices. Vietnamese home cooking." }),
 ]);
 
 const ASIAN_DISH_ITEM_DEFS = {};
