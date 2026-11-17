@@ -52,6 +52,7 @@ const CRAFT_GROUP_NAMES = Object.freeze({
     containers: "Containers",
     cutlery: "Cutlery",
     pots: "Pots",
+    pans: "Pans",
     other: "Other",
 });
 
@@ -233,7 +234,8 @@ const SOUP_INGREDIENT_IDS = Object.freeze((function () {
 // Tools and cutlery also need a wooden handle/shaft; pots do not.
 function createMetalVariantRecipes() {
     const variants = (typeof METAL_VARIANT_ITEMS !== "undefined" ? METAL_VARIANT_ITEMS : [])
-        .concat(typeof METAL_POT_ITEMS !== "undefined" ? METAL_POT_ITEMS : []);
+        .concat(typeof METAL_POT_ITEMS !== "undefined" ? METAL_POT_ITEMS : [])
+        .concat(typeof METAL_PAN_ITEMS !== "undefined" ? METAL_PAN_ITEMS : []);
 
     return variants.map(function (variant) {
         const resources = [];
@@ -247,6 +249,14 @@ function createMetalVariantRecipes() {
             resourceId: variant.barResourceId,
             amount: variant.barAmount,
         }));
+        if (Array.isArray(variant.extraResources)) {
+            variant.extraResources.forEach(function (extra) {
+                resources.push(Object.freeze({
+                    resourceId: extra.resourceId,
+                    amount: extra.amount,
+                }));
+            });
+        }
 
         return Object.freeze({
             id: "metal-" + variant.metalKey + "-" + variant.baseKey,
@@ -255,7 +265,9 @@ function createMetalVariantRecipes() {
             skill: "smithing",
             group: variant.category === "tools"
                 ? (METAL_TOOL_GROUPS[variant.baseKey] || "other")
-                : (variant.baseKey === "pot" ? "pots" : "cutlery"),
+                : (variant.baseKey === "pot"
+                    ? "pots"
+                    : (variant.baseKey === "fryingpan" ? "pans" : "cutlery")),
             resources: Object.freeze(resources),
         });
     });

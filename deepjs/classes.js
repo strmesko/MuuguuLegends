@@ -227,6 +227,7 @@ const EQUIPMENT_SLOT_GROUPS = Object.freeze([
             { id: "mug", label: "Mug", description: "A place for a mug." },
             { id: "plate", label: "Plate", description: "A place for a plate." },
             { id: "pot", label: "Pot", description: "A place for a cooking pot." },
+            { id: "pan", label: "Pan", description: "A place for a frying pan." },
         ],
     },
 ]);

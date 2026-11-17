@@ -788,6 +788,88 @@ METAL_POT_METALS.forEach(function (metal) {
     }));
 });
 
+// Metal frying pans are forged from sheet plates and rivets of the matching
+// metal instead of bars. The wooden handle is the only non-metal part.
+const METAL_PAN_METALS = Object.freeze([
+    Object.freeze({
+        key: "copper", name: "Copper",
+        sheetId: RESOURCE_IDS.COPPER_SHEET_PLATES,
+        rivetId: RESOURCE_IDS.COPPER_RIVETS,
+        multiplier: METAL_VARIANT_MULTIPLIERS.copper, luckBonus: 0,
+    }),
+    Object.freeze({
+        key: "tin", name: "Tin",
+        sheetId: RESOURCE_IDS.TIN_SHEET_PLATES,
+        rivetId: RESOURCE_IDS.TIN_RIVETS,
+        multiplier: METAL_VARIANT_MULTIPLIERS.tin, luckBonus: 0,
+    }),
+    Object.freeze({
+        key: "iron", name: "Iron",
+        sheetId: RESOURCE_IDS.IRON_SHEET_PLATES,
+        rivetId: RESOURCE_IDS.IRON_RIVETS,
+        multiplier: METAL_VARIANT_MULTIPLIERS.iron, luckBonus: 0,
+    }),
+    Object.freeze({
+        key: "bronze", name: "Bronze",
+        sheetId: RESOURCE_IDS.BRONZE_SHEET_PLATES,
+        rivetId: RESOURCE_IDS.BRONZE_RIVETS,
+        multiplier: METAL_VARIANT_MULTIPLIERS.bronze, luckBonus: 0,
+    }),
+    Object.freeze({
+        key: "steel", name: "Steel",
+        sheetId: RESOURCE_IDS.STEEL_SHEET_PLATES,
+        rivetId: RESOURCE_IDS.STEEL_RIVETS,
+        multiplier: STEEL_POT_MULTIPLIER, luckBonus: 0,
+    }),
+    Object.freeze({
+        key: "gold", name: "Gold",
+        sheetId: RESOURCE_IDS.GOLD_SHEET_PLATES,
+        rivetId: RESOURCE_IDS.GOLD_RIVETS,
+        multiplier: METAL_VARIANT_MULTIPLIERS.gold, luckBonus: GOLD_LUCK_BONUS,
+    }),
+]);
+
+const METAL_PAN_ITEMS = [];
+const METAL_PAN_ITEM_DEFS = {};
+
+METAL_PAN_METALS.forEach(function (metal) {
+    const itemId = nextMetalVariantItemId++;
+    const name = metal.name + " Frying Pan";
+    const stats = { cookingPower: metal.multiplier };
+    if (metal.luckBonus > 0) stats.luck = metal.luckBonus;
+
+    METAL_PAN_ITEM_DEFS[itemId] = Object.freeze({
+        id: itemId,
+        name: name,
+        kind: ITEM_KINDS.Tool,
+        stackable: false,
+        weight: 1.2,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: normalizeMetalVariantName(name),
+        slot: "pan",
+        stats: Object.freeze(stats),
+        description: metal.name + " frying pan riveted from sheet plates and mounted on a wooden handle.",
+    });
+
+    METAL_PAN_ITEMS.push(Object.freeze({
+        itemId: itemId,
+        name: name,
+        category: "cultery",
+        baseKey: "fryingpan",
+        metalKey: metal.key,
+        metalName: metal.name,
+        metalMultiplier: metal.multiplier,
+        barResourceId: metal.sheetId,
+        barAmount: 2,
+        handleResourceId: RESOURCE_IDS.HANDLES,
+        extraResources: Object.freeze([
+            Object.freeze({ resourceId: metal.rivetId, amount: 1 }),
+        ]),
+    }));
+});
+
 const ITEM_DEFS = Object.freeze({
     ...PASTA_ITEM_DEFS,
     [ITEM_IDS.HANDY_STICK]: createForagingToolDefinition(
@@ -1230,6 +1312,7 @@ const ITEM_DEFS = Object.freeze({
     ),
     ...METAL_VARIANT_ITEM_DEFS,
     ...METAL_POT_ITEM_DEFS,
+    ...METAL_PAN_ITEM_DEFS,
 });
 
 // Human-readable metadata for every stat an item can grant while equipped.
