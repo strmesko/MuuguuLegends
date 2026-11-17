@@ -339,7 +339,8 @@ function formatSuffixNumber(value) {
 
 function formatScientificNumber(value) {
     if (!Number.isFinite(value) || value === 0) return String(value);
-    return trimFormattedNumber(value.toExponential(2));
+    const parts = value.toExponential(2).split("e");
+    return trimFormattedNumber(parts[0]) + "e" + parts[1];
 }
 
 function formatEngineeringNumber(value) {
@@ -356,6 +357,8 @@ function formatEngineeringNumber(value) {
 function formatGameNumber(value) {
     const numeric = Number(value);
     if (!Number.isFinite(numeric)) return String(value);
+    // Small values keep their exact form in every mode.
+    if (numeric >= -1000 && numeric <= 1000) return String(numeric);
 
     switch (getNumberFormat()) {
         case "suffix":

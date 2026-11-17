@@ -210,20 +210,20 @@
     optionsContent.appendChild(debugFilterButton);
 
     const numberFormatRow = document.createElement('label');
-    numberFormatRow.className = 'numberformatrow';
+    numberFormatRow.className = 'habitsetting numberformatrow';
     numberFormatRow.setAttribute(
         'data-tooltip',
         'Format of all displayed numbers except percentages.'
     );
 
     const numberFormatLabel = document.createElement('span');
-    numberFormatLabel.className = 'numberformatlabel';
+    numberFormatLabel.className = 'habitname';
     numberFormatLabel.innerText = 'Number format:';
     numberFormatRow.appendChild(numberFormatLabel);
 
     const numberFormatSelect = document.createElement('select');
     numberFormatSelect.id = 'numberformatselect';
-    numberFormatSelect.className = 'numberformatselect';
+    numberFormatSelect.className = 'habitselect numberformatselect';
     NUMBER_FORMAT_OPTIONS.forEach(function (optionDefinition) {
         const option = document.createElement('option');
         option.value = optionDefinition.value;
