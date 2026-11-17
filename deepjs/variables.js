@@ -162,7 +162,7 @@ const SURVIVAL_101_TECHNOLOGY = new Technology(
     null,
     9,
     [
-        "Unlocks the Make strings action and Strings resources.",
+        "Unlocks the Make fibers action.",
         "Unlocks building the Campfire.",
         "Unlocks crafting the stick kebob.",
         "Unlocks leaf shirt, leaf trousers, leaf leggings and leaf boots.",
@@ -240,7 +240,7 @@ const CONTENT_UNLOCK_REQUIREMENTS = Object.freeze({
     "building:campfire": Object.freeze({ technology: "survival101", level: 2 }),
     "building:tent": Object.freeze({ technology: "survival101", level: 9 }),
     "building:leaf-bedroll": Object.freeze({ technology: "survival101", level: 9 }),
-    "action:makestrings": Object.freeze({ technology: "survival101", level: 1 }),
+    "action:makefibers": Object.freeze({ technology: "survival101", level: 1 }),
     // Buildings technology: houses
     "building:stone-house": Object.freeze({ technology: "buildings", level: 1 }),
     "building:log-cabin": Object.freeze({ technology: "buildings", level: 2 }),

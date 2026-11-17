@@ -54,6 +54,7 @@ const CRAFT_GROUP_NAMES = Object.freeze({
     pots: "Pots",
     pans: "Pans",
     sauces: "Sauces",
+    italian: "Italian",
     other: "Other",
 });
 
@@ -200,6 +201,11 @@ const SAUCE_PAPRIKA_ID = 3059;
 const SAUCE_PARSLEY_ROOT_ID = 4061;
 const SAUCE_SESAME_ID = 4121;
 
+const ITALIAN_RICE_ID = 4105;
+const ITALIAN_POTATO_ID = 4002;
+const ITALIAN_WHEAT_FLOUR_ID = getFlourResourceIdForSeed(4101);
+const ITALIAN_MAIZE_FLOUR_ID = getFlourResourceIdForSeed(4110);
+
 // Sauces are cold-mixed, so they only need ingredients and an oil of choice.
 // The chosen oil carries its own potential bonus into the finished sauce.
 function createSauceRecipe(id, itemId, resources, options) {
@@ -238,8 +244,7 @@ function createSauceRecipe(id, itemId, resources, options) {
     return Object.freeze(recipe);
 }
 
-const SAUCE_RECIPES = Object.freeze([
-    createSauceRecipe("mayonnaise", ITEM_IDS.MAYONNAISE, [
+const SAUCE_RECIPES = Object.freeze([    createSauceRecipe("mayonnaise", ITEM_IDS.MAYONNAISE, [
         [RESOURCE_IDS.EGG, 2], [RESOURCE_IDS.LEMONS, 1],
     ]),
     createSauceRecipe("ketchup", ITEM_IDS.KETCHUP, [
@@ -331,6 +336,116 @@ const SAUCE_RECIPES = Object.freeze([
     createSauceRecipe("apple", ITEM_IDS.APPLE_SAUCE, [
         [RESOURCE_IDS.APPLES, 3], [RESOURCE_IDS.SUGAR, 1], [RESOURCE_IDS.LEMONS, 1],
     ], { oil: false }),
+]);
+
+// Italian dishes. Boiled pasta, rice and polenta need a pot, water and a
+// campfire; pizza needs the fire; frittata needs a frying pan.
+function createItalianDishRecipe(id, itemId, resources, options) {
+    const settings = options || {};
+    const recipe = {
+        id: "italian-" + id,
+        category: "food",
+        itemId: itemId,
+        skill: "cooking",
+        stat: "sou",
+        group: "italian",
+        resultNameSuffix: "",
+        resources: Object.freeze(resources.map(function (resource) {
+            return Object.freeze({
+                resourceId: resource[0],
+                amount: resource[1],
+            });
+        })),
+    };
+
+    if (settings.oil !== false) {
+        recipe.choiceResourceIds = OIL_RESOURCE_IDS;
+        recipe.choiceAmount = 1;
+        recipe.choiceLabel = "Choose oil:";
+    }
+    if (settings.itemChoiceId != null) {
+        recipe.itemChoice = Object.freeze({
+            itemId: settings.itemChoiceId,
+            label: settings.itemLabel || "Choose ingredient:",
+        });
+    }
+    if (settings.stations === true) {
+        recipe.requiresEquippedSlot = "pot";
+        recipe.requiresWater = true;
+        recipe.requiresCampfire = true;
+    }
+    if (settings.campfire === true) {
+        recipe.requiresCampfire = true;
+    }
+    if (settings.pan === true) {
+        recipe.requiresEquippedSlot = "pan";
+        recipe.requiresCampfire = true;
+    }
+
+    return Object.freeze(recipe);
+}
+
+const ITALIAN_DISH_RECIPES = Object.freeze([
+    createItalianDishRecipe("spaghetti-aglio-e-olio", ITEM_IDS.SPAGHETTI_AGLIO_E_OLIO, [
+        [SAUCE_GARLIC_ID, 2], [SAUCE_CHILI_ID, 1],
+    ], { itemChoiceId: ITEM_IDS.RAW_SPAGHETTI, itemLabel: "Choose spaghetti:", stations: true }),
+    createItalianDishRecipe("spaghetti-carbonara", ITEM_IDS.SPAGHETTI_CARBONARA, [
+        [RESOURCE_IDS.EGG, 2], [RESOURCE_IDS.CHICKEN_MEAT, 2], [SAUCE_GARLIC_ID, 1],
+    ], { itemChoiceId: ITEM_IDS.RAW_SPAGHETTI, itemLabel: "Choose spaghetti:", stations: true }),
+    createItalianDishRecipe("spaghetti-bolognese", ITEM_IDS.SPAGHETTI_BOLOGNESE, [
+        [SAUCE_TOMATO_ID, 3], [RESOURCE_IDS.CHICKEN_MEAT, 2], [SAUCE_ONION_ID, 1],
+    ], { itemChoiceId: ITEM_IDS.RAW_SPAGHETTI, itemLabel: "Choose spaghetti:", stations: true }),
+    createItalianDishRecipe("penne-arrabbiata", ITEM_IDS.PENNE_ARABBIATA, [
+        [SAUCE_TOMATO_ID, 3], [SAUCE_CHILI_ID, 2], [SAUCE_GARLIC_ID, 2],
+    ], { itemChoiceId: ITEM_IDS.PENNE, itemLabel: "Choose penne:", stations: true }),
+    createItalianDishRecipe("linguine-pesto", ITEM_IDS.LINGUINE_PESTO, [
+        [SAUCE_WILD_BASIL_ID, 3], [RESOURCE_IDS.PINE_NUTS, 2], [SAUCE_GARLIC_ID, 1],
+    ], { itemChoiceId: ITEM_IDS.LINGUINE, itemLabel: "Choose linguine:", stations: true }),
+    createItalianDishRecipe("rigatoni-marinara", ITEM_IDS.RIGATONI_MARINARA, [
+        [SAUCE_TOMATO_ID, 4], [SAUCE_GARLIC_ID, 2], [SAUCE_OREGANO_ID, 1],
+    ], { itemChoiceId: ITEM_IDS.RIGATONI, itemLabel: "Choose rigatoni:", stations: true }),
+    createItalianDishRecipe("fettuccine-alfredo", ITEM_IDS.FETTUCCINE_ALFREDO, [
+        [RESOURCE_IDS.EGG, 2], [SAUCE_GARLIC_ID, 2],
+    ], { itemChoiceId: ITEM_IDS.FETTUCCINE, itemLabel: "Choose fettuccine:", stations: true }),
+    createItalianDishRecipe("lasagne", ITEM_IDS.LASAGNE, [
+        [SAUCE_TOMATO_ID, 4], [RESOURCE_IDS.CHICKEN_MEAT, 3], [SAUCE_ONION_ID, 2],
+    ], { itemChoiceId: ITEM_IDS.LASAGNE_SHEETS, itemLabel: "Choose lasagne sheets:", stations: true }),
+    createItalianDishRecipe("ravioli", ITEM_IDS.RAVIOLI_DISH, [
+        [RESOURCE_IDS.BUTTON_MUSHROOM, 3], [SAUCE_GARLIC_ID, 1], [SAUCE_OREGANO_ID, 1],
+    ], { itemChoiceId: ITEM_IDS.RAVIOLI, itemLabel: "Choose ravioli:", stations: true }),
+    createItalianDishRecipe("tortellini", ITEM_IDS.TORTELLINI_DISH, [
+        [RESOURCE_IDS.CHICKEN_MEAT, 2], [RESOURCE_IDS.EGG, 1], [SAUCE_GARLIC_ID, 1],
+    ], { itemChoiceId: ITEM_IDS.TORTELLINI, itemLabel: "Choose tortellini:", stations: true }),
+    createItalianDishRecipe("macaroni-bake", ITEM_IDS.MACARONI_BAKE, [
+        [SAUCE_TOMATO_ID, 3], [RESOURCE_IDS.CHICKEN_MEAT, 2], [SAUCE_OREGANO_ID, 1],
+    ], { itemChoiceId: ITEM_IDS.MACARONI, itemLabel: "Choose macaroni:", stations: true }),
+    createItalianDishRecipe("gnocchi", ITEM_IDS.GNOCCHI, [
+        [ITALIAN_POTATO_ID, 3], [ITALIAN_WHEAT_FLOUR_ID, 2], [RESOURCE_IDS.EGG, 1],
+    ], { stations: true }),
+    createItalianDishRecipe("risotto", ITEM_IDS.RISOTTO, [
+        [ITALIAN_RICE_ID, 3], [RESOURCE_IDS.BUTTON_MUSHROOM, 2], [SAUCE_ONION_ID, 1],
+    ], { stations: true }),
+    createItalianDishRecipe("polenta", ITEM_IDS.POLENTA, [
+        [ITALIAN_MAIZE_FLOUR_ID, 3],
+    ], { stations: true }),
+    createItalianDishRecipe("pizza-margherita", ITEM_IDS.PIZZA_MARGHERITA, [
+        [SAUCE_TOMATO_ID, 2], [SAUCE_OREGANO_ID, 1],
+    ], { itemChoiceId: ITEM_IDS.FLAT_BREAD, itemLabel: "Choose flat bread:", campfire: true }),
+    createItalianDishRecipe("bruschetta", ITEM_IDS.BRUSCHETTA, [
+        [SAUCE_TOMATO_ID, 2], [SAUCE_GARLIC_ID, 1],
+    ], { itemChoiceId: ITEM_IDS.TOAST_BREAD, itemLabel: "Choose toast bread:" }),
+    createItalianDishRecipe("caprese", ITEM_IDS.CAPRESE_SALAD, [
+        [SAUCE_TOMATO_ID, 3], [SAUCE_WILD_BASIL_ID, 3],
+    ]),
+    createItalianDishRecipe("panzanella", ITEM_IDS.PANZANELLA, [
+        [SAUCE_TOMATO_ID, 2], [SAUCE_CUCUMBER_ID, 1], [SAUCE_WILD_BASIL_ID, 1],
+    ], { itemChoiceId: ITEM_IDS.BREAD, itemLabel: "Choose bread:" }),
+    createItalianDishRecipe("arancini", ITEM_IDS.ARANCINI, [
+        [ITALIAN_RICE_ID, 2], [RESOURCE_IDS.EGG, 1],
+    ], { itemChoiceId: ITEM_IDS.BREAD, itemLabel: "Choose bread for crumbs:", stations: true }),
+    createItalianDishRecipe("frittata", ITEM_IDS.FRITTATA, [
+        [RESOURCE_IDS.EGG, 3], [SAUCE_BELL_PEPPER_ID, 1], [SAUCE_ONION_ID, 1],
+    ], { pan: true }),
 ]);
 
 // Flour-and-water cooking recipes: one flour of choice plus water on the tile.
@@ -773,6 +888,7 @@ const CRAFT_RECIPES = Object.freeze([
     createLeafClothingRecipe("boots", ITEM_IDS.LEAF_BOOTS),
     createLeafClothingRecipe("anklet-i", ITEM_IDS.LEAF_ANKLET_I),
     ...SAUCE_RECIPES,
+    ...ITALIAN_DISH_RECIPES,
     ...METAL_VARIANT_RECIPES,
 ]);
 

@@ -537,7 +537,6 @@ const RESOURCE_IDS = Object.freeze({
     BIG_MOB_SPIRIT: 6111,
     GRAND_MOB_SPIRIT: 6112,
     SUGAR: 6113,
-    STRINGS: 6114,
     EGG: 6115,
 });
 
@@ -622,7 +621,6 @@ const RESOURCE_DEFS = {
     [RESOURCE_IDS.BIG_MOB_SPIRIT]: { name: "Big mob spirit", weight: 0.1, unitType: "kg", description: "A powerful big mob spirit.", category: RESOURCE_CATEGORIES.Intermediate, wizardy: true, mobSpirit: true },
     [RESOURCE_IDS.GRAND_MOB_SPIRIT]: { name: "Grand mob spirit", weight: 0.1, unitType: "kg", description: "A grand mob spirit of immense power.", category: RESOURCE_CATEGORIES.Intermediate, wizardy: true, mobSpirit: true },
     [RESOURCE_IDS.SUGAR]: { name: "Sugar", weight: 0.1, unitType: "kg", description: "Sweet white crystals ground from sugarcane or beetroot.", category: RESOURCE_CATEGORIES.Intermediate, sweets: true },
-    [RESOURCE_IDS.STRINGS]: { name: "Strings", weight: 0.01, unitType: "kg", description: "Thin twisted cords made from fibers. The first step of every rope.", category: RESOURCE_CATEGORIES.Intermediate },
     [RESOURCE_IDS.ROCKS]: { name: "Rocks", weight: 2, unitType: "", description: "Common rocks which can be founded everywhere. Yeah it's somewhat heavy", category: RESOURCE_CATEGORIES.Raw },
     [RESOURCE_IDS.BRANCHES]: { name: "Branches", weight: 0.5, unitType: "", description: "just light version of branch", category: RESOURCE_CATEGORIES.Raw },
     [RESOURCE_IDS.STICKS]: { name: "Sticks", weight: 2, unitType: "", description: "A big stick", category: RESOURCE_CATEGORIES.Raw },
@@ -1879,12 +1877,6 @@ const FIBER_STAMINA_PER_BATCH = 3;
 const FIBER_SURVIVAL_EXP = 5;
 const FIBER_ROPEMAKING_EXP = 3;
 const FIBER_TAILORING_EXP = 2;
-// "Make strings" action: 1 fiber becomes 1 string per effectiveness unit.
-const STRINGS_FIBERS_PER_BATCH = 1;
-const STRINGS_OUTPUT_PER_BATCH = 1;
-const STRINGS_STAMINA_PER_BATCH = 1;
-const STRINGS_ROPEMAKING_EXP = 5;
-const STRINGS_AGI_EXP = 0.5;
 // "Make shafts" action: 1 stick -> 1 shaft per effectiveness unit.
 const SHAFT_STICKS_PER_BATCH = 1;
 const SHAFT_OUTPUT_PER_BATCH = 1;

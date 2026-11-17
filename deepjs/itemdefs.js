@@ -123,6 +123,26 @@ const ITEM_IDS = Object.freeze({
     AVOCADO_SAUCE: ITEM_ID_BASE + 113,
     POMEGRANATE_SAUCE: ITEM_ID_BASE + 114,
     APPLE_SAUCE: ITEM_ID_BASE + 115,
+    SPAGHETTI_AGLIO_E_OLIO: ITEM_ID_BASE + 116,
+    SPAGHETTI_CARBONARA: ITEM_ID_BASE + 117,
+    SPAGHETTI_BOLOGNESE: ITEM_ID_BASE + 118,
+    PENNE_ARABBIATA: ITEM_ID_BASE + 119,
+    LINGUINE_PESTO: ITEM_ID_BASE + 120,
+    RIGATONI_MARINARA: ITEM_ID_BASE + 121,
+    FETTUCCINE_ALFREDO: ITEM_ID_BASE + 122,
+    LASAGNE: ITEM_ID_BASE + 123,
+    RAVIOLI_DISH: ITEM_ID_BASE + 124,
+    TORTELLINI_DISH: ITEM_ID_BASE + 125,
+    MACARONI_BAKE: ITEM_ID_BASE + 126,
+    GNOCCHI: ITEM_ID_BASE + 127,
+    RISOTTO: ITEM_ID_BASE + 128,
+    POLENTA: ITEM_ID_BASE + 129,
+    PIZZA_MARGHERITA: ITEM_ID_BASE + 130,
+    BRUSCHETTA: ITEM_ID_BASE + 131,
+    CAPRESE_SALAD: ITEM_ID_BASE + 132,
+    PANZANELLA: ITEM_ID_BASE + 133,
+    ARANCINI: ITEM_ID_BASE + 134,
+    FRITTATA: ITEM_ID_BASE + 135,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -599,6 +619,50 @@ SAUCE_ITEM_DEFINITIONS.forEach(function (sauce) {
     });
 });
 
+// Italian dishes use the raw pasta items, breads, sauces, oils and garden
+// produce that already exist in the game. No invented cheese or cured meat is
+// required, so every recipe can be cooked from current resources.
+const ITALIAN_DISH_ITEM_DEFINITIONS = Object.freeze([
+    Object.freeze({ id: ITEM_IDS.SPAGHETTI_AGLIO_E_OLIO, name: "Spaghetti Aglio e Olio", icon: "spaghettiaglio", hunger: 110, description: "Spaghetti tossed with garlic, chili and good oil. A late-night Roman classic." }),
+    Object.freeze({ id: ITEM_IDS.SPAGHETTI_CARBONARA, name: "Spaghetti Carbonara", icon: "spaghetticarbonara", hunger: 150, description: "Spaghetti coated in egg, meat, garlic and oil. Roman comfort without cream." }),
+    Object.freeze({ id: ITEM_IDS.SPAGHETTI_BOLOGNESE, name: "Spaghetti Bolognese", icon: "spaghettibolognese", hunger: 160, description: "Spaghetti under a thick tomato and meat sauce from Bologna." }),
+    Object.freeze({ id: ITEM_IDS.PENNE_ARABBIATA, name: "Penne Arrabbiata", icon: "pennearrabbiata", hunger: 120, description: "Penne in a fiery tomato, garlic and chili sauce. Angry on purpose." }),
+    Object.freeze({ id: ITEM_IDS.LINGUINE_PESTO, name: "Linguine al Pesto", icon: "linguinepesto", hunger: 130, description: "Linguine folded through vivid basil, pine nut and garlic pesto. Genoese green." }),
+    Object.freeze({ id: ITEM_IDS.RIGATONI_MARINARA, name: "Rigatoni Marinara", icon: "rigatonimarinara", hunger: 125, description: "Ridged rigatoni in a simple tomato, garlic and oregano sauce." }),
+    Object.freeze({ id: ITEM_IDS.FETTUCCINE_ALFREDO, name: "Fettuccine Alfredo", icon: "fettuccinealfredo", hunger: 140, description: "Ribbons of fettuccine in a pale garlic, egg and oil sauce." }),
+    Object.freeze({ id: ITEM_IDS.LASAGNE, name: "Lasagne", icon: "lasagne", hunger: 180, description: "Layered pasta sheets with tomato, meat and onion. A patient oven dish." }),
+    Object.freeze({ id: ITEM_IDS.RAVIOLI_DISH, name: "Ravioli", icon: "raviolidish", hunger: 145, description: "Pasta parcels filled with mushrooms and herbs, dressed with oil." }),
+    Object.freeze({ id: ITEM_IDS.TORTELLINI_DISH, name: "Tortellini", icon: "tortellinidish", hunger: 140, description: "Folded pasta rings filled with meat and egg, finished with oil." }),
+    Object.freeze({ id: ITEM_IDS.MACARONI_BAKE, name: "Macaroni Bake", icon: "macaronibake", hunger: 150, description: "Macaroni baked with tomato, meat and oregano. Italian home comfort." }),
+    Object.freeze({ id: ITEM_IDS.GNOCCHI, name: "Gnocchi", icon: "gnocchi", hunger: 130, description: "Soft potato and flour dumplings tossed in oil. Northern Italian warmth." }),
+    Object.freeze({ id: ITEM_IDS.RISOTTO, name: "Risotto", icon: "risotto", hunger: 140, description: "Creamy rice slowly cooked with mushrooms, onion and oil. Lombard patience." }),
+    Object.freeze({ id: ITEM_IDS.POLENTA, name: "Polenta", icon: "polenta", hunger: 120, description: "Golden maize porridge stirred until thick, then dressed with oil." }),
+    Object.freeze({ id: ITEM_IDS.PIZZA_MARGHERITA, name: "Pizza Margherita", icon: "pizzamargherita", hunger: 160, description: "Flat bread topped with tomato, oregano and oil. Naples in miniature." }),
+    Object.freeze({ id: ITEM_IDS.BRUSCHETTA, name: "Bruschetta", icon: "bruschetta", hunger: 90, description: "Toasted bread rubbed with garlic and piled with tomato and oil." }),
+    Object.freeze({ id: ITEM_IDS.CAPRESE_SALAD, name: "Caprese Salad", icon: "caprese", hunger: 80, description: "Tomato and basil dressed with oil. A cool southern Italian starter." }),
+    Object.freeze({ id: ITEM_IDS.PANZANELLA, name: "Panzanella", icon: "panzanella", hunger: 100, description: "Torn bread, tomato, cucumber and basil in an oil dressing. Tuscan thrift." }),
+    Object.freeze({ id: ITEM_IDS.ARANCINI, name: "Arancini", icon: "arancini", hunger: 140, description: "Rice and egg balls rolled in bread crumbs and fried in oil. Sicilian street food." }),
+    Object.freeze({ id: ITEM_IDS.FRITTATA, name: "Frittata", icon: "frittata", hunger: 130, description: "Eggs, pepper and onion cooked in a pan with oil. Italian skillet supper." }),
+]);
+
+const ITALIAN_DISH_ITEM_DEFS = {};
+ITALIAN_DISH_ITEM_DEFINITIONS.forEach(function (dish) {
+    ITALIAN_DISH_ITEM_DEFS[dish.id] = Object.freeze({
+        id: dish.id,
+        name: dish.name,
+        kind: ITEM_KINDS.Consumable,
+        stackable: false,
+        weight: 0.5,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: dish.icon,
+        primaryStat: "sou",
+        food: Object.freeze({ hungerRestore: dish.hunger }),
+        description: dish.description,
+    });
+});
+
 function getItemWeaponSkill(item) {
     if (!item) return null;
 
@@ -957,6 +1021,7 @@ METAL_PAN_METALS.forEach(function (metal) {
 const ITEM_DEFS = Object.freeze({
     ...PASTA_ITEM_DEFS,
     ...SAUCE_ITEM_DEFS,
+    ...ITALIAN_DISH_ITEM_DEFS,
     [ITEM_IDS.HANDY_STICK]: createForagingToolDefinition(
         ITEM_IDS.HANDY_STICK, "Handy Stick", "handystick",
         { type: "digging", power: 1 },
