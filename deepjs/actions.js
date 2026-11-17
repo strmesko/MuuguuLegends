@@ -369,6 +369,32 @@ const ACTIONS = [
         run: runGrindFlourProduction,
     },
     {
+        id: "pressoil",
+        label: "Press Oil",
+        tags: ["Production"],
+        description: "Press oil-bearing seeds and olives with an Oil press.<br>Every 10 seconds, 1 of each available oilseed or olive becomes its oil. Only types you currently have are processed. Trains Cooking and Vitality.",
+        kind: ACTION_KIND.Timed,
+        initialState: Activity.Idle,
+        startMessage: "You start pressing oil",
+        stopMessage: "You stop pressing oil",
+        isVisible: function () {
+            return typeof hasOilPress === "function"
+                && hasOilPress()
+                && getEffectiveLevel("cooking") >= 1
+                && typeof hasOilSourceResources === "function"
+                && hasOilSourceResources()
+                && player.stamina >= getOilPressStaminaPerSecond();
+        },
+        isComplete: function () {
+            return typeof hasOilPress !== "function"
+                || !hasOilPress()
+                || typeof hasOilSourceResources !== "function"
+                || !hasOilSourceResources();
+        },
+        completeMessage: "You have no oilseeds or olives left to press",
+        run: runPressOilProduction,
+    },
+    {
         id: "makesugarfromsugarcane",
         label: "Make sugar from sugarcane",
         tags: ["Production"],

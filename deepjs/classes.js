@@ -1285,6 +1285,63 @@ CROP_DEFS.forEach(function (plant, index) {
 
 Object.freeze(FLOUR_RESOURCE_IDS);
 Object.freeze(FLOUR_RESOURCE_IDS_BY_SEED);
+
+// Oils are pressed from oil-bearing crops and olives. Every oil carries its
+// own fixed potential bonus, which sauces inherit through the crafting
+// ingredient pipeline instead of a random food stat binding.
+const OIL_RESOURCE_ID_BASE = 6201;
+const OIL_RESOURCE_IDS = [];
+const OIL_RESOURCE_IDS_BY_SOURCE = {};
+const OIL_SOURCE_RESOURCE_IDS = [];
+
+const OIL_SOURCE_DEFINITIONS = [
+    { plant: "Rapeseed", name: "Rapeseed oil", bonus: { vit: 2 }, flavour: "earthy and peppery" },
+    { plant: "Flax", name: "Flax oil", bonus: { int: 2 }, flavour: "nutty and delicate" },
+    { plant: "Sunflower", name: "Sunflower oil", bonus: { sou: 2 }, flavour: "light and sunny" },
+    { plant: "Safflower", name: "Safflower oil", bonus: { agi: 2 }, flavour: "clean and mild" },
+    { plant: "Sesame", name: "Sesame oil", bonus: { per: 2 }, flavour: "deeply toasted" },
+    { plant: "Hemp", name: "Hemp oil", bonus: { str: 2 }, flavour: "green and robust" },
+    { plant: "Chia", name: "Chia oil", bonus: { ins: 2 }, flavour: "soft and herbal" },
+    { plant: "Maize", name: "Maize oil", bonus: { luck: 2 }, flavour: "sweet and golden" },
+    { sourceId: RESOURCE_IDS.OLIVES, name: "Olive oil", bonus: { sou: 1, vit: 1 }, flavour: "fruity and rich" },
+];
+
+OIL_SOURCE_DEFINITIONS.forEach(function (entry, index) {
+    const sourceId = entry.sourceId != null
+        ? entry.sourceId
+        : getPlantResourceId(entry.plant);
+    if (sourceId == null) return;
+
+    const oilId = OIL_RESOURCE_ID_BASE + index;
+    RESOURCE_DEFS[oilId] = {
+        name: entry.name,
+        weight: 0.25,
+        unitType: "kg",
+        description: "Cold-pressed " + entry.name.toLowerCase()
+            + ". " + entry.flavour.charAt(0).toUpperCase()
+            + entry.flavour.slice(1) + ".",
+        category: RESOURCE_CATEGORIES.Intermediate,
+        oil: true,
+        potentialBonuses: Object.freeze(entry.bonus),
+    };
+
+    OIL_RESOURCE_IDS.push(oilId);
+    OIL_SOURCE_RESOURCE_IDS.push(sourceId);
+    OIL_RESOURCE_IDS_BY_SOURCE[sourceId] = oilId;
+});
+
+Object.freeze(OIL_RESOURCE_IDS);
+Object.freeze(OIL_RESOURCE_IDS_BY_SOURCE);
+Object.freeze(OIL_SOURCE_RESOURCE_IDS);
+
+function isOilResource(resourceId) {
+    return OIL_RESOURCE_IDS.indexOf(Number(resourceId)) !== -1;
+}
+
+function getOilResourceIdForSource(sourceId) {
+    return OIL_RESOURCE_IDS_BY_SOURCE[Number(sourceId)] || null;
+}
+
 Object.freeze(VEGETABLE_RESOURCE_IDS);
 Object.freeze(CROP_RESOURCE_IDS);
 

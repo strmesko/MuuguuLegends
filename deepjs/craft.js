@@ -53,6 +53,7 @@ const CRAFT_GROUP_NAMES = Object.freeze({
     cutlery: "Cutlery",
     pots: "Pots",
     pans: "Pans",
+    sauces: "Sauces",
     other: "Other",
 });
 
@@ -176,6 +177,161 @@ const MEAT_RESOURCE_IDS = Object.freeze(
             return !!definition && definition.meat === true;
         })
 );
+
+// Generated vegetable, crop and herb ids are deterministic, but they have no
+// named constants. These aliases keep the sauce recipes readable.
+const SAUCE_TOMATO_ID = 4003;
+const SAUCE_ONION_ID = 4018;
+const SAUCE_GARLIC_ID = 4019;
+const SAUCE_CUCUMBER_ID = 4004;
+const SAUCE_BELL_PEPPER_ID = 4024;
+const SAUCE_GREEN_PEAS_ID = 4025;
+const SAUCE_OREGANO_ID = 3002;
+const SAUCE_WILD_BASIL_ID = 3003;
+const SAUCE_MINT_ID = 3007;
+const SAUCE_DILL_ID = 3046;
+const SAUCE_CORIANDER_ID = 3047;
+const SAUCE_CUMIN_ID = 3048;
+const SAUCE_CHILI_ID = 3049;
+const SAUCE_TURMERIC_ID = 3051;
+const SAUCE_GINGER_ID = 3052;
+const SAUCE_MUSTARD_ID = 3055;
+const SAUCE_PAPRIKA_ID = 3059;
+const SAUCE_PARSLEY_ROOT_ID = 4061;
+const SAUCE_SESAME_ID = 4121;
+
+// Sauces are cold-mixed, so they only need ingredients and an oil of choice.
+// The chosen oil carries its own potential bonus into the finished sauce.
+function createSauceRecipe(id, itemId, resources, options) {
+    const recipe = {
+        id: "sauce-" + id,
+        category: "food",
+        itemId: itemId,
+        skill: "cooking",
+        stat: "sou",
+        group: "sauces",
+        resultNameSuffix: "",
+        resources: Object.freeze(resources.map(function (resource) {
+            return Object.freeze({
+                resourceId: resource[0],
+                amount: resource[1],
+            });
+        })),
+    };
+
+    const settings = options || {};
+    if (settings.oil !== false) {
+        recipe.choiceResourceIds = OIL_RESOURCE_IDS;
+        recipe.choiceAmount = 1;
+        recipe.choiceLabel = "Choose oil:";
+    }
+    if (settings.itemId != null) {
+        recipe.itemChoice = Object.freeze({
+            itemId: settings.itemId,
+            label: settings.itemLabel || "Choose ingredient:",
+        });
+    }
+    if (settings.requiresWater === true) {
+        recipe.requiresWater = true;
+    }
+
+    return Object.freeze(recipe);
+}
+
+const SAUCE_RECIPES = Object.freeze([
+    createSauceRecipe("mayonnaise", ITEM_IDS.MAYONNAISE, [
+        [RESOURCE_IDS.EGG, 2], [RESOURCE_IDS.LEMONS, 1],
+    ]),
+    createSauceRecipe("ketchup", ITEM_IDS.KETCHUP, [
+        [SAUCE_TOMATO_ID, 3], [RESOURCE_IDS.SUGAR, 1], [RESOURCE_IDS.LEMONS, 1],
+    ], { oil: false }),
+    createSauceRecipe("mustard", ITEM_IDS.MUSTARD_SAUCE, [
+        [SAUCE_MUSTARD_ID, 2], [RESOURCE_IDS.ROCKSALT, 1],
+    ], { oil: false, requiresWater: true }),
+    createSauceRecipe("pesto", ITEM_IDS.PESTO, [
+        [SAUCE_WILD_BASIL_ID, 3], [RESOURCE_IDS.PINE_NUTS, 2], [SAUCE_GARLIC_ID, 1],
+    ]),
+    createSauceRecipe("carbonara", ITEM_IDS.CARBONARA_SAUCE, [
+        [RESOURCE_IDS.EGG, 2], [RESOURCE_IDS.CHICKEN_MEAT, 2], [SAUCE_GARLIC_ID, 1],
+    ]),
+    createSauceRecipe("aioli", ITEM_IDS.AIOLI, [
+        [SAUCE_GARLIC_ID, 3], [RESOURCE_IDS.EGG, 1], [RESOURCE_IDS.LEMONS, 1],
+    ]),
+    createSauceRecipe("tartar", ITEM_IDS.TARTAR_SAUCE, [
+        [SAUCE_CUCUMBER_ID, 2], [SAUCE_DILL_ID, 2], [RESOURCE_IDS.LEMONS, 1],
+    ], { itemId: ITEM_IDS.MAYONNAISE, itemLabel: "Choose mayonnaise:" }),
+    createSauceRecipe("tzatziki", ITEM_IDS.TZATZIKI, [
+        [SAUCE_CUCUMBER_ID, 2], [SAUCE_GARLIC_ID, 2], [SAUCE_MINT_ID, 1],
+    ]),
+    createSauceRecipe("marinara", ITEM_IDS.MARINARA_SAUCE, [
+        [SAUCE_TOMATO_ID, 4], [SAUCE_GARLIC_ID, 2], [SAUCE_OREGANO_ID, 2],
+    ]),
+    createSauceRecipe("bolognese", ITEM_IDS.BOLOGNESE_SAUCE, [
+        [SAUCE_TOMATO_ID, 4], [RESOURCE_IDS.CHICKEN_MEAT, 3], [SAUCE_ONION_ID, 2],
+    ]),
+    createSauceRecipe("arrabbiata", ITEM_IDS.ARRABBIATA_SAUCE, [
+        [SAUCE_TOMATO_ID, 4], [SAUCE_CHILI_ID, 2], [SAUCE_GARLIC_ID, 2],
+    ]),
+    createSauceRecipe("alfredo", ITEM_IDS.ALFREDO_SAUCE, [
+        [SAUCE_GARLIC_ID, 3], [RESOURCE_IDS.EGG, 2], [SAUCE_WILD_BASIL_ID, 1],
+    ]),
+    createSauceRecipe("pesto-rosso", ITEM_IDS.PESTO_ROSSO, [
+        [SAUCE_TOMATO_ID, 3], [RESOURCE_IDS.ALMONDS, 2], [SAUCE_GARLIC_ID, 1],
+    ]),
+    createSauceRecipe("salsa-verde", ITEM_IDS.SALSA_VERDE, [
+        [SAUCE_WILD_BASIL_ID, 3], [SAUCE_GARLIC_ID, 2], [RESOURCE_IDS.LEMONS, 1],
+    ]),
+    createSauceRecipe("chimichurri", ITEM_IDS.CHIMICHURRI, [
+        [SAUCE_OREGANO_ID, 3], [SAUCE_PARSLEY_ROOT_ID, 3],
+        [SAUCE_GARLIC_ID, 3], [RESOURCE_IDS.LEMONS, 1],
+    ]),
+    createSauceRecipe("romesco", ITEM_IDS.ROMESCO, [
+        [SAUCE_TOMATO_ID, 3], [RESOURCE_IDS.ALMONDS, 3], [SAUCE_GARLIC_ID, 2],
+    ]),
+    createSauceRecipe("tahini", ITEM_IDS.TAHINI, [
+        [SAUCE_SESAME_ID, 4], [RESOURCE_IDS.LEMONS, 1],
+    ]),
+    createSauceRecipe("hummus", ITEM_IDS.HUMMUS, [
+        [SAUCE_GREEN_PEAS_ID, 4], [SAUCE_SESAME_ID, 3],
+        [SAUCE_GARLIC_ID, 2], [RESOURCE_IDS.LEMONS, 1],
+    ]),
+    createSauceRecipe("satay", ITEM_IDS.SATAY_SAUCE, [
+        [RESOURCE_IDS.PINE_NUTS, 3], [SAUCE_CHILI_ID, 2], [RESOURCE_IDS.SUGAR, 1],
+    ]),
+    createSauceRecipe("teriyaki", ITEM_IDS.TERIYAKI_SAUCE, [
+        [RESOURCE_IDS.SUGAR, 2], [SAUCE_GARLIC_ID, 2], [SAUCE_GINGER_ID, 1],
+    ]),
+    createSauceRecipe("sweet-chili", ITEM_IDS.SWEET_CHILI_SAUCE, [
+        [SAUCE_CHILI_ID, 3], [RESOURCE_IDS.SUGAR, 2], [RESOURCE_IDS.LEMONS, 1],
+    ]),
+    createSauceRecipe("bbq", ITEM_IDS.BBQ_SAUCE, [
+        [SAUCE_TOMATO_ID, 3], [RESOURCE_IDS.SUGAR, 2], [SAUCE_PAPRIKA_ID, 1],
+    ]),
+    createSauceRecipe("honey-mustard", ITEM_IDS.HONEY_MUSTARD_SAUCE, [
+        [SAUCE_MUSTARD_ID, 2], [RESOURCE_IDS.SUGAR, 2],
+    ]),
+    createSauceRecipe("garlic-herb", ITEM_IDS.GARLIC_HERB_SAUCE, [
+        [SAUCE_GARLIC_ID, 3], [SAUCE_WILD_BASIL_ID, 2], [SAUCE_OREGANO_ID, 2],
+    ]),
+    createSauceRecipe("curry", ITEM_IDS.CURRY_SAUCE, [
+        [SAUCE_TURMERIC_ID, 2], [SAUCE_CUMIN_ID, 2], [SAUCE_CORIANDER_ID, 2],
+    ]),
+    createSauceRecipe("mushroom", ITEM_IDS.MUSHROOM_SAUCE, [
+        [RESOURCE_IDS.BUTTON_MUSHROOM, 3], [SAUCE_GARLIC_ID, 2],
+    ]),
+    createSauceRecipe("pepper", ITEM_IDS.PEPPER_SAUCE, [
+        [SAUCE_BELL_PEPPER_ID, 3], [SAUCE_GARLIC_ID, 2],
+    ]),
+    createSauceRecipe("avocado", ITEM_IDS.AVOCADO_SAUCE, [
+        [RESOURCE_IDS.AVOCADOS, 2], [RESOURCE_IDS.LEMONS, 1], [SAUCE_MINT_ID, 2],
+    ]),
+    createSauceRecipe("pomegranate", ITEM_IDS.POMEGRANATE_SAUCE, [
+        [RESOURCE_IDS.POMEGRANATES, 3], [RESOURCE_IDS.SUGAR, 1], [RESOURCE_IDS.LEMONS, 1],
+    ], { oil: false }),
+    createSauceRecipe("apple", ITEM_IDS.APPLE_SAUCE, [
+        [RESOURCE_IDS.APPLES, 3], [RESOURCE_IDS.SUGAR, 1], [RESOURCE_IDS.LEMONS, 1],
+    ], { oil: false }),
+]);
 
 // Flour-and-water cooking recipes: one flour of choice plus water on the tile.
 // Raw intermediates (dough, pasta) skip potential bonuses because they are not
@@ -616,6 +772,7 @@ const CRAFT_RECIPES = Object.freeze([
     createLeafClothingRecipe("leggings", ITEM_IDS.LEAF_LEGGINGS),
     createLeafClothingRecipe("boots", ITEM_IDS.LEAF_BOOTS),
     createLeafClothingRecipe("anklet-i", ITEM_IDS.LEAF_ANKLET_I),
+    ...SAUCE_RECIPES,
     ...METAL_VARIANT_RECIPES,
 ]);
 
@@ -1363,6 +1520,26 @@ function getCraftPotentialBonuses(recipe, quality, rarity) {
         const resourceQuality = getResourceQuality(requirement.resourceId);
         const baseBonus = (1 + resourceQuality / 10) * amount;
         totals[statKey] = (totals[statKey] || 0) + baseBonus;
+    });
+
+    // Resources such as oils can define their own fixed potential bonuses.
+    requirements.forEach(function (requirement) {
+        const definition = typeof RESOURCE_DEFS !== "undefined"
+            ? RESOURCE_DEFS[requirement.resourceId]
+            : null;
+        const source = definition && definition.potentialBonuses;
+        if (!source || typeof source !== "object") return;
+
+        const amount = Math.max(1, Number(requirement.amount) || 1);
+        const resourceQuality = getResourceQuality(requirement.resourceId);
+        const qualityMultiplier = 1 + resourceQuality / 10;
+
+        Object.keys(source).forEach(function (statKey) {
+            const value = Number(source[statKey]);
+            if (!Number.isFinite(value) || value <= 0) return;
+            totals[statKey] = (totals[statKey] || 0)
+                + value * amount * qualityMultiplier;
+        });
     });
 
     // Inventory ingredients carry their own potential bonuses into the dish.

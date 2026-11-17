@@ -93,6 +93,36 @@ const ITEM_IDS = Object.freeze({
     POISONED_DAGGER: ITEM_ID_BASE + 83,
     BUTCHER_CLEAVER: ITEM_ID_BASE + 84,
     GUARDBREAKER_AXE: ITEM_ID_BASE + 85,
+    MAYONNAISE: ITEM_ID_BASE + 86,
+    KETCHUP: ITEM_ID_BASE + 87,
+    MUSTARD_SAUCE: ITEM_ID_BASE + 88,
+    PESTO: ITEM_ID_BASE + 89,
+    CARBONARA_SAUCE: ITEM_ID_BASE + 90,
+    AIOLI: ITEM_ID_BASE + 91,
+    TARTAR_SAUCE: ITEM_ID_BASE + 92,
+    TZATZIKI: ITEM_ID_BASE + 93,
+    MARINARA_SAUCE: ITEM_ID_BASE + 94,
+    BOLOGNESE_SAUCE: ITEM_ID_BASE + 95,
+    ARRABBIATA_SAUCE: ITEM_ID_BASE + 96,
+    ALFREDO_SAUCE: ITEM_ID_BASE + 97,
+    PESTO_ROSSO: ITEM_ID_BASE + 98,
+    SALSA_VERDE: ITEM_ID_BASE + 99,
+    CHIMICHURRI: ITEM_ID_BASE + 100,
+    ROMESCO: ITEM_ID_BASE + 101,
+    TAHINI: ITEM_ID_BASE + 102,
+    HUMMUS: ITEM_ID_BASE + 103,
+    SATAY_SAUCE: ITEM_ID_BASE + 104,
+    TERIYAKI_SAUCE: ITEM_ID_BASE + 105,
+    SWEET_CHILI_SAUCE: ITEM_ID_BASE + 106,
+    BBQ_SAUCE: ITEM_ID_BASE + 107,
+    HONEY_MUSTARD_SAUCE: ITEM_ID_BASE + 108,
+    GARLIC_HERB_SAUCE: ITEM_ID_BASE + 109,
+    CURRY_SAUCE: ITEM_ID_BASE + 110,
+    MUSHROOM_SAUCE: ITEM_ID_BASE + 111,
+    PEPPER_SAUCE: ITEM_ID_BASE + 112,
+    AVOCADO_SAUCE: ITEM_ID_BASE + 113,
+    POMEGRANATE_SAUCE: ITEM_ID_BASE + 114,
+    APPLE_SAUCE: ITEM_ID_BASE + 115,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -515,6 +545,60 @@ PASTA_ITEM_DEFINITIONS.forEach(function (pasta) {
     );
 });
 
+// Sauces are cold-mixed condiments. They are edible on their own, but their
+// real value is the potential bonus they carry from oils and fresh
+// ingredients into a dish.
+const SAUCE_ITEM_DEFINITIONS = Object.freeze([
+    Object.freeze({ id: ITEM_ID_BASE + 86, name: "Mayonnaise", icon: "mayonnaise", hunger: 25, description: "A thick, glossy egg and oil emulsion. French kitchen magic." }),
+    Object.freeze({ id: ITEM_ID_BASE + 87, name: "Ketchup", icon: "ketchup", hunger: 30, description: "Sweet, tangy tomato sauce. American diner staple." }),
+    Object.freeze({ id: ITEM_ID_BASE + 88, name: "Mustard", icon: "mustardsauce", hunger: 20, description: "A sharp yellow paste of crushed mustard and salt. Ancient Roman favourite." }),
+    Object.freeze({ id: ITEM_ID_BASE + 89, name: "Pesto", icon: "pesto", hunger: 35, description: "Basil, nuts, garlic and oil pounded into a vivid green paste. Genoese classic." }),
+    Object.freeze({ id: ITEM_ID_BASE + 90, name: "Carbonara Sauce", icon: "carbonarasauce", hunger: 40, description: "Egg, meat, garlic and oil whisked into a silky Roman sauce." }),
+    Object.freeze({ id: ITEM_ID_BASE + 91, name: "Aioli", icon: "aioli", hunger: 25, description: "A pungent garlic and oil emulsion from the Mediterranean coast." }),
+    Object.freeze({ id: ITEM_ID_BASE + 92, name: "Tartar Sauce", icon: "tartarsauce", hunger: 25, description: "Mayonnaise sharpened with cucumber, dill and lemon. French seafood companion." }),
+    Object.freeze({ id: ITEM_ID_BASE + 93, name: "Tzatziki", icon: "tzatziki", hunger: 20, description: "Cool cucumber, garlic, mint and oil. Greek summer in a bowl." }),
+    Object.freeze({ id: ITEM_ID_BASE + 94, name: "Marinara Sauce", icon: "marinara", hunger: 30, description: "Tomato, garlic and oregano simmered with oil. Southern Italian everyday sauce." }),
+    Object.freeze({ id: ITEM_ID_BASE + 95, name: "Bolognese Sauce", icon: "bolognese", hunger: 40, description: "Rich tomato and meat sauce from Bologna. Slow, sturdy and savoury." }),
+    Object.freeze({ id: ITEM_ID_BASE + 96, name: "Arrabbiata Sauce", icon: "arrabbiata", hunger: 30, description: "Angry tomato sauce fired up with chili and garlic. Roman heat." }),
+    Object.freeze({ id: ITEM_ID_BASE + 97, name: "Alfredo Sauce", icon: "alfredo", hunger: 35, description: "Garlic, egg and oil whipped into a pale, clinging sauce. Roman trattoria fare." }),
+    Object.freeze({ id: ITEM_ID_BASE + 98, name: "Pesto Rosso", icon: "pestoroso", hunger: 35, description: "Sun-dried tomato, almond and garlic pesto. Sicilian red cousin of the green." }),
+    Object.freeze({ id: ITEM_ID_BASE + 99, name: "Salsa Verde", icon: "salsaverde", hunger: 25, description: "A bright green herb, garlic and oil sauce. Italian table companion." }),
+    Object.freeze({ id: ITEM_ID_BASE + 100, name: "Chimichurri", icon: "chimichurri", hunger: 25, description: "Parsley, oregano, garlic and oil. Argentine grill master's secret." }),
+    Object.freeze({ id: ITEM_ID_BASE + 101, name: "Romesco", icon: "romesco", hunger: 30, description: "Tomato, almond and garlic sauce from Catalonia. Thick and smoky." }),
+    Object.freeze({ id: ITEM_ID_BASE + 102, name: "Tahini", icon: "tahini", hunger: 30, description: "Ground sesame and oil beaten into a pale Middle Eastern paste." }),
+    Object.freeze({ id: ITEM_ID_BASE + 103, name: "Hummus", icon: "hummus", hunger: 35, description: "Peas, sesame, garlic, lemon and oil. Levantine mezze staple." }),
+    Object.freeze({ id: ITEM_ID_BASE + 104, name: "Satay Sauce", icon: "sataysauce", hunger: 35, description: "Nutty, chili-hot sauce from Southeast Asian street grills." }),
+    Object.freeze({ id: ITEM_ID_BASE + 105, name: "Teriyaki Sauce", icon: "teriyaki", hunger: 30, description: "Sweet, glossy garlic and ginger glaze. Japanese home cooking." }),
+    Object.freeze({ id: ITEM_ID_BASE + 106, name: "Sweet Chili Sauce", icon: "sweetchili", hunger: 25, description: "Sticky sweet chili dip. Thai table regular." }),
+    Object.freeze({ id: ITEM_ID_BASE + 107, name: "BBQ Sauce", icon: "bbqsauce", hunger: 35, description: "Smoky tomato, sugar and paprika sauce. American barbecue tradition." }),
+    Object.freeze({ id: ITEM_ID_BASE + 108, name: "Honey Mustard", icon: "honeymustard", hunger: 25, description: "Sweet and sharp mustard blend. A diner and picnic classic." }),
+    Object.freeze({ id: ITEM_ID_BASE + 109, name: "Garlic Herb Sauce", icon: "garlicherbsauce", hunger: 25, description: "Garlic and herbs steeped in oil. A simple Mediterranean finish." }),
+    Object.freeze({ id: ITEM_ID_BASE + 110, name: "Curry Sauce", icon: "currysauce", hunger: 30, description: "Turmeric, cumin and coriander bloomed in oil. South Asian spice base." }),
+    Object.freeze({ id: ITEM_ID_BASE + 111, name: "Mushroom Sauce", icon: "mushroomsauce", hunger: 30, description: "Mushrooms and garlic cooked down in oil. Foresty and savoury." }),
+    Object.freeze({ id: ITEM_ID_BASE + 112, name: "Pepper Sauce", icon: "peppersauce", hunger: 25, description: "Sweet bell pepper and garlic sauce. Hungarian-inspired and mellow." }),
+    Object.freeze({ id: ITEM_ID_BASE + 113, name: "Avocado Sauce", icon: "avocadosauce", hunger: 30, description: "Creamy avocado, lemon, mint and oil. Mexican green sauce." }),
+    Object.freeze({ id: ITEM_ID_BASE + 114, name: "Pomegranate Sauce", icon: "pomegranatesauce", hunger: 25, description: "Tart pomegranate reduced with sugar and lemon. Persian and Caucasian classic." }),
+    Object.freeze({ id: ITEM_ID_BASE + 115, name: "Apple Sauce", icon: "applesauce", hunger: 30, description: "Soft apples cooked with sugar and lemon. A homely European side." }),
+]);
+
+const SAUCE_ITEM_DEFS = {};
+SAUCE_ITEM_DEFINITIONS.forEach(function (sauce) {
+    SAUCE_ITEM_DEFS[sauce.id] = Object.freeze({
+        id: sauce.id,
+        name: sauce.name,
+        kind: ITEM_KINDS.Consumable,
+        stackable: false,
+        weight: 0.2,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: sauce.icon,
+        primaryStat: "sou",
+        food: Object.freeze({ hungerRestore: sauce.hunger }),
+        description: sauce.description,
+    });
+});
+
 function getItemWeaponSkill(item) {
     if (!item) return null;
 
@@ -872,6 +956,7 @@ METAL_PAN_METALS.forEach(function (metal) {
 
 const ITEM_DEFS = Object.freeze({
     ...PASTA_ITEM_DEFS,
+    ...SAUCE_ITEM_DEFS,
     [ITEM_IDS.HANDY_STICK]: createForagingToolDefinition(
         ITEM_IDS.HANDY_STICK, "Handy Stick", "handystick",
         { type: "digging", power: 1 },

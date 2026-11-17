@@ -441,6 +441,7 @@
       ensureResourceBranch('intermediate-resources-items', 'smithing', 'smithing', 'Heat units and refined metal bars for smithing');
       ensureResourceBranch('intermediate-resources-items', 'cooking', 'Cooking', 'Flour and other cooking intermediates');
       ensureResourceBranch('cooking-items', 'flour', 'Flour', 'Stone-ground flour made with a Big Grinding stone');
+      ensureResourceBranch('cooking-items', 'oil', 'Oil', 'Cold-pressed oils from seeds and olives');
       ensureResourceBranch('cooking-items', 'sweets', 'Sweets', 'Maple sirup and sugar from sweet plants');
       ensureResourceBranch('intermediate-resources-items', 'wizardy', 'Wizardy', 'Arcane and spirit remains');
       ensureResourceBranch('wizardy-items', 'mob-spirit', 'Mob spirit', 'Spirit drops from slain mobs');
@@ -450,6 +451,9 @@
       }
       if (isFlourFoodResource(resource)) {
         return document.getElementById('flour-items');
+      }
+      if (resource && RESOURCE_DEFS[resource.id] && RESOURCE_DEFS[resource.id].oil) {
+        return document.getElementById('oil-items');
       }
       if (resource && typeof SMITHING_RESOURCE_IDS !== 'undefined'
           && SMITHING_RESOURCE_IDS.indexOf(resource.id) !== -1) {
@@ -591,6 +595,22 @@
         if (statName) {
           herbLines.push('Potential affinity: ' + statName);
         }
+      }
+      const explicitBonuses = definition && definition.potentialBonuses;
+      if (explicitBonuses && typeof explicitBonuses === 'object') {
+        const quality = Number.isFinite(resource.quality) && resource.quality > 0
+          ? resource.quality
+          : RESOURCE_DEFAULT_QUALITY;
+        Object.keys(explicitBonuses).forEach(function (statKey) {
+          const value = Number(explicitBonuses[statKey]);
+          if (!Number.isFinite(value) || value <= 0) return;
+          foodLines.push(
+            'Dish bonus: ' + describeItemStat(
+              statKey,
+              value * (1 + quality / 10)
+            )
+          );
+        });
       }
       item.setAttribute(
         'data-tooltip',

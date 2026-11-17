@@ -3522,6 +3522,131 @@ function runGrindFlourProduction(diff) {
     if (player.vit) player.vit.addexp(0.5 * actualSeconds);
 }
 
+const OIL_PRESS_STAMINA_PER_SECOND = 1.75;
+const OIL_PRESS_SECONDS_PER_BATCH = 10;
+const OIL_PRESS_MAX_SECONDS_PER_LOOP = 60;
+const oilPressState = { progress: 0 };
+
+function getOilSourceResourceIds() {
+    return typeof OIL_SOURCE_RESOURCE_IDS !== "undefined"
+        ? OIL_SOURCE_RESOURCE_IDS
+        : [];
+}
+
+function getAvailableOilSourceResourceIds() {
+    return getOilSourceResourceIds().filter(function (sourceId) {
+        const stack = resources[sourceId];
+        return !!stack && Number(stack.amount) >= 1;
+    });
+}
+
+function hasOilSourceResources() {
+    return getAvailableOilSourceResourceIds().length > 0;
+}
+
+// Oil pressing mirrors flour grinding: Cooking and Vitality drive the press,
+// and the stamina cost grows with the same power curve.
+function getOilPressPower() {
+    const cooking = Math.max(1, getEffectiveLevel("cooking") || 0);
+    const vitality = Math.max(1, getEffectiveLevel("vit") || 0);
+    return 1 + Math.sqrt(cooking * vitality);
+}
+
+function getOilPressQualityMultiplier(power) {
+    if (power == null) {
+        power = getOilPressPower() * getActionProductionMultiplier("pressoil");
+    }
+    return 1 + power;
+}
+
+function getOilPressStaminaPerSecond() {
+    return OIL_PRESS_STAMINA_PER_SECOND * getOilPressQualityMultiplier();
+}
+
+function getPressedOilQuality(sourceId) {
+    const sourceStack = resources[sourceId];
+    const sourceQuality = sourceStack && Number.isFinite(sourceStack.quality)
+        ? sourceStack.quality
+        : RESOURCE_DEFAULT_QUALITY;
+
+    return applyWellFedActionQuality(
+        (getEffectiveLevel("cooking") + sourceQuality) / 2
+    );
+}
+
+function runPressOilProduction(diff) {
+    if (actionStates.pressoil !== Activity.Active) return;
+
+    if (typeof hasOilPress !== "function" || !hasOilPress()) {
+        logMessage("You need a completed Oil press to press oil");
+        stopTimedAction(getAction("pressoil"));
+        return;
+    }
+
+    if (!hasOilSourceResources()) {
+        stopTimedAction(getAction("pressoil"));
+        return;
+    }
+
+    const seconds = Math.min(
+        Math.max(0, Number(diff) || 0),
+        OIL_PRESS_MAX_SECONDS_PER_LOOP
+    );
+    if (seconds <= 0) return;
+
+    const staminaPerSecond = getOilPressStaminaPerSecond();
+    if (player.stamina < staminaPerSecond) {
+        logMessage("You are too tired to press oil");
+        stopTimedAction(getAction("pressoil"));
+        return;
+    }
+
+    const actualSeconds = Math.min(
+        seconds,
+        player.stamina / staminaPerSecond
+    );
+    player.stamina = round2(Math.max(
+        0,
+        player.stamina - actualSeconds * staminaPerSecond
+    ));
+    trackHungerSpending("stamina", actualSeconds * staminaPerSecond);
+
+    oilPressState.progress += actualSeconds;
+    let batches = Math.floor(
+        oilPressState.progress / OIL_PRESS_SECONDS_PER_BATCH
+    );
+    oilPressState.progress -= batches * OIL_PRESS_SECONDS_PER_BATCH;
+
+    let produced = 0;
+    for (let batch = 0; batch < batches; batch++) {
+        const sourceIds = getAvailableOilSourceResourceIds();
+        if (!sourceIds.length) break;
+
+        sourceIds.forEach(function (sourceId) {
+            const sourceStack = resources[sourceId];
+            if (!sourceStack || Number(sourceStack.amount) < 1) return;
+
+            const oilId = typeof getOilResourceIdForSource === "function"
+                ? getOilResourceIdForSource(sourceId)
+                : null;
+            if (!oilId) return;
+
+            const quality = getPressedOilQuality(sourceId);
+            sourceStack.amount = round2(Math.max(0, Number(sourceStack.amount) - 1));
+            addResource(oilId, 1, quality);
+            produced += 1;
+        });
+    }
+
+    if (produced > 0) {
+        logMessage("You press " + produced
+            + (produced === 1 ? " portion" : " portions") + " of oil.");
+    }
+
+    if (player.cooking) player.cooking.addexp(0.5 * actualSeconds);
+    if (player.vit) player.vit.addexp(0.5 * actualSeconds);
+}
+
 function staminaRegen(timeAmount){
     var regenAmount = round2(Math.pow((getEffectiveLevel("vit") * getEffectiveLevel("rest") * (getEffectiveLevel("sou")* 0.01)), 1/2) * timeAmount * getStaminaRegenMultiplier() * getSleepRegenMultiplier() * getGlobalPropertyMultiplier("spregen") * getHearthfireRegenMultiplier() * getHungerRegenMultiplier() * getWellFedRegenMultiplier());
     if (player.stamina == player.maxstamina) {}

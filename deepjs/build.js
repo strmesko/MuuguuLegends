@@ -22,6 +22,7 @@ const BUILDING_IDS = Object.freeze({
     STUMP_CHAIR: "stump-chair",
     SMELTER: "smelter",
     BIG_GRINDING_STONE: "big-grinding-stone",
+    OIL_PRESS: "oil-press",
     MAPLE_EXTRACTOR: "maple-extractor",
 });
 
@@ -522,6 +523,23 @@ const BUILDING_DEFS = Object.freeze({
         effects: Object.freeze([]),
         iconClass: "fa-circle-o-notch",
         effectText: "Enables Grind Flour on this tile. Grinds every seed resource into flour while you stay here.",
+    }),
+    [BUILDING_IDS.OIL_PRESS]: Object.freeze({
+        id: BUILDING_IDS.OIL_PRESS,
+        name: "Oil press",
+        category: FURNITURE_CATEGORY.id,
+        description: "A sturdy wooden press with a heavy stone weight. It squeezes oil out of oil-bearing seeds and olives.",
+        resources: Object.freeze([
+            Object.freeze({ resourceId: RESOURCE_IDS.ROCKS, amount: 400 }),
+            Object.freeze({ resourceId: RESOURCE_IDS.WOODEN_LOGS, amount: 4 }),
+            Object.freeze({ resourceId: RESOURCE_IDS.WOODEN_BEAMS, amount: 2 }),
+        ]),
+        workPoints: 6000,
+        roomSpace: 2,
+        skill: "carpentry",
+        effects: Object.freeze([]),
+        iconClass: "fa-tint",
+        effectText: "Enables Press Oil on this tile. Presses oil-bearing seeds and olives into oil while you stay here.",
     }),
     [BUILDING_IDS.MAPLE_EXTRACTOR]: Object.freeze({
         id: BUILDING_IDS.MAPLE_EXTRACTOR,
@@ -1162,6 +1180,17 @@ function getBigGrindingStoneQuality(tile) {
 
 function hasBigGrindingStone(tile) {
     return getBigGrindingStoneQuality(tile) !== null;
+}
+
+function getOilPressQuality(tile) {
+    return getBestCompletedBuildingQuality(
+        BUILDING_IDS.OIL_PRESS,
+        tile
+    );
+}
+
+function hasOilPress(tile) {
+    return getOilPressQuality(tile) !== null;
 }
 
 // Any completed building tagged SleepingPlace can improve sleep quality.

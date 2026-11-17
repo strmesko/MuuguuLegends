@@ -79,6 +79,9 @@ function getResourceImageFolder(itemName) {
         if (definition.egg) {
             return "eggs";
         }
+        if (definition.oil) {
+            return "oils";
+        }
         if (definition.sweets) {
             return "cooking";
         }
