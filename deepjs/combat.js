@@ -219,9 +219,11 @@ const MOB_LOOT = Object.freeze({
     ]),
     angrybird: Object.freeze([
         Object.freeze({ resourceId: RESOURCE_IDS.CHICKEN_MEAT, amount: 1 }),
+        Object.freeze({ resourceId: RESOURCE_IDS.EGG, amount: 1, chance: 0.3 }),
     ]),
     bombchick: Object.freeze([
         Object.freeze({ resourceId: RESOURCE_IDS.CHICKEN_MEAT, amount: 1 }),
+        Object.freeze({ resourceId: RESOURCE_IDS.EGG, amount: 1, chance: 0.3 }),
     ]),
     assspider: Object.freeze([
         Object.freeze({ resourceId: RESOURCE_IDS.BUG_MEAT, amount: 1 }),
@@ -290,6 +292,12 @@ function dropMobLoot(combatant) {
 
     for (let roll = 0; roll < rolls; roll++) {
         drops.forEach(function (drop) {
+            const chance = Number(drop.chance);
+            if (Number.isFinite(chance) && chance > 0
+                && Math.random() >= Math.min(1, chance)) {
+                return;
+            }
+
             const amount = Math.max(
                 1,
                 roundCombatDamage(drop.amount * amountMultiplier)

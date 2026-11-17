@@ -403,6 +403,7 @@
       ensureResourceBranch('raw-food-items', 'nuts', 'Nuts', 'Nuts and seeds from nut trees');
       ensureResourceBranch('raw-food-items', 'fruits', 'Fruits', 'Fruits from fruit trees');
       ensureResourceBranch('raw-food-items', 'meat', 'Meat', 'Fresh meat from creatures');
+      ensureResourceBranch('raw-food-items', 'eggs', 'Eggs', 'Eggs gathered from bird nests');
       ensureResourceBranch('raw-food-items', 'jelly', 'Jelly', 'Wobbly edible jelly');
       ensureResourceBranch('raw-food-items', 'food-herbs', 'herbs', 'Edible wild herbs gathered with Forage');
 
@@ -413,6 +414,7 @@
         return document.getElementById('meat-items');
       }
       if (resource && resource.id === RESOURCE_IDS.JELLY) return document.getElementById('jelly-items');
+      if (resource && resource.id === RESOURCE_IDS.EGG) return document.getElementById('eggs-items');
       if (isEdibleHerbResource(resource)) return document.getElementById('food-herbs-items');
       return document.getElementById('berries-items');
     }
