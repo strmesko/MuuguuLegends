@@ -3665,23 +3665,47 @@ function runPressOilProduction(diff) {
     if (player.vit) player.vit.addexp(0.5 * actualSeconds);
 }
 
+const HUNGER_PER_STAMINA_REGEN = 5;
+const HUNGER_PER_HP_REGEN = 5;
+
+// The item stat value is used as a divisor in the hunger formula:
+// hunger * (value * 0.1) / (1 + value * 0.1).
+// A value of 10 therefore halves the hunger gained from regeneration.
+function getRegenHungerMultiplier(statKey) {
+    const value = typeof getEquippedStatBonus === "function"
+        ? Math.max(0, Number(getEquippedStatBonus(statKey)) || 0)
+        : 0;
+    if (value <= 0) return 1;
+    const scaled = value * 0.1;
+    return scaled / (1 + scaled);
+}
+
 function staminaRegen(timeAmount){
     var regenAmount = round2(Math.pow((getEffectiveLevel("vit") * getEffectiveLevel("rest") * (getEffectiveLevel("sou")* 0.01)), 1/2) * timeAmount * getStaminaRegenMultiplier() * getSleepRegenMultiplier() * getGlobalPropertyMultiplier("spregen") * getHearthfireRegenMultiplier() * getHungerRegenMultiplier() * getWellFedRegenMultiplier());
+    let restored = 0;
     if (player.stamina == player.maxstamina) {}
     else if (player.stamina + regenAmount > player.maxstamina){
         player.rest.addexp(round2((player.maxstamina - player.stamina)/ regenAmount * timeAmount));
         player.vit.addexp(round2((player.maxstamina - player.stamina)/ regenAmount / 10 * timeAmount));
+        restored = player.maxstamina - player.stamina;
         player.stamina = player.maxstamina;
         
     } else {
         player.vit.addexp(0.1);
         player.rest.addexp(1);
+        restored = regenAmount;
         player.stamina += regenAmount;
         
     }
     player.stamina = round2(player.stamina);
+    if (restored > 0) {
+        addHunger(round2(
+            restored
+            * HUNGER_PER_STAMINA_REGEN
+            * getRegenHungerMultiplier("staminaRegenHungerReduction")
+        ));
+    }
 }
-const HUNGER_PER_HP_REGEN = 5;
 
 function hpRegen(timeAmount){
     var regenAmount = round2(Math.pow((getEffectiveLevel("vit") * getEffectiveLevel("regeneration") * (getEffectiveLevel("sou")* 0.01))/5, 1/2) * timeAmount * getSleepRegenMultiplier() * getGlobalPropertyMultiplier("hpregen") * getHearthfireRegenMultiplier() * getHungerRegenMultiplier() * getWellFedRegenMultiplier());
@@ -3702,7 +3726,11 @@ function hpRegen(timeAmount){
     }
     player.hp = round2(player.hp);
     if (healed > 0) {
-        addHunger(round2(healed * HUNGER_PER_HP_REGEN));
+        addHunger(round2(
+            healed
+            * HUNGER_PER_HP_REGEN
+            * getRegenHungerMultiplier("hpRegenHungerReduction")
+        ));
     }
 }
 function manaRegen(timeAmount){

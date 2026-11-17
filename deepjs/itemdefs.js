@@ -1961,6 +1961,14 @@ const ITEM_STAT_DEFS = Object.freeze({
         label: "Cooking power",
         kind: "flat",
     }),
+    hpRegenHungerReduction: Object.freeze({
+        label: "HP regen hunger resistance",
+        kind: "flat",
+    }),
+    staminaRegenHungerReduction: Object.freeze({
+        label: "Stamina regen hunger resistance",
+        kind: "flat",
+    }),
 });
 
 function humanizeItemStatName(statName) {
