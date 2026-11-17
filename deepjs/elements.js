@@ -1349,6 +1349,11 @@ function renderStatusIcons() {
         if (harvestPriority) {
             harvestPriority.value = getHarvestTreePriorityStat() || '';
         }
+
+        const autoCookCategory = document.getElementById('habitsetting-dietAutoCookCategory');
+        if (autoCookCategory) {
+            autoCookCategory.value = getDietAutoCookCategory() || '';
+        }
     }
 
     function updateHabitVisibility(){
@@ -1451,6 +1456,34 @@ function renderStatusIcons() {
                     const select = document.createElement('select');
                     select.className = 'habitselect';
                     select.id = 'habitsetting-' + habit.id;
+
+                    if (Array.isArray(habit.options)) {
+                        habit.options.forEach(function (optionDefinition) {
+                            const option = document.createElement('option');
+                            option.value = optionDefinition.value;
+                            option.innerText = optionDefinition.label;
+                            select.appendChild(option);
+                        });
+                        if (habit.id === 'dietAutoCookCategory') {
+                            select.value = getDietAutoCookCategory() || '';
+                        }
+                        select.addEventListener('change', function () {
+                            if (habit.id === 'dietAutoCookCategory') {
+                                dietAutoCookCategory =
+                                    DIET_AUTO_COOK_CATEGORIES.includes(select.value)
+                                        ? select.value
+                                        : '';
+                                logMessage('Auto-cook category: '
+                                    + (getDietAutoCookCategory() || 'all dishes'));
+                            }
+                        });
+
+                        setting.appendChild(name);
+                        setting.appendChild(select);
+                        item.appendChild(setting);
+                        list.appendChild(item);
+                        return;
+                    }
 
                     const noneOption = document.createElement('option');
                     noneOption.value = '';

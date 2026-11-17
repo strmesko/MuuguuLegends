@@ -4680,6 +4680,18 @@ function getAutoCookRecipes() {
     });
 }
 
+function filterAutoCookRecipesByCategory(recipes) {
+    const category = typeof getDietAutoCookCategory === "function"
+        ? getDietAutoCookCategory()
+        : "";
+    if (!category) return recipes;
+
+    return recipes.filter(function (recipe) {
+        if (category === "shawarma") return recipe.id === "shawerma";
+        return getCraftRecipeGroupId(recipe) === category;
+    });
+}
+
 function autoCookDietFood() {
     if (typeof DIET_BASICS_TECHNOLOGY === "undefined"
         || DIET_BASICS_TECHNOLOGY.level < 4) {
@@ -4692,7 +4704,7 @@ function autoCookDietFood() {
         ? getDietPriorityStat()
         : null;
 
-    const recipes = getAutoCookRecipes();
+    const recipes = filterAutoCookRecipesByCategory(getAutoCookRecipes());
 
     // Random dish order: every attempt starts with a random available meal.
     for (let index = recipes.length - 1; index > 0; index--) {

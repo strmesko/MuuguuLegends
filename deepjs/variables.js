@@ -53,7 +53,7 @@ const DIET_BASICS_TECHNOLOGY = new Technology(
             && player.autism.lvl >= 5;
     },
     null,
-    7,
+    8,
     [
         "Unlocks the automatic eating threshold in Habits.",
         "Allows choosing a priority stat; food bound to it is eaten first.",
@@ -62,6 +62,7 @@ const DIET_BASICS_TECHNOLOGY = new Technology(
         "During auto-cooking, fills every available bonus ingredient slot with spices, sauces and other suitable extras when the habit is enabled.",
         "During auto-cooking, chooses ingredients bound to the priority stat.",
         "Before auto-cooking, crafts missing ingredient items (such as flat bread) and includes their cost when deciding whether the dish is affordable.",
+        "Allows restricting auto-cooking to one cuisine category in Habits.",
     ]
 );
 const HARVEST_THE_YUMMIES_TECHNOLOGY = new Technology(
@@ -290,7 +291,16 @@ const DIET_AUTO_EAT_MAX_PERCENT = 100;
 const DIET_AUTO_EAT_DEFAULT_PERCENT = 50;
 var dietAutoEatThresholdPercent = DIET_AUTO_EAT_DEFAULT_PERCENT;
 var dietPriorityStat = "";
+var dietAutoCookCategory = "";
 var harvestTreePriorityStat = "";
+const DIET_AUTO_COOK_CATEGORIES = Object.freeze([
+    "soviet",
+    "arabic",
+    "asian",
+    "italian",
+    "pizza",
+    "shawarma",
+]);
 const HARVEST_TREES_FOCUS_COST = 2;
 
 function clampDietAutoEatThreshold(value) {
@@ -313,6 +323,13 @@ function getDietPriorityStat() {
         && CORE_STAT_NAMES.includes(dietPriorityStat)
         ? dietPriorityStat
         : null;
+}
+
+function getDietAutoCookCategory() {
+    return DIET_BASICS_TECHNOLOGY.level >= 8
+        && DIET_AUTO_COOK_CATEGORIES.includes(dietAutoCookCategory)
+        ? dietAutoCookCategory
+        : "";
 }
 
 function getHarvestTreePriorityStat() {
@@ -479,6 +496,23 @@ var HABIT_CATEGORIES = [
                 requiredTechnology: "dietBasics",
                 requiredLevel: 5,
                 defaultEnabled: true,
+            },
+            {
+                id: "dietAutoCookCategory",
+                name: "Auto-cook category",
+                description: "DietBasics level 8: restrict automatic cooking to one cuisine. Ingredient dishes and pre-crafted ingredients are not affected.",
+                requiredTechnology: "dietBasics",
+                requiredLevel: 8,
+                control: "select",
+                options: [
+                    { value: "", label: "All dishes" },
+                    { value: "soviet", label: "Soviet" },
+                    { value: "arabic", label: "Arabic" },
+                    { value: "asian", label: "Asian" },
+                    { value: "italian", label: "Italian" },
+                    { value: "pizza", label: "Pizza" },
+                    { value: "shawarma", label: "Shawarma" },
+                ],
             },
         ],
     },

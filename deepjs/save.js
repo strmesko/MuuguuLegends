@@ -144,6 +144,7 @@
             habitToggles: Object.assign({}, habitToggles),
             dietAutoEatThresholdPercent: dietAutoEatThresholdPercent,
             dietPriorityStat: dietPriorityStat,
+            dietAutoCookCategory: dietAutoCookCategory,
             harvestTreePriorityStat: harvestTreePriorityStat,
             landTotals: landTotals,
             resources: resources,
@@ -321,6 +322,7 @@
             dietAutoEatThresholdPercent: saveData.dietAutoEatThresholdPercent
                 ?? DIET_AUTO_EAT_DEFAULT_PERCENT,
             dietPriorityStat: saveData.dietPriorityStat ?? "",
+            dietAutoCookCategory: saveData.dietAutoCookCategory ?? "",
             harvestTreePriorityStat: saveData.harvestTreePriorityStat ?? "",
             resources: saveData.resources ?? saveData.stocks,
             foodStatBindings: saveData.foodStatBindings ?? null,
@@ -534,6 +536,9 @@
         dietAutoEatThresholdPercent = clampDietAutoEatThreshold(saved.dietAutoEatThresholdPercent);
         dietPriorityStat = CORE_STAT_NAMES.includes(saved.dietPriorityStat)
             ? saved.dietPriorityStat
+            : "";
+        dietAutoCookCategory = DIET_AUTO_COOK_CATEGORIES.includes(saved.dietAutoCookCategory)
+            ? saved.dietAutoCookCategory
             : "";
         harvestTreePriorityStat = CORE_STAT_NAMES.includes(saved.harvestTreePriorityStat)
             ? saved.harvestTreePriorityStat
