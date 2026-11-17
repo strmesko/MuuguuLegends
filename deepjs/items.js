@@ -128,6 +128,22 @@ function getResourceImageFolder(itemName) {
     return null;
 }
 
+let itemIconPathByName = null;
+
+function getItemIconPathByName(itemName) {
+    if (typeof ITEM_DEFS === "undefined") return null;
+    if (!itemIconPathByName) {
+        itemIconPathByName = Object.create(null);
+        Object.keys(ITEM_DEFS).forEach(function (id) {
+            const definition = ITEM_DEFS[id];
+            if (!definition || !definition.icon || !definition.name) return;
+            itemIconPathByName[definition.name] =
+                GEAR_IMAGE_DIRECTORY + definition.icon + ".png";
+        });
+    }
+    return itemIconPathByName[itemName] || null;
+}
+
 function getItemImagePath(itemName) {
     const normalizedName = normalizeItemImageName(itemName);
     // Every cooked kebob stores its ingredient in the display name, but all
@@ -139,6 +155,12 @@ function getItemImagePath(itemName) {
     if (normalizedName.endsWith("porridge")) {
         return GEAR_IMAGE_DIRECTORY + "porridge.png";
     }
+
+    // Item definitions carry an explicit icon name. Prefer it over matching the
+    // display name, otherwise names such as "Marinara Sauce" look for a file
+    // that does not exist while the definition icon does.
+    const itemIconPath = getItemIconPathByName(itemName);
+    if (itemIconPath) return itemIconPath;
 
     const resourceFolder = getResourceImageFolder(normalizedName);
 
