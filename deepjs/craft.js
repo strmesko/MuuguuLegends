@@ -55,6 +55,7 @@ const CRAFT_GROUP_NAMES = Object.freeze({
     pans: "Pans",
     sauces: "Sauces",
     italian: "Italian",
+    soviet: "Soviet",
     other: "Other",
 });
 
@@ -206,6 +207,37 @@ const ITALIAN_POTATO_ID = 4002;
 const ITALIAN_WHEAT_FLOUR_ID = getFlourResourceIdForSeed(4101);
 const ITALIAN_MAIZE_FLOUR_ID = getFlourResourceIdForSeed(4110);
 
+const SOVIET_CARROT_ID = 4001;
+const SOVIET_POTATO_ID = 4002;
+const SOVIET_CABBAGE_ID = 4008;
+const SOVIET_BEETROOT_ID = 4017;
+const SOVIET_CUCUMBER_ID = 4004;
+const SOVIET_GREEN_PEAS_ID = 4025;
+const SOVIET_OATS_ID = 4103;
+const SOVIET_RICE_ID = 4105;
+const SOVIET_MILLET_ID = 4106;
+const SOVIET_BUCKWHEAT_ID = 4108;
+const SOVIET_WHEAT_FLOUR_ID = getFlourResourceIdForSeed(4101);
+const SOVIET_BERRY_IDS = Object.freeze([
+    RESOURCE_IDS.BLUEBERRY,
+    RESOURCE_IDS.RASPBERRY,
+    RESOURCE_IDS.CORNBERRY,
+    RESOURCE_IDS.STRAWBERRY,
+    RESOURCE_IDS.HONEYSUCKLE,
+    RESOURCE_IDS.SEABUCKTHORN,
+    RESOURCE_IDS.BLACKBERRY,
+    RESOURCE_IDS.LINGONBERRY,
+    RESOURCE_IDS.CLOUDBERRY,
+    RESOURCE_IDS.GOOSEBERRY,
+    RESOURCE_IDS.ELDERBERRY,
+    RESOURCE_IDS.CURRANT,
+    RESOURCE_IDS.CRANBERRY,
+    RESOURCE_IDS.MULBERRY,
+    RESOURCE_IDS.ROWAN_BERRIES,
+    RESOURCE_IDS.BIRD_CHERRIES,
+    RESOURCE_IDS.SERVICEBERRIES,
+]);
+
 // Sauces are cold-mixed, so they only need ingredients and an oil of choice.
 // The chosen oil carries its own potential bonus into the finished sauce.
 function createSauceRecipe(id, itemId, resources, options) {
@@ -244,7 +276,8 @@ function createSauceRecipe(id, itemId, resources, options) {
     return Object.freeze(recipe);
 }
 
-const SAUCE_RECIPES = Object.freeze([    createSauceRecipe("mayonnaise", ITEM_IDS.MAYONNAISE, [
+const SAUCE_RECIPES = Object.freeze([
+    createSauceRecipe("mayonnaise", ITEM_IDS.MAYONNAISE, [
         [RESOURCE_IDS.EGG, 2], [RESOURCE_IDS.LEMONS, 1],
     ]),
     createSauceRecipe("ketchup", ITEM_IDS.KETCHUP, [
@@ -446,6 +479,200 @@ const ITALIAN_DISH_RECIPES = Object.freeze([
     createItalianDishRecipe("frittata", ITEM_IDS.FRITTATA, [
         [RESOURCE_IDS.EGG, 3], [SAUCE_BELL_PEPPER_ID, 1], [SAUCE_ONION_ID, 1],
     ], { pan: true }),
+]);
+
+// Soviet dishes. Pot dishes need a pot, water and a campfire; pan dishes need
+// a frying pan and fire; baked desserts only need the campfire. No recipe uses
+// milk, kefir or any other dairy product.
+function createSovietDishRecipe(id, itemId, resources, options) {
+    const settings = options || {};
+    const recipe = {
+        id: "soviet-" + id,
+        category: "food",
+        itemId: itemId,
+        skill: "cooking",
+        stat: "sou",
+        group: "soviet",
+        resultNameSuffix: "",
+        resources: Object.freeze(resources.map(function (resource) {
+            return Object.freeze({
+                resourceId: resource[0],
+                amount: resource[1],
+            });
+        })),
+    };
+
+    if (settings.oil !== false) {
+        recipe.choiceResourceIds = OIL_RESOURCE_IDS;
+        recipe.choiceAmount = 1;
+        recipe.choiceLabel = "Choose oil:";
+    }
+    if (settings.berries === true) {
+        recipe.choiceResourceIds = SOVIET_BERRY_IDS;
+        recipe.choiceAmount = 1;
+        recipe.choiceLabel = "Choose berries:";
+    }
+    if (settings.itemChoiceId != null) {
+        recipe.itemChoice = Object.freeze({
+            itemId: settings.itemChoiceId,
+            label: settings.itemLabel || "Choose ingredient:",
+        });
+    }
+    if (Array.isArray(settings.itemChoiceIds) && settings.itemChoiceIds.length) {
+        recipe.itemChoice = Object.freeze({
+            itemIds: Object.freeze(settings.itemChoiceIds.slice()),
+            label: settings.itemLabel || "Choose ingredient:",
+        });
+    }
+    if (settings.station === "pot") {
+        recipe.requiresEquippedSlot = "pot";
+        recipe.requiresWater = true;
+        recipe.requiresCampfire = true;
+    } else if (settings.station === "pan") {
+        recipe.requiresEquippedSlot = "pan";
+        recipe.requiresCampfire = true;
+    } else if (settings.station === "campfire") {
+        recipe.requiresCampfire = true;
+    }
+
+    return Object.freeze(recipe);
+}
+
+const SOVIET_DISH_RECIPES = Object.freeze([
+    createSovietDishRecipe("borscht", ITEM_IDS.BORSCHT, [
+        [SOVIET_BEETROOT_ID, 3], [SOVIET_CABBAGE_ID, 2], [SOVIET_POTATO_ID, 2],
+        [SOVIET_CARROT_ID, 1], [SAUCE_ONION_ID, 1], [SAUCE_TOMATO_ID, 1],
+        [RESOURCE_IDS.CHICKEN_MEAT, 1],
+    ], { station: "pot" }),
+    createSovietDishRecipe("shchi", ITEM_IDS.SHCHI, [
+        [SOVIET_CABBAGE_ID, 3], [SOVIET_POTATO_ID, 2], [SOVIET_CARROT_ID, 1],
+        [SAUCE_ONION_ID, 1], [SAUCE_DILL_ID, 1],
+    ], { station: "pot" }),
+    createSovietDishRecipe("rassolnik", ITEM_IDS.RASSOLNIK, [
+        [SOVIET_POTATO_ID, 2], [SOVIET_CARROT_ID, 1], [SAUCE_ONION_ID, 1],
+        [SOVIET_CUCUMBER_ID, 2], [RESOURCE_IDS.CHICKEN_MEAT, 1],
+    ], { station: "pot" }),
+    createSovietDishRecipe("solyanka", ITEM_IDS.SOLYANKA, [
+        [RESOURCE_IDS.CHICKEN_MEAT, 2], [SOVIET_CABBAGE_ID, 2],
+        [SAUCE_TOMATO_ID, 2], [SAUCE_ONION_ID, 1], [SOVIET_CUCUMBER_ID, 1],
+    ], { station: "pot" }),
+    createSovietDishRecipe("olivier", ITEM_IDS.OLIVIER_SALAD, [
+        [SOVIET_POTATO_ID, 2], [SOVIET_CARROT_ID, 1], [RESOURCE_IDS.EGG, 2],
+        [SOVIET_CUCUMBER_ID, 1], [SOVIET_GREEN_PEAS_ID, 1],
+        [RESOURCE_IDS.CHICKEN_MEAT, 1],
+    ], { itemChoiceId: ITEM_IDS.MAYONNAISE, itemLabel: "Choose mayonnaise:" }),
+    createSovietDishRecipe("vinaigrette", ITEM_IDS.VINAIGRETTE, [
+        [SOVIET_BEETROOT_ID, 2], [SOVIET_POTATO_ID, 1], [SOVIET_CARROT_ID, 1],
+        [SOVIET_CUCUMBER_ID, 1], [SAUCE_ONION_ID, 1],
+    ]),
+    createSovietDishRecipe("pelmeni", ITEM_IDS.PELMENI, [
+        [SOVIET_WHEAT_FLOUR_ID, 3], [RESOURCE_IDS.EGG, 1],
+        [RESOURCE_IDS.CHICKEN_MEAT, 2], [SAUCE_ONION_ID, 1],
+    ], { station: "pot" }),
+    createSovietDishRecipe("varenyky", ITEM_IDS.VARENYKY, [
+        [SOVIET_WHEAT_FLOUR_ID, 3], [SOVIET_POTATO_ID, 2],
+        [SAUCE_ONION_ID, 1], [RESOURCE_IDS.EGG, 1],
+    ], { station: "pot" }),
+    createSovietDishRecipe("stroganoff", ITEM_IDS.BEEF_STROGANOFF, [
+        [RESOURCE_IDS.CHICKEN_MEAT, 3], [SAUCE_ONION_ID, 1],
+        [SAUCE_TOMATO_ID, 1], [SOVIET_WHEAT_FLOUR_ID, 1],
+    ], { station: "pan" }),
+    createSovietDishRecipe("chicken-kiev", ITEM_IDS.CHICKEN_KIEV, [
+        [RESOURCE_IDS.CHICKEN_MEAT, 3], [RESOURCE_IDS.EGG, 1],
+        [SOVIET_WHEAT_FLOUR_ID, 1],
+    ], { station: "pan" }),
+    createSovietDishRecipe("golubtsy", ITEM_IDS.GOLUBTSY, [
+        [SOVIET_CABBAGE_ID, 3], [SOVIET_RICE_ID, 2],
+        [RESOURCE_IDS.CHICKEN_MEAT, 2], [SAUCE_TOMATO_ID, 1],
+        [SAUCE_ONION_ID, 1],
+    ], { station: "pot" }),
+    createSovietDishRecipe("plov", ITEM_IDS.PLOV, [
+        [SOVIET_RICE_ID, 3], [RESOURCE_IDS.CHICKEN_MEAT, 2],
+        [SOVIET_CARROT_ID, 2], [SAUCE_ONION_ID, 1],
+    ], { station: "pot" }),
+    createSovietDishRecipe("buckwheat-mushrooms", ITEM_IDS.BUCKWHEAT_MUSHROOMS, [
+        [SOVIET_BUCKWHEAT_ID, 3], [RESOURCE_IDS.BUTTON_MUSHROOM, 2],
+        [SAUCE_ONION_ID, 1],
+    ], { station: "pot" }),
+    createSovietDishRecipe("mashed-potatoes", ITEM_IDS.MASHED_POTATOES, [
+        [SOVIET_POTATO_ID, 4],
+    ], { station: "pot" }),
+    createSovietDishRecipe("fried-potatoes", ITEM_IDS.FRIED_POTATOES, [
+        [SOVIET_POTATO_ID, 4], [SAUCE_ONION_ID, 1],
+    ], { station: "pan" }),
+    createSovietDishRecipe("draniki", ITEM_IDS.DRANIKI, [
+        [SOVIET_POTATO_ID, 4], [SOVIET_WHEAT_FLOUR_ID, 1], [RESOURCE_IDS.EGG, 1],
+    ], { station: "pan" }),
+    createSovietDishRecipe("millet-kasha", ITEM_IDS.MILLET_KASHA, [
+        [SOVIET_MILLET_ID, 3],
+    ], { station: "pot" }),
+    createSovietDishRecipe("oatmeal", ITEM_IDS.OATMEAL, [
+        [SOVIET_OATS_ID, 3],
+    ], { station: "pot" }),
+    createSovietDishRecipe("blini", ITEM_IDS.BLINI, [
+        [SOVIET_WHEAT_FLOUR_ID, 2], [RESOURCE_IDS.EGG, 2],
+    ], { station: "pan" }),
+    createSovietDishRecipe("pirozhki", ITEM_IDS.PIROZHKI, [
+        [SOVIET_WHEAT_FLOUR_ID, 3], [RESOURCE_IDS.EGG, 1],
+        [RESOURCE_IDS.CHICKEN_MEAT, 1], [SAUCE_ONION_ID, 1],
+    ], { station: "pan" }),
+    createSovietDishRecipe("belyash", ITEM_IDS.BELYASH, [
+        [SOVIET_WHEAT_FLOUR_ID, 3], [RESOURCE_IDS.CHICKEN_MEAT, 2],
+        [SAUCE_ONION_ID, 1],
+    ], { station: "pan" }),
+    createSovietDishRecipe("chebureki", ITEM_IDS.CHEBUREKI, [
+        [SOVIET_WHEAT_FLOUR_ID, 3], [RESOURCE_IDS.CHICKEN_MEAT, 2],
+        [SAUCE_ONION_ID, 1],
+    ], { station: "pan" }),
+    createSovietDishRecipe("mushroom-soup", ITEM_IDS.MUSHROOM_SOUP, [
+        [RESOURCE_IDS.BUTTON_MUSHROOM, 3], [SOVIET_POTATO_ID, 2],
+        [SAUCE_ONION_ID, 1],
+    ], { station: "pot" }),
+    createSovietDishRecipe("pea-soup", ITEM_IDS.PEA_SOUP, [
+        [SOVIET_GREEN_PEAS_ID, 3], [SOVIET_POTATO_ID, 2],
+        [SAUCE_ONION_ID, 1], [RESOURCE_IDS.CHICKEN_MEAT, 1],
+    ], { station: "pot" }),
+    createSovietDishRecipe("makarony-flotski", ITEM_IDS.MAKARONY_FLOTSKI, [
+        [RESOURCE_IDS.CHICKEN_MEAT, 2], [SAUCE_ONION_ID, 1],
+    ], { itemChoiceIds: PASTA_ITEM_DEFINITIONS.map(function (pasta) { return pasta.id; }), itemLabel: "Choose pasta:", station: "pan" }),
+    createSovietDishRecipe("tushonka", ITEM_IDS.TUSHONKA, [
+        [RESOURCE_IDS.CHICKEN_MEAT, 4], [SAUCE_ONION_ID, 1],
+        [SAUCE_TOMATO_ID, 1],
+    ], { station: "pot" }),
+    createSovietDishRecipe("kotleta", ITEM_IDS.KOTLETA, [
+        [RESOURCE_IDS.CHICKEN_MEAT, 3], [RESOURCE_IDS.EGG, 1],
+        [SOVIET_WHEAT_FLOUR_ID, 1], [SAUCE_ONION_ID, 1],
+    ], { station: "pan" }),
+    createSovietDishRecipe("beet-salad", ITEM_IDS.BEET_SALAD, [
+        [SOVIET_BEETROOT_ID, 3], [SAUCE_GARLIC_ID, 1],
+    ]),
+    createSovietDishRecipe("carrot-salad", ITEM_IDS.CARROT_SALAD, [
+        [SOVIET_CARROT_ID, 4], [SAUCE_GARLIC_ID, 1],
+    ]),
+    createSovietDishRecipe("cabbage-salad", ITEM_IDS.CABBAGE_SALAD, [
+        [SOVIET_CABBAGE_ID, 4], [SOVIET_CARROT_ID, 1],
+    ]),
+    createSovietDishRecipe("kompot", ITEM_IDS.KOMPOT, [
+        [RESOURCE_IDS.JELLY, 1], [RESOURCE_IDS.SUGAR, 1],
+    ], { oil: false, berries: true, station: "pot" }),
+    createSovietDishRecipe("kissel", ITEM_IDS.KISSEL, [
+        [RESOURCE_IDS.JELLY, 2], [RESOURCE_IDS.SUGAR, 1],
+    ], { oil: false, berries: true, station: "pot" }),
+    createSovietDishRecipe("baked-apples", ITEM_IDS.BAKED_APPLES, [
+        [RESOURCE_IDS.APPLES, 3], [RESOURCE_IDS.SUGAR, 1],
+    ], { station: "campfire" }),
+    createSovietDishRecipe("apple-charlotte", ITEM_IDS.APPLE_CHARLOTTE, [
+        [RESOURCE_IDS.APPLES, 3], [SOVIET_WHEAT_FLOUR_ID, 2],
+        [RESOURCE_IDS.EGG, 2], [RESOURCE_IDS.SUGAR, 2],
+    ], { station: "campfire" }),
+    createSovietDishRecipe("napoleon-cake", ITEM_IDS.NAPOLEON_CAKE, [
+        [SOVIET_WHEAT_FLOUR_ID, 3], [RESOURCE_IDS.EGG, 3],
+        [RESOURCE_IDS.SUGAR, 2],
+    ], { station: "campfire" }),
+    createSovietDishRecipe("honey-cake", ITEM_IDS.HONEY_CAKE, [
+        [SOVIET_WHEAT_FLOUR_ID, 3], [RESOURCE_IDS.EGG, 2],
+        [RESOURCE_IDS.SUGAR, 3],
+    ], { station: "campfire" }),
 ]);
 
 // Flour-and-water cooking recipes: one flour of choice plus water on the tile.
@@ -889,6 +1116,7 @@ const CRAFT_RECIPES = Object.freeze([
     createLeafClothingRecipe("anklet-i", ITEM_IDS.LEAF_ANKLET_I),
     ...SAUCE_RECIPES,
     ...ITALIAN_DISH_RECIPES,
+    ...SOVIET_DISH_RECIPES,
     ...METAL_VARIANT_RECIPES,
 ]);
 

@@ -143,6 +143,42 @@ const ITEM_IDS = Object.freeze({
     PANZANELLA: ITEM_ID_BASE + 133,
     ARANCINI: ITEM_ID_BASE + 134,
     FRITTATA: ITEM_ID_BASE + 135,
+    BORSCHT: ITEM_ID_BASE + 136,
+    SHCHI: ITEM_ID_BASE + 137,
+    RASSOLNIK: ITEM_ID_BASE + 138,
+    SOLYANKA: ITEM_ID_BASE + 139,
+    OLIVIER_SALAD: ITEM_ID_BASE + 140,
+    VINAIGRETTE: ITEM_ID_BASE + 141,
+    PELMENI: ITEM_ID_BASE + 142,
+    VARENYKY: ITEM_ID_BASE + 143,
+    BEEF_STROGANOFF: ITEM_ID_BASE + 144,
+    CHICKEN_KIEV: ITEM_ID_BASE + 145,
+    GOLUBTSY: ITEM_ID_BASE + 146,
+    PLOV: ITEM_ID_BASE + 147,
+    BUCKWHEAT_MUSHROOMS: ITEM_ID_BASE + 148,
+    MASHED_POTATOES: ITEM_ID_BASE + 149,
+    FRIED_POTATOES: ITEM_ID_BASE + 150,
+    DRANIKI: ITEM_ID_BASE + 151,
+    MILLET_KASHA: ITEM_ID_BASE + 152,
+    OATMEAL: ITEM_ID_BASE + 153,
+    BLINI: ITEM_ID_BASE + 154,
+    PIROZHKI: ITEM_ID_BASE + 155,
+    BELYASH: ITEM_ID_BASE + 156,
+    CHEBUREKI: ITEM_ID_BASE + 157,
+    MUSHROOM_SOUP: ITEM_ID_BASE + 158,
+    PEA_SOUP: ITEM_ID_BASE + 159,
+    MAKARONY_FLOTSKI: ITEM_ID_BASE + 160,
+    TUSHONKA: ITEM_ID_BASE + 161,
+    KOTLETA: ITEM_ID_BASE + 162,
+    BEET_SALAD: ITEM_ID_BASE + 163,
+    CARROT_SALAD: ITEM_ID_BASE + 164,
+    CABBAGE_SALAD: ITEM_ID_BASE + 165,
+    KOMPOT: ITEM_ID_BASE + 166,
+    KISSEL: ITEM_ID_BASE + 167,
+    BAKED_APPLES: ITEM_ID_BASE + 168,
+    APPLE_CHARLOTTE: ITEM_ID_BASE + 169,
+    NAPOLEON_CAKE: ITEM_ID_BASE + 170,
+    HONEY_CAKE: ITEM_ID_BASE + 171,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -663,6 +699,65 @@ ITALIAN_DISH_ITEM_DEFINITIONS.forEach(function (dish) {
     });
 });
 
+// Soviet dishes use only existing produce, grains, meat, eggs, oil and jelly.
+// There are deliberately no dairy or kefir recipes.
+const SOVIET_DISH_ITEM_DEFINITIONS = Object.freeze([
+    Object.freeze({ id: ITEM_IDS.BORSCHT, name: "Borscht", icon: "borscht", hunger: 160, description: "Deep red beetroot soup with cabbage, potato and meat. A Soviet table cornerstone." }),
+    Object.freeze({ id: ITEM_IDS.SHCHI, name: "Shchi", icon: "shchi", hunger: 140, description: "Cabbage soup with potato, carrot and herbs. Humble, warming and endlessly familiar." }),
+    Object.freeze({ id: ITEM_IDS.RASSOLNIK, name: "Rassolnik", icon: "rassolnik", hunger: 150, description: "Hearty potato and cucumber soup with meat. Sour, savoury and filling." }),
+    Object.freeze({ id: ITEM_IDS.SOLYANKA, name: "Solyanka", icon: "solyanka", hunger: 170, description: "Thick, tangy soup of meat, cabbage, tomato and cucumber. A Soviet canteen classic." }),
+    Object.freeze({ id: ITEM_IDS.OLIVIER_SALAD, name: "Olivier Salad", icon: "olivier", hunger: 140, description: "Potato, carrot, egg, cucumber, peas and meat bound with mayonnaise. The holiday table must-have." }),
+    Object.freeze({ id: ITEM_IDS.VINAIGRETTE, name: "Vinaigrette", icon: "vinaigrette", hunger: 100, description: "Beetroot, potato, carrot, cucumber and onion dressed with oil. A bright Soviet winter salad." }),
+    Object.freeze({ id: ITEM_IDS.PELMENI, name: "Pelmeni", icon: "pelmeni", hunger: 170, description: "Small meat dumplings boiled by the dozen. A freezer drawer's greatest achievement." }),
+    Object.freeze({ id: ITEM_IDS.VARENYKY, name: "Varenyky", icon: "varenyky", hunger: 150, description: "Potato and onion dumplings, boiled and slicked with oil. Ukrainian-Soviet comfort food." }),
+    Object.freeze({ id: ITEM_IDS.BEEF_STROGANOFF, name: "Beef Stroganoff", icon: "stroganoff", hunger: 180, description: "Sliced meat, onion and tomato in a flour-thickened sauce. A restaurant favourite of the USSR." }),
+    Object.freeze({ id: ITEM_IDS.CHICKEN_KIEV, name: "Chicken Kiev", icon: "chickenkiev", hunger: 175, description: "Breaded chicken roll with a rich egg and oil centre. A showpiece of Soviet dining." }),
+    Object.freeze({ id: ITEM_IDS.GOLUBTSY, name: "Golubtsy", icon: "golubtsy", hunger: 165, description: "Cabbage leaves stuffed with rice, meat and tomato. Slow-cooked Soviet home cooking." }),
+    Object.freeze({ id: ITEM_IDS.PLOV, name: "Plov", icon: "plov", hunger: 180, description: "Rice steamed with meat, carrot and onion in oil. The great Soviet communal pot." }),
+    Object.freeze({ id: ITEM_IDS.BUCKWHEAT_MUSHROOMS, name: "Buckwheat with Mushrooms", icon: "buckwheatmushrooms", hunger: 130, description: "Toasted buckwheat and mushrooms with onion. A plain but beloved Soviet staple." }),
+    Object.freeze({ id: ITEM_IDS.MASHED_POTATOES, name: "Mashed Potatoes", icon: "mashedpotatoes", hunger: 120, description: "Potatoes boiled and mashed with oil. The reliable side of every Soviet dinner." }),
+    Object.freeze({ id: ITEM_IDS.FRIED_POTATOES, name: "Fried Potatoes", icon: "friedpotatoes", hunger: 125, description: "Potato slices fried with onion until golden. A late supper from every Soviet kitchen." }),
+    Object.freeze({ id: ITEM_IDS.DRANIKI, name: "Draniki", icon: "draniki", hunger: 130, description: "Crisp potato pancakes bound with flour and egg. Belarussian-Soviet breakfast royalty." }),
+    Object.freeze({ id: ITEM_IDS.MILLET_KASHA, name: "Millet Kasha", icon: "milletkasha", hunger: 115, description: "Millet simmered until soft and dressed with oil. Simple Soviet porridge." }),
+    Object.freeze({ id: ITEM_IDS.OATMEAL, name: "Oatmeal", icon: "oatmeal", hunger: 100, description: "Oats boiled into a plain, sturdy porridge. The morning ration of millions." }),
+    Object.freeze({ id: ITEM_IDS.BLINI, name: "Blini", icon: "blini", hunger: 120, description: "Thin flour and egg pancakes fried in oil. A Soviet Shrovetide favourite." }),
+    Object.freeze({ id: ITEM_IDS.PIROZHKI, name: "Pirozhki", icon: "pirozhki", hunger: 140, description: "Small baked or fried buns filled with meat and onion. Street-corner Soviet comfort." }),
+    Object.freeze({ id: ITEM_IDS.BELYASH, name: "Belyash", icon: "belyash", hunger: 150, description: "Round fried dough pocket packed with meat and onion. A canteen and market classic." }),
+    Object.freeze({ id: ITEM_IDS.CHEBUREKI, name: "Chebureki", icon: "chebureki", hunger: 155, description: "Thin fried dough turnovers with juicy meat and onion. Soviet street food at its best." }),
+    Object.freeze({ id: ITEM_IDS.MUSHROOM_SOUP, name: "Mushroom Soup", icon: "mushroomsoup", hunger: 120, description: "Mushrooms, potato and onion simmered into a fragrant broth. A forest-to-table Soviet soup." }),
+    Object.freeze({ id: ITEM_IDS.PEA_SOUP, name: "Pea Soup", icon: "peasoup", hunger: 135, description: "Split peas, potato, onion and meat cooked into a thick soup. A Soviet canteen regular." }),
+    Object.freeze({ id: ITEM_IDS.MAKARONY_FLOTSKI, name: "Makarony po-Flotski", icon: "makaronyflotski", hunger: 160, description: "Pasta with meat and onion, fried until crisp at the edges. The navy's gift to Soviet cooking." }),
+    Object.freeze({ id: ITEM_IDS.TUSHONKA, name: "Tushonka", icon: "tushonka", hunger: 170, description: "Meat stewed with onion and tomato until spoon-tender. A jar that fed a country." }),
+    Object.freeze({ id: ITEM_IDS.KOTLETA, name: "Kotleta", icon: "kotleta", hunger: 150, description: "A minced meat patty bound with egg and flour, fried in oil. Soviet cafeteria staple." }),
+    Object.freeze({ id: ITEM_IDS.BEET_SALAD, name: "Beet Salad", icon: "beetsalad", hunger: 90, description: "Grated beetroot with garlic and oil. Bright, earthy and always on the table." }),
+    Object.freeze({ id: ITEM_IDS.CARROT_SALAD, name: "Carrot Salad", icon: "carrotsalad", hunger: 85, description: "Grated carrot with garlic and oil. Sweet, sharp and cheap." }),
+    Object.freeze({ id: ITEM_IDS.CABBAGE_SALAD, name: "Cabbage Salad", icon: "cabbagesalad", hunger: 80, description: "Shredded cabbage and carrot with oil. The everyday Soviet side dish." }),
+    Object.freeze({ id: ITEM_IDS.KOMPOT, name: "Kompot", icon: "kompot", hunger: 70, description: "Berries boiled with sugar and jelly into a sweet fruit drink. The Soviet answer to juice." }),
+    Object.freeze({ id: ITEM_IDS.KISSEL, name: "Kissel", icon: "kissel", hunger: 65, description: "A thick berry jelly drink, sweet and softly set. A Soviet childhood memory." }),
+    Object.freeze({ id: ITEM_IDS.BAKED_APPLES, name: "Baked Apples", icon: "bakedapples", hunger: 80, description: "Apples baked with sugar until soft and caramelised. A simple Soviet dessert." }),
+    Object.freeze({ id: ITEM_IDS.APPLE_CHARLOTTE, name: "Apple Charlotte", icon: "applecharlotte", hunger: 130, description: "A light flour and egg sponge layered with apples. The Soviet Union's favourite home cake." }),
+    Object.freeze({ id: ITEM_IDS.NAPOLEON_CAKE, name: "Napoleon Cake", icon: "napoleoncake", hunger: 150, description: "Crisp flour layers with a sweet egg and oil filling. A celebration cake of the USSR." }),
+    Object.freeze({ id: ITEM_IDS.HONEY_CAKE, name: "Honey Cake", icon: "honeycake", hunger: 145, description: "Soft honey-sweetened cake layers with an egg and oil filling. A Soviet tea-table legend." }),
+]);
+
+const SOVIET_DISH_ITEM_DEFS = {};
+SOVIET_DISH_ITEM_DEFINITIONS.forEach(function (dish) {
+    SOVIET_DISH_ITEM_DEFS[dish.id] = Object.freeze({
+        id: dish.id,
+        name: dish.name,
+        kind: ITEM_KINDS.Consumable,
+        stackable: false,
+        weight: 0.5,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: dish.icon,
+        primaryStat: "sou",
+        food: Object.freeze({ hungerRestore: dish.hunger }),
+        description: dish.description,
+    });
+});
+
 function getItemWeaponSkill(item) {
     if (!item) return null;
 
@@ -1022,6 +1117,7 @@ const ITEM_DEFS = Object.freeze({
     ...PASTA_ITEM_DEFS,
     ...SAUCE_ITEM_DEFS,
     ...ITALIAN_DISH_ITEM_DEFS,
+    ...SOVIET_DISH_ITEM_DEFS,
     [ITEM_IDS.HANDY_STICK]: createForagingToolDefinition(
         ITEM_IDS.HANDY_STICK, "Handy Stick", "handystick",
         { type: "digging", power: 1 },
