@@ -2491,3 +2491,12 @@ ul.resource-tree li a:before {
   width: calc(100% - 8px);
   margin: 4px;
 }
+
+/* Readable dropdown text in Habits and Options. */
+.habitselect,
+.habitselect option,
+.numberformatselect,
+.numberformatselect option {
+  font-family: "SimSun", serif;
+  font-size: 8px;
+}
