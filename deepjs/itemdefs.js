@@ -249,6 +249,8 @@ const ITEM_IDS = Object.freeze({
     VIETNAMESE_SPRING_ROLLS: ITEM_ID_BASE + 343,
     BUN_CHA: ITEM_ID_BASE + 344,
     VIETNAMESE_CURRY: ITEM_ID_BASE + 345,
+    SUSHI_ROLLS: ITEM_ID_BASE + 346,
+    NIGIRI_SUSHI: ITEM_ID_BASE + 347,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -944,6 +946,8 @@ const ASIAN_DISH_ITEM_DEFINITIONS = Object.freeze([
     Object.freeze({ id: ITEM_IDS.VIETNAMESE_SPRING_ROLLS, name: "Vietnamese Spring Rolls", icon: "vietnamesespringrolls", hunger: 150, description: "Fresh-tasting rolls of cabbage, carrot and chicken with a chili dip." }),
     Object.freeze({ id: ITEM_IDS.BUN_CHA, name: "Bun Cha", icon: "buncha", hunger: 170, description: "Noodles with grilled chicken, herbs and chili. Hanoi street lunch." }),
     Object.freeze({ id: ITEM_IDS.VIETNAMESE_CURRY, name: "Vietnamese Curry", icon: "vietnamesecurry", hunger: 175, description: "Coconut chicken curry with potato and warm spices. Vietnamese home cooking." }),
+    Object.freeze({ id: ITEM_IDS.SUSHI_ROLLS, name: "Sushi Rolls", icon: "sushirolls", hunger: 160, description: "Rice, egg and cucumber rolled in a dark sea-vegetable wrap. Japanese maki-style rolls." }),
+    Object.freeze({ id: ITEM_IDS.NIGIRI_SUSHI, name: "Nigiri Sushi", icon: "nigirisushi", hunger: 150, description: "Hand-pressed rice topped with chicken or egg and a brush of soybean savour." }),
 ]);
 
 const ASIAN_DISH_ITEM_DEFS = {};

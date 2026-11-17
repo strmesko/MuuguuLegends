@@ -221,6 +221,8 @@ const CRAFT_RECIPE_TAGS = Object.freeze({
     "asian-vietnamese-spring-rolls": ["fried", "meat", "streetfood"],
     "asian-bun-cha": ["meat", "pasta", "fried"],
     "asian-vietnamese-curry": ["meat"],
+    "asian-sushi-rolls": ["pasta", "vegetarian"],
+    "asian-nigiri-sushi": ["meat"],
 });
 
 function getCraftRecipeTags(recipe) {
@@ -1212,6 +1214,14 @@ const ASIAN_DISH_RECIPES = Object.freeze([
     createAsianDishRecipe("vietnamese-curry", ITEM_IDS.VIETNAMESE_CURRY, [
         [RESOURCE_IDS.COCONUTS, 1], [RESOURCE_IDS.CHICKEN_MEAT, 2],
         [SOVIET_POTATO_ID, 2], [getSpiceResourceId("curry-powder"), 1],
+    ], { station: "pot" }),
+    createAsianDishRecipe("sushi-rolls", ITEM_IDS.SUSHI_ROLLS, [
+        [SOVIET_RICE_ID, 3], [4064, 2], [SOVIET_CUCUMBER_ID, 1],
+        [RESOURCE_IDS.EGG, 1], [ASIAN_SOYBEAN_ID, 1],
+    ], { station: "pot" }),
+    createAsianDishRecipe("nigiri-sushi", ITEM_IDS.NIGIRI_SUSHI, [
+        [SOVIET_RICE_ID, 2], [RESOURCE_IDS.CHICKEN_MEAT, 1],
+        [RESOURCE_IDS.EGG, 1], [ASIAN_SOYBEAN_ID, 1],
     ], { station: "pot" }),
 ]);
 
