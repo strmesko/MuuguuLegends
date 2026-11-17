@@ -251,6 +251,37 @@ const ITEM_IDS = Object.freeze({
     VIETNAMESE_CURRY: ITEM_ID_BASE + 345,
     SUSHI_ROLLS: ITEM_ID_BASE + 346,
     NIGIRI_SUSHI: ITEM_ID_BASE + 347,
+    HARISSA_SAUCE: ITEM_ID_BASE + 348,
+    TOUM: ITEM_ID_BASE + 349,
+    AMBA: ITEM_ID_BASE + 350,
+    FALAFEL: ITEM_ID_BASE + 351,
+    HUMMUS_PLATE: ITEM_ID_BASE + 352,
+    BABA_GANOUSH: ITEM_ID_BASE + 353,
+    TABBOULEH: ITEM_ID_BASE + 354,
+    FATTOUSH: ITEM_ID_BASE + 355,
+    SHISH_TAWOOK: ITEM_ID_BASE + 356,
+    CHICKEN_SHAWARMA: ITEM_ID_BASE + 357,
+    KOFTA: ITEM_ID_BASE + 358,
+    KEBAB: ITEM_ID_BASE + 359,
+    SHAWARMA_PLATE: ITEM_ID_BASE + 360,
+    MUJADARA: ITEM_ID_BASE + 361,
+    LENTIL_SOUP: ITEM_ID_BASE + 362,
+    CHICKPEA_STEW: ITEM_ID_BASE + 363,
+    CHICKPEA_TAGINE: ITEM_ID_BASE + 364,
+    CHICKEN_TAGINE: ITEM_ID_BASE + 365,
+    STUFFED_EGGPLANT: ITEM_ID_BASE + 366,
+    STUFFED_PEPPERS: ITEM_ID_BASE + 367,
+    MAQLUBA: ITEM_ID_BASE + 368,
+    KABSA: ITEM_ID_BASE + 369,
+    MANDI: ITEM_ID_BASE + 370,
+    BATATA_HARRA: ITEM_ID_BASE + 371,
+    FRIED_CAULIFLOWER: ITEM_ID_BASE + 372,
+    SHAKSHUKA: ITEM_ID_BASE + 373,
+    POMEGRANATE_CHICKEN: ITEM_ID_BASE + 374,
+    MUHAMMARA: ITEM_ID_BASE + 375,
+    BAKLAVA: ITEM_ID_BASE + 376,
+    BASBOUSA: ITEM_ID_BASE + 377,
+    HALVA: ITEM_ID_BASE + 378,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -968,6 +999,79 @@ ASIAN_DISH_ITEM_DEFINITIONS.forEach(function (dish) {
     });
 });
 
+const ARABIC_SAUCE_ITEM_DEFINITIONS = Object.freeze([
+    Object.freeze({ id: ITEM_IDS.HARISSA_SAUCE, name: "Harissa Sauce", icon: "harissasauce", hunger: 25, description: "A fiery North African chili, garlic and spice paste loosened with oil." }),
+    Object.freeze({ id: ITEM_IDS.TOUM, name: "Toum", icon: "toum", hunger: 20, description: "A pale, fierce garlic sauce whipped with oil and lemon. Lebanese table staple." }),
+    Object.freeze({ id: ITEM_IDS.AMBA, name: "Amba", icon: "amba", hunger: 25, description: "A tangy mango and chili condiment. Iraqi-Jewish and Middle Eastern favourite." }),
+]);
+
+const ARABIC_SAUCE_ITEM_DEFS = {};
+ARABIC_SAUCE_ITEM_DEFINITIONS.forEach(function (sauce) {
+    ARABIC_SAUCE_ITEM_DEFS[sauce.id] = Object.freeze({
+        id: sauce.id,
+        name: sauce.name,
+        kind: ITEM_KINDS.Consumable,
+        stackable: false,
+        weight: 0.25,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: sauce.icon,
+        primaryStat: "sou",
+        food: Object.freeze({ hungerRestore: sauce.hunger }),
+        description: sauce.description,
+    });
+});
+
+const ARABIC_DISH_ITEM_DEFINITIONS = Object.freeze([
+    Object.freeze({ id: ITEM_IDS.FALAFEL, name: "Falafel", icon: "falafel", hunger: 150, description: "Crisp chickpea and herb fritters. Levantine street food at its best." }),
+    Object.freeze({ id: ITEM_IDS.HUMMUS_PLATE, name: "Hummus Plate", icon: "hummusplate", hunger: 140, description: "Creamed chickpeas with tahini, lemon and garlic. A mezze cornerstone." }),
+    Object.freeze({ id: ITEM_IDS.BABA_GANOUSH, name: "Baba Ganoush", icon: "babaganoush", hunger: 130, description: "Smoky eggplant mashed with tahini, garlic and lemon. Levantine mezze classic." }),
+    Object.freeze({ id: ITEM_IDS.TABBOULEH, name: "Tabbouleh", icon: "tabbouleh", hunger: 110, description: "Herb-heavy wheat salad with tomato, cucumber and lemon. Fresh and sharp." }),
+    Object.freeze({ id: ITEM_IDS.FATTOUSH, name: "Fattoush", icon: "fattoush", hunger: 120, description: "Bread salad with tomato, cucumber, herbs and lemon. A use for yesterday's flat bread." }),
+    Object.freeze({ id: ITEM_IDS.SHISH_TAWOOK, name: "Shish Tawook", icon: "shishtawook", hunger: 170, description: "Lemon and sumac marinated chicken skewers. Lebanese grill favourite." }),
+    Object.freeze({ id: ITEM_IDS.CHICKEN_SHAWARMA, name: "Chicken Shawarma", icon: "chickenshawarma", hunger: 175, description: "Spiced chicken wrapped in flat bread with garlic and lemon. Street-corner shawarma." }),
+    Object.freeze({ id: ITEM_IDS.KOFTA, name: "Kofta", icon: "kofta", hunger: 165, description: "Spiced minced chicken and herb patties. Levantine grill staple." }),
+    Object.freeze({ id: ITEM_IDS.KEBAB, name: "Kebab", icon: "kebab", hunger: 170, description: "Chicken skewers with onion, sumac and garlic. A pan-fire classic." }),
+    Object.freeze({ id: ITEM_IDS.SHAWARMA_PLATE, name: "Shawarma Plate", icon: "shawarmaplate", hunger: 180, description: "Shawarma chicken over rice with tomato, cucumber and garlic sauce." }),
+    Object.freeze({ id: ITEM_IDS.MUJADARA, name: "Mujadara", icon: "mujadara", hunger: 150, description: "Lentils and rice topped with sweet fried onion. A humble Levantine staple." }),
+    Object.freeze({ id: ITEM_IDS.LENTIL_SOUP, name: "Lentil Soup", icon: "lentilsoup", hunger: 140, description: "Golden lentil soup with onion, carrot, cumin and lemon. Middle Eastern comfort." }),
+    Object.freeze({ id: ITEM_IDS.CHICKPEA_STEW, name: "Chickpea Stew", icon: "chickpeastew", hunger: 155, description: "Chickpeas simmered with tomato, onion and cumin. A filling everyday stew." }),
+    Object.freeze({ id: ITEM_IDS.CHICKPEA_TAGINE, name: "Chickpea Tagine", icon: "chickpeaatagine", hunger: 160, description: "Chickpeas, tomato and apricots slow-cooked with warm spices. Moroccan tagine." }),
+    Object.freeze({ id: ITEM_IDS.CHICKEN_TAGINE, name: "Chicken Tagine", icon: "chickentagine", hunger: 175, description: "Chicken with olives, lemon and ras el hanout. Moroccan clay-pot cooking." }),
+    Object.freeze({ id: ITEM_IDS.STUFFED_EGGPLANT, name: "Stuffed Eggplant", icon: "stuffedeggplant", hunger: 160, description: "Eggplant halves filled with rice, tomato and onion. Levantine home food." }),
+    Object.freeze({ id: ITEM_IDS.STUFFED_PEPPERS, name: "Stuffed Peppers", icon: "stuffedpeppers", hunger: 165, description: "Peppers packed with rice, chicken and tomato. A colourful baked dish." }),
+    Object.freeze({ id: ITEM_IDS.MAQLUBA, name: "Maqluba", icon: "maqluba", hunger: 180, description: "Rice, chicken and eggplant flipped out of the pot. A celebratory Levantine dish." }),
+    Object.freeze({ id: ITEM_IDS.KABSA, name: "Kabsa", icon: "kabsa", hunger: 185, description: "Spiced rice with chicken and tomato. Saudi Arabian national comfort food." }),
+    Object.freeze({ id: ITEM_IDS.MANDI, name: "Mandi", icon: "mandi", hunger: 185, description: "Smoky spiced rice with chicken and sumac. Arabian Peninsula feast food." }),
+    Object.freeze({ id: ITEM_IDS.BATATA_HARRA, name: "Batata Harra", icon: "batataharra", hunger: 130, description: "Spicy fried potatoes with chili, garlic and coriander. Lebanese mezze favourite." }),
+    Object.freeze({ id: ITEM_IDS.FRIED_CAULIFLOWER, name: "Fried Cauliflower", icon: "friedcauliflower", hunger: 125, description: "Golden cauliflower with tahini and lemon. A crisp mezze plate." }),
+    Object.freeze({ id: ITEM_IDS.SHAKSHUKA, name: "Shakshuka", icon: "shakshuka", hunger: 150, description: "Eggs poached in spiced tomato and pepper sauce. North African breakfast." }),
+    Object.freeze({ id: ITEM_IDS.POMEGRANATE_CHICKEN, name: "Pomegranate Chicken", icon: "pomegranatechicken", hunger: 175, description: "Chicken glazed with tart pomegranate, sugar and sumac. Persian-Arabic feast dish." }),
+    Object.freeze({ id: ITEM_IDS.MUHAMMARA, name: "Muhammara", icon: "muhammara", hunger: 140, description: "Red pepper and nut dip with pomegranate and cumin. Syrian mezze classic." }),
+    Object.freeze({ id: ITEM_IDS.BAKLAVA, name: "Baklava", icon: "baklava", hunger: 160, description: "Layered pastry with nuts and sugar syrup. A sweet Ottoman-Arabic treasure." }),
+    Object.freeze({ id: ITEM_IDS.BASBOUSA, name: "Basbousa", icon: "basbousa", hunger: 150, description: "Sweet semolina-style cake with coconut and syrup. Middle Eastern tea companion." }),
+    Object.freeze({ id: ITEM_IDS.HALVA, name: "Halva", icon: "halva", hunger: 145, description: "Dense sesame and sugar sweet. A simple, long-keeping Arabic dessert." }),
+]);
+
+const ARABIC_DISH_ITEM_DEFS = {};
+ARABIC_DISH_ITEM_DEFINITIONS.forEach(function (dish) {
+    ARABIC_DISH_ITEM_DEFS[dish.id] = Object.freeze({
+        id: dish.id,
+        name: dish.name,
+        kind: ITEM_KINDS.Consumable,
+        stackable: false,
+        weight: 0.5,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: dish.icon,
+        primaryStat: "sou",
+        food: Object.freeze({ hungerRestore: dish.hunger }),
+        description: dish.description,
+    });
+});
+
 function getItemWeaponSkill(item) {
     if (!item) return null;
 
@@ -1331,6 +1435,8 @@ const ITEM_DEFS = Object.freeze({
     ...PIZZA_ITEM_DEFS,
     ...ASIAN_SAUCE_ITEM_DEFS,
     ...ASIAN_DISH_ITEM_DEFS,
+    ...ARABIC_SAUCE_ITEM_DEFS,
+    ...ARABIC_DISH_ITEM_DEFS,
     [ITEM_IDS.HANDY_STICK]: createForagingToolDefinition(
         ITEM_IDS.HANDY_STICK, "Handy Stick", "handystick",
         { type: "digging", power: 1 },

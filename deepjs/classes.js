@@ -1222,6 +1222,8 @@ const CROP_DEFS = [
     { name: "Pearl Millet", climate: PLANT_CLIMATES.Arid, difficulty: 5, amount: 0.04 },
     { name: "Proso Millet", climate: PLANT_CLIMATES.Temperate, difficulty: 5, amount: 0.03 },
     { name: "Soybean", climate: PLANT_CLIMATES.Garden, difficulty: 5, amount: 0.05 },
+    { name: "Chickpea", climate: PLANT_CLIMATES.Mediterranean, difficulty: 5, amount: 0.05 },
+    { name: "Lentil", climate: PLANT_CLIMATES.Mediterranean, difficulty: 4, amount: 0.04 },
 ];
 
 VEGETABLE_DEFS.forEach(function (plant, index) {
@@ -1406,6 +1408,9 @@ const SPICE_DEFINITIONS = [
     { key: "wasabi-powder", name: "Wasabi Powder", bonus: { agi: 1, str: 1 }, flavour: "fierce and green" },
     { key: "furikake", name: "Furikake", bonus: { per: 1, vit: 1 }, flavour: "savoury and seaside-like" },
     { key: "gochugaru", name: "Gochugaru", bonus: { str: 1, vit: 1 }, flavour: "sweet, smoky and hot" },
+    { key: "sumac", name: "Sumac", bonus: { per: 1, vit: 1 }, flavour: "tart and fruity" },
+    { key: "dukkah", name: "Dukkah", bonus: { per: 1, ins: 1 }, flavour: "nutty and aromatic" },
+    { key: "harissa-spice", name: "Harissa Spice", bonus: { str: 1, sou: 1 }, flavour: "hot and smoky" },
 ];
 
 SPICE_DEFINITIONS.forEach(function (entry, index) {
