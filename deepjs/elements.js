@@ -1258,9 +1258,6 @@ function renderStatusIcons() {
     createChildElement('li', 'habit-node', '', 'habitharvesttheyummiesnode', 'habitdietbasicschildren', '');
     createChildElement('button', 'habit-skill', HARVEST_THE_YUMMIES_TECHNOLOGY.name, 'habitharvesttheyummies', 'habitharvesttheyummiesnode', HARVEST_THE_YUMMIES_TECHNOLOGY.getDescription());
     decorateResearchNode('habitharvesttheyummies', 'fa-tree', HARVEST_THE_YUMMIES_TECHNOLOGY);
-    createChildElement('li', 'habit-node open', '', 'habitsurvival101node', 'habitlazybasicschildren', '');
-    createChildElement('button', 'habit-skill', SURVIVAL_101_TECHNOLOGY.name, 'habitsurvival101', 'habitsurvival101node', SURVIVAL_101_TECHNOLOGY.getDescription());
-    decorateResearchNode('habitsurvival101', 'fa-compass', SURVIVAL_101_TECHNOLOGY);
     createChildElement('li', 'habit-node open', '', 'habitcozysciencenode', 'habitlazybasicschildren', '');
     createChildElement('button', 'habit-skill', COZY_SCIENCE_TECHNOLOGY.name, 'habitcozyscience', 'habitcozysciencenode', COZY_SCIENCE_TECHNOLOGY.getDescription());
     decorateResearchNode('habitcozyscience', 'fa-coffee', COZY_SCIENCE_TECHNOLOGY);
@@ -1277,6 +1274,13 @@ function renderStatusIcons() {
     createChildElement('li', 'habit-node open', '', 'knowledgenotsoworthlessnode', 'knowledgepotentialchildren', '');
     createChildElement('button', 'habit-skill', NOT_SO_WORTHLESS_TECHNOLOGY.name, NOT_SO_WORTHLESS_TECHNOLOGY.buttonId, 'knowledgenotsoworthlessnode', NOT_SO_WORTHLESS_TECHNOLOGY.getDescription());
     decorateResearchNode(NOT_SO_WORTHLESS_TECHNOLOGY.buttonId, 'fa-heartbeat', NOT_SO_WORTHLESS_TECHNOLOGY);
+    createChildElement('li', 'habit-node open', '', 'knowledgesurvival101node', 'knowledgepotentialchildren', '');
+    createChildElement('button', 'habit-skill', SURVIVAL_101_TECHNOLOGY.name, 'knowledgesurvival101', 'knowledgesurvival101node', SURVIVAL_101_TECHNOLOGY.getDescription());
+    decorateResearchNode('knowledgesurvival101', 'fa-compass', SURVIVAL_101_TECHNOLOGY);
+    createChildElement('ul', 'habit-children', '', 'knowledgesurvival101children', 'knowledgesurvival101node', '');
+    createChildElement('li', 'habit-node open', '', 'knowledgebuildingsnode', 'knowledgesurvival101children', '');
+    createChildElement('button', 'habit-skill', BUILDINGS_TECHNOLOGY.name, 'knowledgebuildings', 'knowledgebuildingsnode', BUILDINGS_TECHNOLOGY.getDescription());
+    decorateResearchNode('knowledgebuildings', 'fa-building', BUILDINGS_TECHNOLOGY);
     document.getElementById('researchhabits').classList.add('active');
     document.getElementById('habitsplace').style.display = 'block';
 

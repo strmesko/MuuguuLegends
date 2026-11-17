@@ -154,7 +154,7 @@ const SURVIVAL_101_TECHNOLOGY = new Technology(
     function (level) {
         return 4000 + 2000 * level;
     },
-    "habitsurvival101",
+    "knowledgesurvival101",
     function (technology) {
         return player.autism.lvl >= 2 + technology.level * 2
             && SKILL_POTENTIAL_TECHNOLOGY.level >= 1;
@@ -174,7 +174,28 @@ const SURVIVAL_101_TECHNOLOGY = new Technology(
     ]
 );
 
-const TECHNOLOGIES = [LAZY_BASICS_TECHNOLOGY, COZY_SCIENCE_TECHNOLOGY, DIET_BASICS_TECHNOLOGY, HARVEST_THE_YUMMIES_TECHNOLOGY, SCIENTIFIC_PLANS_TECHNOLOGY, SKILL_POTENTIAL_TECHNOLOGY, NOT_SO_WORTHLESS_TECHNOLOGY, SURVIVAL_101_TECHNOLOGY];
+const BUILDINGS_TECHNOLOGY = new Technology(
+    "Buildings",
+    "endless wandering would be tiresome. why wont to settle down?",
+    function (level) {
+        return 100000 + 10000 * level;
+    },
+    "knowledgebuildings",
+    function (technology) {
+        return player.autism.lvl >= 10 + technology.level * 5
+            && SURVIVAL_101_TECHNOLOGY.level >= 9;
+    },
+    null,
+    4,
+    [
+        "Unlocks building the Stone house.",
+        "Unlocks building the Log cabin.",
+        "Unlocks building the Stone shed.",
+        "Unlocks building the Clay House.",
+    ]
+);
+
+const TECHNOLOGIES = [LAZY_BASICS_TECHNOLOGY, COZY_SCIENCE_TECHNOLOGY, DIET_BASICS_TECHNOLOGY, HARVEST_THE_YUMMIES_TECHNOLOGY, SCIENTIFIC_PLANS_TECHNOLOGY, SKILL_POTENTIAL_TECHNOLOGY, NOT_SO_WORTHLESS_TECHNOLOGY, SURVIVAL_101_TECHNOLOGY, BUILDINGS_TECHNOLOGY];
 
 // Survival 101 unlocks: crafting recipes, buildings and the Make strings
 // action all check this helper instead of reading the technology directly.
@@ -186,6 +207,17 @@ function getSurvival101Level() {
 
 function isSurvival101Unlocked(requiredLevel) {
     return getSurvival101Level() >= Math.max(0, Number(requiredLevel) || 0);
+}
+
+// Buildings technology unlocks the four house blueprints.
+function getBuildingsTechLevel() {
+    return typeof BUILDINGS_TECHNOLOGY === "undefined"
+        ? 0
+        : Math.max(0, Number(BUILDINGS_TECHNOLOGY.level) || 0);
+}
+
+function isBuildingsTechUnlocked(requiredLevel) {
+    return getBuildingsTechLevel() >= Math.max(0, Number(requiredLevel) || 0);
 }
 
 const DIET_AUTO_EAT_MIN_PERCENT = 1;

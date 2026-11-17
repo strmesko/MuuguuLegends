@@ -15,6 +15,7 @@ const BUILDING_IDS = Object.freeze({
     LOG_CABIN: "log-cabin",
     STONE_SHED: "stone-shed",
     CLAY_HOUSE: "clay-house",
+    STONE_HOUSE: "stone-house",
     WORKBENCH: "workbench",
     STRAY_BED: "stray-bed",
     HAMMOCK: "hammock",
@@ -67,23 +68,46 @@ const BUILDING_CATEGORIES = Object.freeze([
     BUILDING_IMPROVE_CATEGORY,
 ]);
 
-// Survival 101 gates buildings by level. Buildings without an entry are always
-// available.
+// Survival 101 gates camping buildings, the Buildings technology gates houses.
 const SURVIVAL_BUILDING_LEVELS = Object.freeze({
     campfire: 2,
     tent: 9,
     "leaf-bedroll": 9,
 });
 
+const BUILDINGS_TECH_LEVELS = Object.freeze({
+    "stone-house": 1,
+    "log-cabin": 2,
+    "stone-shed": 3,
+    "clay-house": 4,
+});
+
 function getBuildingSurvivalLevel(def) {
     return def ? (SURVIVAL_BUILDING_LEVELS[def.id] || 0) : 0;
 }
 
+function getBuildingTechLevel(def) {
+    return def ? (BUILDINGS_TECH_LEVELS[def.id] || 0) : 0;
+}
+
 function isBuildingUnlocked(def) {
-    const level = getBuildingSurvivalLevel(def);
-    if (level <= 0) return true;
-    return typeof isSurvival101Unlocked === "function"
-        && isSurvival101Unlocked(level);
+    if (!def) return false;
+
+    const survivalLevel = getBuildingSurvivalLevel(def);
+    if (survivalLevel > 0
+        && !(typeof isSurvival101Unlocked === "function"
+            && isSurvival101Unlocked(survivalLevel))) {
+        return false;
+    }
+
+    const buildingsLevel = getBuildingTechLevel(def);
+    if (buildingsLevel > 0
+        && !(typeof isBuildingsTechUnlocked === "function"
+            && isBuildingsTechUnlocked(buildingsLevel))) {
+        return false;
+    }
+
+    return true;
 }
 
 const MAPLE_METAL_SHEET_CHOICES = Object.freeze([
@@ -407,6 +431,25 @@ const BUILDING_DEFS = Object.freeze({
         effects: Object.freeze([]),
         iconClass: "fa-home",
         effectText: "Provides 25 RoomSpace.",
+    }),
+    [BUILDING_IDS.STONE_HOUSE]: Object.freeze({
+        id: BUILDING_IDS.STONE_HOUSE,
+        name: "Stone house",
+        category: HOUSES_CATEGORY.id,
+        description: "A sturdy house raised from stone and mortar. A proper home for someone tired of wandering.",
+        resources: Object.freeze([
+            Object.freeze({ resourceId: RESOURCE_IDS.ROCKS, amount: 800 }),
+            Object.freeze({ resourceId: RESOURCE_IDS.MORTAR, amount: 150 }),
+            Object.freeze({ resourceId: RESOURCE_IDS.WOODEN_BEAMS, amount: 10 }),
+            Object.freeze({ resourceId: RESOURCE_IDS.WOODEN_PLANK, amount: 20 }),
+        ]),
+        workPoints: 30000,
+        emptySpace: 3,
+        roomSpaceReward: 15,
+        skill: "masonry",
+        effects: Object.freeze([]),
+        iconClass: "fa-home",
+        effectText: "Provides 15 RoomSpace.",
     }),
     [BUILDING_IDS.WORKBENCH]: Object.freeze({
         id: BUILDING_IDS.WORKBENCH,
@@ -2519,7 +2562,7 @@ function renderHousesList() {
     group.appendChild(groupTitle);
 
     const defs = Object.keys(BUILDING_DEFS).map(getBuildingDefinition).filter(function (def) {
-        return def && def.category === HOUSES_CATEGORY.id;
+        return def && def.category === HOUSES_CATEGORY.id && isBuildingUnlocked(def);
     });
 
     if (!defs.length) {
@@ -2962,7 +3005,7 @@ function renderFurnitureList() {
     group.appendChild(groupTitle);
 
     const defs = Object.keys(BUILDING_DEFS).map(getBuildingDefinition).filter(function (def) {
-        return def && def.category === FURNITURE_CATEGORY.id;
+        return def && def.category === FURNITURE_CATEGORY.id && isBuildingUnlocked(def);
     });
 
     if (!defs.length) {
