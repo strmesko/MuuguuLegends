@@ -1109,8 +1109,12 @@ function simulateTimePassage(seconds, options) {
         processMapleExtractors(currentTile);
     }
     if (typeof updateDrama === "function") updateDrama(value);
-    updateGUI();
-    if (typeof refreshActionButtons === "function") refreshActionButtons(true);
+    if (!options || options.skipGUI !== true) {
+        updateGUI();
+        if (typeof refreshActionButtons === "function") {
+            refreshActionButtons(true);
+        }
+    }
 }
 
 function runExploreProduction(diff) {
@@ -3719,6 +3723,10 @@ let mainLoopRemainderMilliseconds = 0;
 
 function mainLoop(){
     const now = Date.now();
+    if (offlineSimulationActive) {
+        lastUpdate = now;
+        return;
+    }
     const previousUpdate = Number(lastUpdate);
     const elapsedMilliseconds = Number.isFinite(previousUpdate)
         ? Math.max(0, now - previousUpdate)
@@ -3770,6 +3778,9 @@ let logMessageCount = 0;
 let logSuppressed = false;
 let logHighlightRegex = null;
 let showDebugMessages = true;
+// While a loaded save replays offline time, the normal main loop must not
+// advance the same seconds a second time.
+var offlineSimulationActive = false;
 
 function setLogSuppressed(suppressed){
     logSuppressed = suppressed;

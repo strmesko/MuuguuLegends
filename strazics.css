@@ -2433,3 +2433,55 @@ ul.resource-tree li a:before {
   border-radius: 8px;
   white-space: nowrap;
 }
+
+/* Offline save catch-up progress. */
+.offlinesim {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 16, 10, 0.82);
+  pointer-events: all;
+}
+.offlinesim-panel {
+  width: min(430px, 82vw);
+  padding: 18px 20px;
+  color: #e8f5d8;
+  background: linear-gradient(#2d3a24, #1b2416);
+  border: 2px solid #63c47a;
+  border-radius: 6px;
+  box-shadow: 0 0 0 2px #1b2416, 0 12px 30px rgba(0, 0, 0, 0.55);
+  font-family: "SimSun", serif;
+}
+.offlinesim-title {
+  color: #b9edc5;
+  font-size: 1.25em;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+.offlinesim-subtitle {
+  color: #9fb58a;
+  font-size: 0.9em;
+  margin-bottom: 12px;
+}
+.offlinesim-track {
+  height: 18px;
+  overflow: hidden;
+  background: #11180d;
+  border: 1px solid #4d6b3f;
+  border-radius: 3px;
+}
+.offlinesim-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(#8fe0a3, #3f9c55);
+  transition: width 80ms linear;
+}
+.offlinesim-status {
+  margin-top: 8px;
+  color: #d4e7c1;
+  font-size: 0.9em;
+  text-align: right;
+}

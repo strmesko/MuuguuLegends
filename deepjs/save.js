@@ -710,6 +710,146 @@
         logMessage('Map seed: ' + (window.mapView ? window.mapView.getSeed() : 'none'));
     }
 
+    function formatOfflineDuration(totalSeconds) {
+        const seconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+        const days = Math.floor(seconds / 86400);
+        const hours = Math.floor((seconds % 86400) / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const parts = [];
+        if (days > 0) parts.push(days + "d");
+        if (hours > 0) parts.push(hours + "h");
+        if (minutes > 0) parts.push(minutes + "m");
+        if (!parts.length) parts.push(seconds + "s");
+        return parts.join(" ");
+    }
+
+    function getOfflineChunkSeconds(totalSeconds) {
+        if (totalSeconds <= 600) return 1;
+        if (totalSeconds <= 21600) return 5;
+        if (totalSeconds <= 259200) return 15;
+        return 60;
+    }
+
+    function createOfflineOverlay() {
+        const overlay = document.createElement("div");
+        overlay.className = "offlinesim";
+        overlay.id = "offlinesimoverlay";
+
+        const panel = document.createElement("div");
+        panel.className = "offlinesim-panel";
+
+        const title = document.createElement("div");
+        title.className = "offlinesim-title";
+        title.innerText = "Catching up...";
+        panel.appendChild(title);
+
+        const subtitle = document.createElement("div");
+        subtitle.className = "offlinesim-subtitle";
+        subtitle.innerText = "Simulating time while you were away";
+        panel.appendChild(subtitle);
+
+        const track = document.createElement("div");
+        track.className = "offlinesim-track";
+        const fill = document.createElement("div");
+        fill.className = "offlinesim-fill";
+        fill.id = "offlinesimfill";
+        track.appendChild(fill);
+        panel.appendChild(track);
+
+        const status = document.createElement("div");
+        status.className = "offlinesim-status";
+        status.id = "offlinesimstatus";
+        panel.appendChild(status);
+
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+        return overlay;
+    }
+
+    function updateOfflineOverlay(overlay, simulated, total) {
+        if (!overlay) return;
+        const fill = overlay.querySelector("#offlinesimfill");
+        const status = overlay.querySelector("#offlinesimstatus");
+        const percent = total > 0
+            ? Math.min(100, (simulated / total) * 100)
+            : 100;
+
+        if (fill) fill.style.width = percent.toFixed(1) + "%";
+        if (status) {
+            status.innerText = formatOfflineDuration(simulated)
+                + " / " + formatOfflineDuration(total)
+                + " (" + Math.floor(percent) + "%)";
+        }
+    }
+
+    function startOfflineSimulation(totalSeconds, onDone) {
+        const total = Math.max(0, Number(totalSeconds) || 0);
+        if (total < 1) {
+            lastUpdate = Date.now();
+            if (typeof onDone === "function") onDone();
+            return;
+        }
+
+        offlineSimulationActive = true;
+        lastUpdate = Date.now();
+        setLogSuppressed(true);
+        suppressAutismLevelLogs = true;
+
+        const overlay = createOfflineOverlay();
+        updateOfflineOverlay(overlay, 0, total);
+        let simulated = 0;
+        let lastPaint = 0;
+
+        function finish() {
+            offlineSimulationActive = false;
+            lastUpdate = Date.now();
+            setLogSuppressed(false);
+            suppressAutismLevelLogs = false;
+            if (overlay && overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+            }
+            if (typeof updateGUI === "function") updateGUI();
+            if (typeof refreshActionButtons === "function") {
+                refreshActionButtons(true);
+            }
+            if (typeof renderResources === "function") renderResources();
+            if (typeof renderInventorySlots === "function") renderInventorySlots();
+            logMessage("Simulated " + formatOfflineDuration(total)
+                + " of offline progress.");
+            if (typeof onDone === "function") onDone();
+        }
+
+        function step() {
+            if (!offlineSimulationActive) return;
+            const remaining = total - simulated;
+            const chunk = getOfflineChunkSeconds(total);
+            const seconds = Math.min(chunk, remaining);
+
+            try {
+                simulateTimePassage(seconds, { skipGUI: true });
+            } catch (error) {
+                console.error("Offline simulation failed", error);
+                finish();
+                return;
+            }
+            simulated += seconds;
+
+            const now = Date.now();
+            if (simulated >= total || now - lastPaint >= 50) {
+                lastPaint = now;
+                updateOfflineOverlay(overlay, simulated, total);
+            }
+
+            if (simulated < total) {
+                setTimeout(step, 0);
+            } else {
+                finish();
+            }
+        }
+
+        setTimeout(step, 0);
+    }
+
     function loadGame(slot) {
         const targetSlot = isValidSaveSlot(slot) ? slot : 1;
         const saved = readSavedGame(targetSlot);
@@ -717,6 +857,11 @@
             logMessage('Slot ' + targetSlot + ' is empty');
             return;
         }
+
+        const savedAt = Number(saved.lastUpdate);
+        const offlineSeconds = Number.isFinite(savedAt)
+            ? Math.max(0, (Date.now() - savedAt) / 1000)
+            : 0;
 
         setLogSuppressed(true);
         // The first tick after loading may replay offline progress; hide the
@@ -751,7 +896,15 @@
         } finally {
             setLogSuppressed(false);
         }
-        logMessage('Game loaded from slot ' + targetSlot);
+
+        lastUpdate = Date.now();
+        if (offlineSeconds >= 1) {
+            startOfflineSimulation(offlineSeconds, function () {
+                logMessage('Game loaded from slot ' + targetSlot);
+            });
+        } else {
+            logMessage('Game loaded from slot ' + targetSlot);
+        }
     }
 
     updateSaveSlotLabels();
