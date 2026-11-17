@@ -847,6 +847,9 @@ const researchQueue = [];
 // Every non-restoration timed action the player starts is remembered here,
 // so Lazy basics level 2 can resume all of them after rest or sleep.
 let previousTimedActionIds = [];
+// Actions that were interrupted by an automatic Trees Harvest. They are
+// resumed when that harvest finishes; restoration actions are never included.
+let treeHarvestResumeActionIds = [];
 let activeTravel = null;
 
 function getResearchQueueLimit() {
@@ -1189,7 +1192,16 @@ function startTreeHarvestIfEnabled() {
     if (hasRestoration) return false;
 
     if (activeTimedActions.length) {
+        treeHarvestResumeActionIds = activeTimedActions
+            .filter(function (action) {
+                return !isRestorationAction(action);
+            })
+            .map(function (action) {
+                return action.id;
+            });
         stopActiveTimedActions();
+    } else {
+        treeHarvestResumeActionIds = [];
     }
 
     if (actionsCount <= 0) return false;
@@ -1216,8 +1228,27 @@ function startDayDreamIfIdle() {
     startTimedAction(dayDreamAction);
 }
 
-function resumePreviousTimedActions() {
-    if (LAZY_BASICS_TECHNOLOGY.level < 2) return 0;
+function resumeTreeHarvestPreviousActions() {
+    const actionIds = treeHarvestResumeActionIds.slice();
+    treeHarvestResumeActionIds = [];
+    if (!actionIds.length) return 0;
+
+    refreshActionButtons();
+    let resumed = 0;
+    actionIds.forEach(function (actionId) {
+        if (actionsCount <= 0) return;
+        const action = getAction(actionId);
+        if (!action || isRestorationAction(action)) return;
+        if (action.kind !== ACTION_KIND.Timed) return;
+        if (isActionActive(action.id)) return;
+        if (!isActionVisible(action)) return;
+        if (action.isComplete && action.isComplete()) return;
+        if (startTimedAction(action)) resumed += 1;
+    });
+    return resumed;
+}
+
+function resumePreviousTimedActions() {    if (LAZY_BASICS_TECHNOLOGY.level < 2) return 0;
     if (!Array.isArray(previousTimedActionIds) || previousTimedActionIds.length === 0) return 0;
 
     // Old saves may still contain daydreaming in the resume list. At level 5+
@@ -1979,7 +2010,7 @@ function runActiveActions(diff) {
             // Every restoration action (rest or sleep) should hand control
             // back to the action that was interrupted, not only Rest.
             if (isRestorationAction(action)) resumePreviousTimedActions();
-            if (action.id === "treesharvest") resumePreviousTimedActions();
+            if (action.id === "treesharvest") resumeTreeHarvestPreviousActions();
             if (action.id === "explore") startSearchAfterExploration();
             if (action.id === "search") startForageAfterSearch();
             startTreeHarvestIfEnabled();
