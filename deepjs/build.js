@@ -67,6 +67,25 @@ const BUILDING_CATEGORIES = Object.freeze([
     BUILDING_IMPROVE_CATEGORY,
 ]);
 
+// Survival 101 gates buildings by level. Buildings without an entry are always
+// available.
+const SURVIVAL_BUILDING_LEVELS = Object.freeze({
+    campfire: 2,
+    tent: 9,
+    "leaf-bedroll": 9,
+});
+
+function getBuildingSurvivalLevel(def) {
+    return def ? (SURVIVAL_BUILDING_LEVELS[def.id] || 0) : 0;
+}
+
+function isBuildingUnlocked(def) {
+    const level = getBuildingSurvivalLevel(def);
+    if (level <= 0) return true;
+    return typeof isSurvival101Unlocked === "function"
+        && isSurvival101Unlocked(level);
+}
+
 const MAPLE_METAL_SHEET_CHOICES = Object.freeze([
     RESOURCE_IDS.IRON_SHEET_PLATES,
     RESOURCE_IDS.COPPER_SHEET_PLATES,
@@ -976,6 +995,7 @@ function canImproveBuilding(building) {
 
 function canBuildBuilding(def) {
     if (!def || !currentTile) return false;
+    if (!isBuildingUnlocked(def)) return false;
     if (getCurrentTileEmptySpace() < (def.emptySpace || 0)) return false;
     if (getCurrentTileRoomSpace() < (def.roomSpace || 0)) return false;
     if (getCharacterDiggingPower() < (Number(def.requiredDiggingPower) || 0)) {
@@ -1586,7 +1606,7 @@ function renderBuildList() {
     group.appendChild(groupTitle);
 
     const defs = Object.keys(BUILDING_DEFS).map(getBuildingDefinition).filter(function (def) {
-        return def && def.category === BUILDING_CATEGORY.id;
+        return def && def.category === BUILDING_CATEGORY.id && isBuildingUnlocked(def);
     });
 
     if (!defs.length) {
@@ -2056,7 +2076,7 @@ function renderBuildingsList() {
     group.appendChild(groupTitle);
 
     const defs = Object.keys(BUILDING_DEFS).map(getBuildingDefinition).filter(function (def) {
-        return def && def.category === BUILDINGS_CATEGORY.id;
+        return def && def.category === BUILDINGS_CATEGORY.id && isBuildingUnlocked(def);
     });
 
     if (!defs.length) {

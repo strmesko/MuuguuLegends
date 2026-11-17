@@ -1609,6 +1609,36 @@ const PRODUCTION_RECIPES = Object.freeze({
         tiredMessage: "You are too tired to make fibers",
         precision: 2,
     }),
+    makestrings: Object.freeze({
+        actionId: "makestrings",
+        inputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.FIBERS,
+                amountPerBatch: STRINGS_FIBERS_PER_BATCH,
+            }),
+        ]),
+        outputs: Object.freeze([
+            Object.freeze({
+                resourceId: RESOURCE_IDS.STRINGS,
+                amountPerBatch: STRINGS_OUTPUT_PER_BATCH,
+            }),
+        ]),
+        staminaPerBatch: STRINGS_STAMINA_PER_BATCH,
+        getEffectiveness: getMakeStringsEffectiveness,
+        getQuality: getMakeStringsQuality,
+        experience: Object.freeze([
+            Object.freeze({ key: "ropemaking", amountPerBatch: STRINGS_ROPEMAKING_EXP }),
+            Object.freeze({ key: "agi", amountPerBatch: STRINGS_AGI_EXP }),
+        ]),
+        validate: function () {
+            return typeof isSurvival101Unlocked === "function"
+                && isSurvival101Unlocked(1)
+                ? null
+                : "You need Survival 101 level 1 to make strings";
+        },
+        tiredMessage: "You are too tired to make strings",
+        precision: 2,
+    }),
     makeshafts: Object.freeze({
         actionId: "makeshafts",
         inputs: Object.freeze([
@@ -1806,6 +1836,20 @@ function runProductionRecipe(diff, recipeId) {
 
 function runMakeFibersProduction(diff) {
     runProductionRecipe(diff, "makefibers");
+}
+
+// "Make strings": 1 fiber becomes 1 string per effectiveness unit. Agility and
+// Ropemaking drive the work; the action is unlocked by Survival 101 level 1.
+function getMakeStringsEffectiveness() {
+    return getCraftingEffectiveness("agi", "ropemaking");
+}
+
+function getMakeStringsQuality() {
+    return getProductionQuality(["ropemaking"], [RESOURCE_IDS.FIBERS]);
+}
+
+function runMakeStringsProduction(diff) {
+    runProductionRecipe(diff, "makestrings");
 }
 
 // "Make shafts": each effectiveness unit turns 1 stick into 1 shaft.

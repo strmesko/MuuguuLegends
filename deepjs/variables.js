@@ -148,7 +148,45 @@ const NOT_SO_WORTHLESS_TECHNOLOGY = new Technology(
         increaseMinPotential(MIN_POTENTIAL_BONUS_PER_LEVEL);
     }
 );
-const TECHNOLOGIES = [LAZY_BASICS_TECHNOLOGY, COZY_SCIENCE_TECHNOLOGY, DIET_BASICS_TECHNOLOGY, HARVEST_THE_YUMMIES_TECHNOLOGY, SCIENTIFIC_PLANS_TECHNOLOGY, SKILL_POTENTIAL_TECHNOLOGY, NOT_SO_WORTHLESS_TECHNOLOGY];
+const SURVIVAL_101_TECHNOLOGY = new Technology(
+    "Survival 101",
+    "There are so much funky things to do in the wilderness, but first things first",
+    function (level) {
+        return 4000 + 2000 * level;
+    },
+    "habitsurvival101",
+    function (technology) {
+        return player.autism.lvl >= 2 + technology.level * 2
+            && SKILL_POTENTIAL_TECHNOLOGY.level >= 1;
+    },
+    null,
+    9,
+    [
+        "Unlocks the Make strings action and Strings resources.",
+        "Unlocks building the Campfire.",
+        "Unlocks crafting the stick kebob.",
+        "Unlocks leaf shirt, leaf trousers, leaf leggings and leaf boots.",
+        "Unlocks the rest of the leaf clothing set.",
+        "Unlocks the Survival Pounch and Straw basket backpack.",
+        "Unlocks the Stone Axe and Stone Hammer.",
+        "Unlocks the Flint Spear, Flint Knife and Flint Pickaxe.",
+        "Unlocks building the Tent and Leaf Bedroll.",
+    ]
+);
+
+const TECHNOLOGIES = [LAZY_BASICS_TECHNOLOGY, COZY_SCIENCE_TECHNOLOGY, DIET_BASICS_TECHNOLOGY, HARVEST_THE_YUMMIES_TECHNOLOGY, SCIENTIFIC_PLANS_TECHNOLOGY, SKILL_POTENTIAL_TECHNOLOGY, NOT_SO_WORTHLESS_TECHNOLOGY, SURVIVAL_101_TECHNOLOGY];
+
+// Survival 101 unlocks: crafting recipes, buildings and the Make strings
+// action all check this helper instead of reading the technology directly.
+function getSurvival101Level() {
+    return typeof SURVIVAL_101_TECHNOLOGY === "undefined"
+        ? 0
+        : Math.max(0, Number(SURVIVAL_101_TECHNOLOGY.level) || 0);
+}
+
+function isSurvival101Unlocked(requiredLevel) {
+    return getSurvival101Level() >= Math.max(0, Number(requiredLevel) || 0);
+}
 
 const DIET_AUTO_EAT_MIN_PERCENT = 1;
 const DIET_AUTO_EAT_MAX_PERCENT = 100;

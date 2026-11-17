@@ -1258,6 +1258,9 @@ function renderStatusIcons() {
     createChildElement('li', 'habit-node', '', 'habitharvesttheyummiesnode', 'habitdietbasicschildren', '');
     createChildElement('button', 'habit-skill', HARVEST_THE_YUMMIES_TECHNOLOGY.name, 'habitharvesttheyummies', 'habitharvesttheyummiesnode', HARVEST_THE_YUMMIES_TECHNOLOGY.getDescription());
     decorateResearchNode('habitharvesttheyummies', 'fa-tree', HARVEST_THE_YUMMIES_TECHNOLOGY);
+    createChildElement('li', 'habit-node open', '', 'habitsurvival101node', 'habitlazybasicschildren', '');
+    createChildElement('button', 'habit-skill', SURVIVAL_101_TECHNOLOGY.name, 'habitsurvival101', 'habitsurvival101node', SURVIVAL_101_TECHNOLOGY.getDescription());
+    decorateResearchNode('habitsurvival101', 'fa-compass', SURVIVAL_101_TECHNOLOGY);
     createChildElement('li', 'habit-node open', '', 'habitcozysciencenode', 'habitlazybasicschildren', '');
     createChildElement('button', 'habit-skill', COZY_SCIENCE_TECHNOLOGY.name, 'habitcozyscience', 'habitcozysciencenode', COZY_SCIENCE_TECHNOLOGY.getDescription());
     decorateResearchNode('habitcozyscience', 'fa-coffee', COZY_SCIENCE_TECHNOLOGY);

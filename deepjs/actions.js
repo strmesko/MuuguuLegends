@@ -443,6 +443,32 @@ const ACTIONS = [
         run: runMakeFibersProduction,
     },
     {
+        id: "makestrings",
+        label: "Make strings",
+        tags: ["Production"],
+        description: "Twist 1 Fiber into 1 String per second. Trains Ropemaking and Agility.<br>Requires Survival 101 level 1.",
+        kind: ACTION_KIND.Timed,
+        initialState: Activity.Idle,
+        startMessage: "You start making strings",
+        stopMessage: "You stop making strings",
+        requiredSurvivalLevel: 1,
+        isVisible: function () {
+            return typeof isSurvival101Unlocked === "function"
+                && isSurvival101Unlocked(1)
+                && !!resources[RESOURCE_IDS.FIBERS]
+                && resources[RESOURCE_IDS.FIBERS].amount >= STRINGS_FIBERS_PER_BATCH
+                && player.stamina >= STRINGS_STAMINA_PER_BATCH;
+        },
+        isComplete: function () {
+            return typeof isSurvival101Unlocked !== "function"
+                || !isSurvival101Unlocked(1)
+                || !resources[RESOURCE_IDS.FIBERS]
+                || resources[RESOURCE_IDS.FIBERS].amount < STRINGS_FIBERS_PER_BATCH;
+        },
+        completeMessage: "You have no fibers left to make strings",
+        run: runMakeStringsProduction,
+    },
+    {
         id: "makeshafts",
         label: "Make shafts",
         tags: ["Production"],
