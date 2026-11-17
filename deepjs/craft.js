@@ -714,8 +714,7 @@ function createPizzaRecipe(id, itemId, resources, options) {
 const PIZZA_RECIPES = Object.freeze([
     createPizzaRecipe("margherita", ITEM_IDS.PIZZA_MARGHERITA, [
         [SAUCE_TOMATO_ID, 2], [SAUCE_OREGANO_ID, 1],
-    ]),
-    createPizzaRecipe("diavola", ITEM_IDS.PIZZA_DIAVOLA, [
+    ]),    createPizzaRecipe("diavola", ITEM_IDS.PIZZA_DIAVOLA, [
         [SAUCE_TOMATO_ID, 2], [RESOURCE_IDS.CHICKEN_MEAT, 2], [SAUCE_CHILI_ID, 2],
     ]),
     createPizzaRecipe("capricciosa", ITEM_IDS.PIZZA_CAPRICCIOSA, [
@@ -800,6 +799,190 @@ const PIZZA_RECIPES = Object.freeze([
         [RESOURCE_IDS.SUGAR, 2],
     ], { berries: true }),
 ]);
+
+// Kitchen spices are resource outputs rather than items, so they use their own
+// compact list in the Food tab instead of the item craft selection pipeline.
+const SPICE_THYME_ID = 3004;
+const SPICE_SAGE_ID = 3005;
+const SPICE_ROSEMARY_ID = 3006;
+const SPICE_CARDAMOM_ID = 3053;
+const SPICE_ANISE_ID = 3054;
+const SPICE_HORSERADISH_ID = 3056;
+const SPICE_JUNIPER_ID = 3057;
+const SPICE_BAY_ID = 3058;
+const SPICE_SAFFRON_ID = 3050;
+const SPICE_CELERY_ID = 4021;
+const SPICE_ASH_ID = 83;
+const SPICE_SALT_ID = 90;
+
+function createSpiceCraftRecipe(key, resources) {
+    return Object.freeze({
+        id: "spice-" + key,
+        spiceKey: key,
+        resources: Object.freeze(resources.map(function (resource) {
+            return Object.freeze({
+                resourceId: resource[0],
+                amount: resource[1],
+            });
+        })),
+    });
+}
+
+const SPICE_CRAFT_RECIPES = Object.freeze([
+    createSpiceCraftRecipe("ground-oregano", [[SAUCE_OREGANO_ID, 2], [SPICE_SALT_ID, 1]]),
+    createSpiceCraftRecipe("dried-basil", [[SAUCE_WILD_BASIL_ID, 2], [SPICE_SALT_ID, 1]]),
+    createSpiceCraftRecipe("thyme-powder", [[SPICE_THYME_ID, 2]]),
+    createSpiceCraftRecipe("sage-powder", [[SPICE_SAGE_ID, 2]]),
+    createSpiceCraftRecipe("rosemary-powder", [[SPICE_ROSEMARY_ID, 2]]),
+    createSpiceCraftRecipe("mint-flakes", [[SAUCE_MINT_ID, 2]]),
+    createSpiceCraftRecipe("dill-weed", [[SAUCE_DILL_ID, 2]]),
+    createSpiceCraftRecipe("ground-cumin", [[SAUCE_CUMIN_ID, 2]]),
+    createSpiceCraftRecipe("ground-coriander", [[SAUCE_CORIANDER_ID, 2]]),
+    createSpiceCraftRecipe("ground-turmeric", [[SAUCE_TURMERIC_ID, 2]]),
+    createSpiceCraftRecipe("ground-ginger", [[SAUCE_GINGER_ID, 2]]),
+    createSpiceCraftRecipe("ground-cardamom", [[SPICE_CARDAMOM_ID, 2]]),
+    createSpiceCraftRecipe("ground-anise", [[SPICE_ANISE_ID, 2]]),
+    createSpiceCraftRecipe("ground-mustard", [[SAUCE_MUSTARD_ID, 2]]),
+    createSpiceCraftRecipe("horseradish-powder", [[SPICE_HORSERADISH_ID, 2]]),
+    createSpiceCraftRecipe("juniper-powder", [[SPICE_JUNIPER_ID, 2]]),
+    createSpiceCraftRecipe("bay-leaf-powder", [[SPICE_BAY_ID, 2]]),
+    createSpiceCraftRecipe("crushed-saffron", [[SPICE_SAFFRON_ID, 1]]),
+    createSpiceCraftRecipe("chili-flakes", [[SAUCE_CHILI_ID, 2]]),
+    createSpiceCraftRecipe("chili-powder", [[SAUCE_CHILI_ID, 2], [SAUCE_PAPRIKA_ID, 1]]),
+    createSpiceCraftRecipe("smoked-paprika", [[SAUCE_PAPRIKA_ID, 2], [SPICE_ASH_ID, 1]]),
+    createSpiceCraftRecipe("garlic-powder", [[SAUCE_GARLIC_ID, 3]]),
+    createSpiceCraftRecipe("onion-powder", [[SAUCE_ONION_ID, 3]]),
+    createSpiceCraftRecipe("celery-salt", [[SPICE_CELERY_ID, 2], [SPICE_SALT_ID, 1]]),
+    createSpiceCraftRecipe("garlic-salt", [[SAUCE_GARLIC_ID, 2], [SPICE_SALT_ID, 1]]),
+    createSpiceCraftRecipe("onion-salt", [[SAUCE_ONION_ID, 2], [SPICE_SALT_ID, 1]]),
+    createSpiceCraftRecipe("herb-salt", [[SAUCE_OREGANO_ID, 1], [SPICE_THYME_ID, 1], [SPICE_SALT_ID, 1]]),
+    createSpiceCraftRecipe("chili-salt", [[SAUCE_CHILI_ID, 1], [SPICE_SALT_ID, 1]]),
+    createSpiceCraftRecipe("smoked-salt", [[SPICE_SALT_ID, 2], [SPICE_ASH_ID, 1]]),
+    createSpiceCraftRecipe("saffron-salt", [[SPICE_SAFFRON_ID, 1], [SPICE_SALT_ID, 1]]),
+    createSpiceCraftRecipe("khmeli-suneli", [
+        [SAUCE_CORIANDER_ID, 1], [SAUCE_DILL_ID, 1], [SPICE_BAY_ID, 1],
+        [SAUCE_PAPRIKA_ID, 1], [SPICE_SALT_ID, 1],
+    ]),
+    createSpiceCraftRecipe("adjika", [
+        [SAUCE_CHILI_ID, 2], [SAUCE_GARLIC_ID, 1], [SPICE_SALT_ID, 1],
+        [SAUCE_PAPRIKA_ID, 1],
+    ]),
+    createSpiceCraftRecipe("garam-masala", [
+        [SAUCE_CUMIN_ID, 1], [SAUCE_CORIANDER_ID, 1], [SPICE_CARDAMOM_ID, 1],
+    ]),
+    createSpiceCraftRecipe("curry-powder", [
+        [SAUCE_TURMERIC_ID, 1], [SAUCE_CUMIN_ID, 1],
+        [SAUCE_CORIANDER_ID, 1], [SAUCE_GINGER_ID, 1],
+    ]),
+    createSpiceCraftRecipe("ras-el-hanout", [
+        [SAUCE_CUMIN_ID, 1], [SAUCE_CORIANDER_ID, 1], [SPICE_CARDAMOM_ID, 1],
+        [SAUCE_GINGER_ID, 1], [SAUCE_TURMERIC_ID, 1],
+    ]),
+    createSpiceCraftRecipe("five-spice", [
+        [SPICE_ANISE_ID, 1], [SAUCE_GINGER_ID, 1], [SAUCE_CORIANDER_ID, 1],
+        [SPICE_CARDAMOM_ID, 1], [SPICE_BAY_ID, 1],
+    ]),
+    createSpiceCraftRecipe("herbes-de-provence", [
+        [SPICE_THYME_ID, 1], [SAUCE_OREGANO_ID, 1],
+        [SPICE_ROSEMARY_ID, 1], [SPICE_SAGE_ID, 1],
+    ]),
+    createSpiceCraftRecipe("italian-seasoning", [
+        [SAUCE_WILD_BASIL_ID, 1], [SAUCE_OREGANO_ID, 1],
+        [SPICE_ROSEMARY_ID, 1], [SPICE_THYME_ID, 1],
+    ]),
+    createSpiceCraftRecipe("zaatar", [
+        [SPICE_THYME_ID, 1], [SAUCE_OREGANO_ID, 1],
+        [SAUCE_SESAME_ID, 1], [SPICE_SALT_ID, 1],
+    ]),
+    createSpiceCraftRecipe("baharat", [
+        [SAUCE_CUMIN_ID, 1], [SAUCE_CORIANDER_ID, 1],
+        [SPICE_CARDAMOM_ID, 1], [SAUCE_PAPRIKA_ID, 1],
+    ]),
+    createSpiceCraftRecipe("taco-seasoning", [
+        [SAUCE_CHILI_ID, 1], [SAUCE_PAPRIKA_ID, 1],
+        [SAUCE_CUMIN_ID, 1], [SPICE_SALT_ID, 1],
+    ]),
+    createSpiceCraftRecipe("bbq-rub", [
+        [SAUCE_PAPRIKA_ID, 1], [RESOURCE_IDS.SUGAR, 1],
+        [SPICE_SALT_ID, 1], [SAUCE_CHILI_ID, 1],
+    ]),
+    createSpiceCraftRecipe("pickling-spice", [
+        [SAUCE_MUSTARD_ID, 1], [SPICE_JUNIPER_ID, 1],
+        [SPICE_BAY_ID, 1], [SAUCE_DILL_ID, 1],
+    ]),
+    createSpiceCraftRecipe("mulling-spice", [
+        [SPICE_ANISE_ID, 1], [SPICE_CARDAMOM_ID, 1],
+        [SAUCE_GINGER_ID, 1], [RESOURCE_IDS.SUGAR, 1],
+    ]),
+    createSpiceCraftRecipe("chai-spice", [
+        [SPICE_CARDAMOM_ID, 1], [SAUCE_GINGER_ID, 1],
+        [SPICE_ANISE_ID, 1], [RESOURCE_IDS.SUGAR, 1],
+    ]),
+    createSpiceCraftRecipe("pumpkin-spice", [
+        [RESOURCE_IDS.SUGAR, 1], [SPICE_ANISE_ID, 1],
+        [SAUCE_GINGER_ID, 1], [SPICE_CARDAMOM_ID, 1],
+    ]),
+    createSpiceCraftRecipe("lemon-herb-seasoning", [
+        [RESOURCE_IDS.LEMONS, 1], [SAUCE_OREGANO_ID, 1],
+        [SPICE_THYME_ID, 1], [SPICE_SALT_ID, 1],
+    ]),
+    createSpiceCraftRecipe("mushroom-powder", [[RESOURCE_IDS.BUTTON_MUSHROOM, 3]]),
+    createSpiceCraftRecipe("tomato-powder", [[SAUCE_TOMATO_ID, 3]]),
+    createSpiceCraftRecipe("beet-powder", [[SOVIET_BEETROOT_ID, 3]]),
+]);
+
+function getSpiceCraftSpiceId(recipe) {
+    return recipe && typeof getSpiceResourceId === "function"
+        ? getSpiceResourceId(recipe.spiceKey)
+        : null;
+}
+
+function canCraftSpice(recipe) {
+    if (!recipe || getSpiceCraftSpiceId(recipe) == null) return false;
+    return recipe.resources.every(function (requirement) {
+        return getResourceAmount(requirement.resourceId) >= requirement.amount;
+    });
+}
+
+function getSpiceCraftQuality(recipe) {
+    let totalQuality = 0;
+    let totalAmount = 0;
+    recipe.resources.forEach(function (requirement) {
+        totalQuality += getResourceQuality(requirement.resourceId)
+            * Math.max(1, Number(requirement.amount) || 1);
+        totalAmount += Math.max(1, Number(requirement.amount) || 1);
+    });
+    const ingredientQuality = totalAmount > 0
+        ? totalQuality / totalAmount
+        : RESOURCE_DEFAULT_QUALITY;
+    return applyWellFedActionQuality(
+        (getEffectiveLevel("cooking") + ingredientQuality) / 2
+    );
+}
+
+function craftSpice(recipe) {
+    if (!canCraftSpice(recipe)) return false;
+    const spiceId = getSpiceCraftSpiceId(recipe);
+    if (spiceId == null) return false;
+
+    const quality = getSpiceCraftQuality(recipe);
+    recipe.resources.forEach(function (requirement) {
+        const stack = resources[requirement.resourceId];
+        if (!stack) return;
+        stack.amount = round2(Math.max(
+            0,
+            Number(stack.amount) - requirement.amount
+        ));
+    });
+
+    addResource(spiceId, 1, quality);
+    const definition = RESOURCE_DEFS[spiceId];
+    logMessage("You grind " + (definition ? definition.name : "a spice") + ".");
+    if (player.cooking) player.cooking.addexp(1);
+    if (typeof renderResources === "function") renderResources();
+    refreshCraftAvailability();
+    return true;
+}
 
 // Flour-and-water cooking recipes: one flour of choice plus water on the tile.
 // Raw intermediates (dough, pasta) skip potential bonuses because they are not
@@ -2257,6 +2440,79 @@ function renderCraftList(category) {
         group.appendChild(recipeList);
         list.appendChild(group);
     });
+
+    if (category.id === "food") renderSpiceCraftGroup(list);
+}
+
+// Spice crafting works on resources, not items, so it gets its own compact
+// list inside the Food tab. Clicking a row grinds one portion immediately.
+function renderSpiceCraftGroup(list) {
+    if (!list || typeof SPICE_CRAFT_RECIPES === "undefined") return;
+
+    const group = document.createElement("div");
+    group.className = "habitcategory craftcategory";
+    group.dataset.craftGroup = "spices";
+
+    const groupTitle = document.createElement("div");
+    groupTitle.className = "habitcategorytitle";
+    groupTitle.innerText = "Spices";
+    group.appendChild(groupTitle);
+
+    const recipeList = document.createElement("ul");
+    recipeList.className = "habitlist";
+
+    SPICE_CRAFT_RECIPES.forEach(function (recipe) {
+        const spiceId = getSpiceCraftSpiceId(recipe);
+        const definition = spiceId != null ? RESOURCE_DEFS[spiceId] : null;
+        if (!definition) return;
+
+        const recipeItem = document.createElement("li");
+        recipeItem.className = "habititem craftrecipe spicerecipe";
+        recipeItem.id = "spicerecipe-" + recipe.id;
+        recipeItem.dataset.spiceRecipeId = recipe.id;
+        recipeItem.classList.toggle("unavailable", !canCraftSpice(recipe));
+
+        const costText = recipe.resources.map(function (requirement) {
+            const resource = RESOURCE_DEFS[requirement.resourceId];
+            return (resource ? resource.name : "resource")
+                + " x" + requirement.amount;
+        }).join(", ");
+
+        const switchElement = document.createElement("span");
+        switchElement.className = "habitswitch";
+        switchElement.setAttribute(
+            "data-tooltip",
+            definition.name + "<br>" + costText
+                + "<br>Click to grind one portion."
+        );
+
+        const slider = document.createElement("span");
+        slider.className = "habitslider";
+
+        const name = document.createElement("span");
+        name.className = "habitname";
+        name.innerText = definition.name;
+
+        switchElement.appendChild(slider);
+        switchElement.appendChild(name);
+        recipeItem.appendChild(switchElement);
+        recipeItem.addEventListener("click", function () {
+            craftSpice(recipe);
+        });
+
+        recipeList.appendChild(recipeItem);
+    });
+
+    group.appendChild(recipeList);
+    list.appendChild(group);
+}
+
+function refreshSpiceCraftRows() {
+    if (typeof SPICE_CRAFT_RECIPES === "undefined") return;
+    SPICE_CRAFT_RECIPES.forEach(function (recipe) {
+        const row = document.getElementById("spicerecipe-" + recipe.id);
+        if (row) row.classList.toggle("unavailable", !canCraftSpice(recipe));
+    });
 }
 
 function createCraftIngredientIcon(resourceId, className) {
@@ -3023,6 +3279,8 @@ function refreshCraftAvailability() {
             renderCraftDetails(category);
         }
     });
+
+    refreshSpiceCraftRows();
 }
 
 // --- automatic food crafting ----------------------------------------------

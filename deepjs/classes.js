@@ -1340,6 +1340,94 @@ function getOilResourceIdForSource(sourceId) {
     return OIL_RESOURCE_IDS_BY_SOURCE[Number(sourceId)] || null;
 }
 
+// Spices are ground and blended in the kitchen from herbs, seeds, salt and
+// other existing resources. Every spice carries a small fixed potential bonus
+// so it can enrich a dish when a recipe uses it as an ingredient.
+const SPICE_RESOURCE_ID_BASE = 6301;
+const SPICE_RESOURCE_IDS = [];
+const SPICE_RESOURCE_IDS_BY_KEY = {};
+
+const SPICE_DEFINITIONS = [
+    { key: "ground-oregano", name: "Ground Oregano", bonus: { sou: 1 }, flavour: "warm and herbal" },
+    { key: "dried-basil", name: "Dried Basil", bonus: { sou: 1 }, flavour: "sweet and aromatic" },
+    { key: "thyme-powder", name: "Thyme Powder", bonus: { vit: 1 }, flavour: "earthy and clean" },
+    { key: "sage-powder", name: "Sage Powder", bonus: { ins: 1 }, flavour: "deep and resinous" },
+    { key: "rosemary-powder", name: "Rosemary Powder", bonus: { per: 1 }, flavour: "piney and sharp" },
+    { key: "mint-flakes", name: "Mint Flakes", bonus: { sou: 1 }, flavour: "cool and fresh" },
+    { key: "dill-weed", name: "Dill Weed", bonus: { sou: 1 }, flavour: "green and grassy" },
+    { key: "ground-cumin", name: "Ground Cumin", bonus: { vit: 1 }, flavour: "nutty and warm" },
+    { key: "ground-coriander", name: "Ground Coriander", bonus: { per: 1 }, flavour: "citrusy and soft" },
+    { key: "ground-turmeric", name: "Ground Turmeric", bonus: { vit: 1 }, flavour: "bitter and golden" },
+    { key: "ground-ginger", name: "Ground Ginger", bonus: { agi: 1 }, flavour: "hot and bright" },
+    { key: "ground-cardamom", name: "Ground Cardamom", bonus: { int: 1 }, flavour: "floral and intense" },
+    { key: "ground-anise", name: "Ground Anise", bonus: { luck: 1 }, flavour: "sweet and liquorice-like" },
+    { key: "ground-mustard", name: "Ground Mustard", bonus: { str: 1 }, flavour: "sharp and pungent" },
+    { key: "horseradish-powder", name: "Horseradish Powder", bonus: { str: 1 }, flavour: "fierce and clean" },
+    { key: "juniper-powder", name: "Juniper Powder", bonus: { ins: 1 }, flavour: "resinous and wild" },
+    { key: "bay-leaf-powder", name: "Bay Leaf Powder", bonus: { per: 1 }, flavour: "herbal and mellow" },
+    { key: "crushed-saffron", name: "Crushed Saffron", bonus: { luck: 1 }, flavour: "precious and floral" },
+    { key: "chili-flakes", name: "Chili Flakes", bonus: { str: 1 }, flavour: "hot and fruity" },
+    { key: "chili-powder", name: "Chili Powder", bonus: { str: 1 }, flavour: "smoky and hot" },
+    { key: "smoked-paprika", name: "Smoked Paprika", bonus: { sou: 1 }, flavour: "sweet and smoky" },
+    { key: "garlic-powder", name: "Garlic Powder", bonus: { str: 1 }, flavour: "pungent and savoury" },
+    { key: "onion-powder", name: "Onion Powder", bonus: { vit: 1 }, flavour: "sweet and savoury" },
+    { key: "celery-salt", name: "Celery Salt", bonus: { vit: 1 }, flavour: "savoury and green" },
+    { key: "garlic-salt", name: "Garlic Salt", bonus: { str: 1 }, flavour: "sharp and salty" },
+    { key: "onion-salt", name: "Onion Salt", bonus: { vit: 1 }, flavour: "mellow and savoury" },
+    { key: "herb-salt", name: "Herb Salt", bonus: { sou: 1 }, flavour: "green and bright" },
+    { key: "chili-salt", name: "Chili Salt", bonus: { str: 1 }, flavour: "hot and salty" },
+    { key: "smoked-salt", name: "Smoked Salt", bonus: { ins: 1 }, flavour: "deep and ashen" },
+    { key: "saffron-salt", name: "Saffron Salt", bonus: { luck: 1 }, flavour: "golden and luxurious" },
+    { key: "khmeli-suneli", name: "Khmeli Suneli", bonus: { sou: 1, vit: 1 }, flavour: "Caucasian and complex" },
+    { key: "adjika", name: "Adjika", bonus: { str: 1, agi: 1 }, flavour: "hot and garlicky" },
+    { key: "garam-masala", name: "Garam Masala", bonus: { int: 1, per: 1 }, flavour: "warm and aromatic" },
+    { key: "curry-powder", name: "Curry Powder", bonus: { vit: 1, sou: 1 }, flavour: "golden and layered" },
+    { key: "ras-el-hanout", name: "Ras el Hanout", bonus: { int: 1, luck: 1 }, flavour: "exotic and complex" },
+    { key: "five-spice", name: "Five Spice", bonus: { luck: 1, ins: 1 }, flavour: "sweet and numbing" },
+    { key: "herbes-de-provence", name: "Herbes de Provence", bonus: { sou: 1, per: 1 }, flavour: "sunny and herbal" },
+    { key: "italian-seasoning", name: "Italian Seasoning", bonus: { sou: 1, vit: 1 }, flavour: "green and Mediterranean" },
+    { key: "zaatar", name: "Za'atar", bonus: { per: 1, sou: 1 }, flavour: "nutty and tart" },
+    { key: "baharat", name: "Baharat", bonus: { int: 1, vit: 1 }, flavour: "warm and rounded" },
+    { key: "taco-seasoning", name: "Taco Seasoning", bonus: { str: 1, agi: 1 }, flavour: "smoky and spicy" },
+    { key: "bbq-rub", name: "BBQ Rub", bonus: { str: 1, sou: 1 }, flavour: "sweet and smoky" },
+    { key: "pickling-spice", name: "Pickling Spice", bonus: { per: 1, vit: 1 }, flavour: "sharp and aromatic" },
+    { key: "mulling-spice", name: "Mulling Spice", bonus: { sou: 1, luck: 1 }, flavour: "sweet and warming" },
+    { key: "chai-spice", name: "Chai Spice", bonus: { int: 1, sou: 1 }, flavour: "creamy and spiced" },
+    { key: "pumpkin-spice", name: "Pumpkin Spice", bonus: { sou: 1, luck: 1 }, flavour: "sweet and autumnal" },
+    { key: "lemon-herb-seasoning", name: "Lemon Herb Seasoning", bonus: { per: 1, sou: 1 }, flavour: "bright and citrusy" },
+    { key: "mushroom-powder", name: "Mushroom Powder", bonus: { vit: 1, ins: 1 }, flavour: "deep and earthy" },
+    { key: "tomato-powder", name: "Tomato Powder", bonus: { sou: 1, vit: 1 }, flavour: "sweet and concentrated" },
+    { key: "beet-powder", name: "Beet Powder", bonus: { vit: 1, str: 1 }, flavour: "earthy and sweet" },
+];
+
+SPICE_DEFINITIONS.forEach(function (entry, index) {
+    const spiceId = SPICE_RESOURCE_ID_BASE + index;
+    RESOURCE_DEFS[spiceId] = {
+        name: entry.name,
+        weight: 0.05,
+        unitType: "kg",
+        description: "A kitchen-made spice, " + entry.flavour + ".",
+        category: RESOURCE_CATEGORIES.Intermediate,
+        spice: true,
+        potentialBonuses: Object.freeze(entry.bonus),
+    };
+
+    SPICE_RESOURCE_IDS.push(spiceId);
+    SPICE_RESOURCE_IDS_BY_KEY[entry.key] = spiceId;
+});
+
+Object.freeze(SPICE_RESOURCE_IDS);
+Object.freeze(SPICE_RESOURCE_IDS_BY_KEY);
+
+function isSpiceResource(resourceId) {
+    return SPICE_RESOURCE_IDS.indexOf(Number(resourceId)) !== -1;
+}
+
+function getSpiceResourceId(key) {
+    return SPICE_RESOURCE_IDS_BY_KEY[String(key)] || null;
+}
+
+
 Object.freeze(VEGETABLE_RESOURCE_IDS);
 Object.freeze(CROP_RESOURCE_IDS);
 

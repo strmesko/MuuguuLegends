@@ -442,6 +442,7 @@
       ensureResourceBranch('intermediate-resources-items', 'cooking', 'Cooking', 'Flour and other cooking intermediates');
       ensureResourceBranch('cooking-items', 'flour', 'Flour', 'Stone-ground flour made with a Big Grinding stone');
       ensureResourceBranch('cooking-items', 'oil', 'Oil', 'Cold-pressed oils from seeds and olives');
+      ensureResourceBranch('cooking-items', 'spices', 'Spices', 'Ground and blended spices made in the kitchen');
       ensureResourceBranch('cooking-items', 'sweets', 'Sweets', 'Maple sirup and sugar from sweet plants');
       ensureResourceBranch('intermediate-resources-items', 'wizardy', 'Wizardy', 'Arcane and spirit remains');
       ensureResourceBranch('wizardy-items', 'mob-spirit', 'Mob spirit', 'Spirit drops from slain mobs');
@@ -454,6 +455,9 @@
       }
       if (resource && RESOURCE_DEFS[resource.id] && RESOURCE_DEFS[resource.id].oil) {
         return document.getElementById('oil-items');
+      }
+      if (resource && RESOURCE_DEFS[resource.id] && RESOURCE_DEFS[resource.id].spice) {
+        return document.getElementById('spices-items');
       }
       if (resource && typeof SMITHING_RESOURCE_IDS !== 'undefined'
           && SMITHING_RESOURCE_IDS.indexOf(resource.id) !== -1) {
