@@ -1109,6 +1109,14 @@ function startTimedAction(action) {
     actionsCount -= 1;
     updateActionButton(action.id);
     if (action.id !== "focus") updateActionButton("focus");
+
+    // Harvest the yummies outranks ordinary work. Starting any other timed
+    // action while fruit or nut trees are ready immediately hands control to
+    // Trees Harvest, except for rest/sleep, travel and combat guards.
+    if (action.id !== "treesharvest"
+        && typeof startTreeHarvestIfEnabled === "function") {
+        startTreeHarvestIfEnabled();
+    }
     return true;
 }
 
@@ -1164,11 +1172,26 @@ function startTreeHarvestIfEnabled() {
         return false;
     }
     if (typeof isTraveling === "function" && isTraveling()) return false;
+    if (typeof isCombatActive === "function" && isCombatActive()) return false;
 
     const treeHarvestAction = getAction("treesharvest");
     if (!treeHarvestAction || isActionActive(treeHarvestAction.id)) return false;
     if (!isActionVisible(treeHarvestAction)) return false;
     if (treeHarvestAction.isComplete && treeHarvestAction.isComplete()) return false;
+
+    // Harvest the yummies has priority over ordinary timed actions. Rest and
+    // sleep are recovery and must keep running; travel and combat already
+    // return above.
+    const activeTimedActions = ACTIONS.filter(function (action) {
+        return action.kind === ACTION_KIND.Timed && isActionActive(action.id);
+    });
+    const hasRestoration = activeTimedActions.some(isRestorationAction);
+    if (hasRestoration) return false;
+
+    if (activeTimedActions.length) {
+        stopActiveTimedActions();
+    }
+
     if (actionsCount <= 0) return false;
 
     refreshActionButtons();
@@ -1956,6 +1979,7 @@ function runActiveActions(diff) {
             // Every restoration action (rest or sleep) should hand control
             // back to the action that was interrupted, not only Rest.
             if (isRestorationAction(action)) resumePreviousTimedActions();
+            if (action.id === "treesharvest") resumePreviousTimedActions();
             if (action.id === "explore") startSearchAfterExploration();
             if (action.id === "search") startForageAfterSearch();
             startTreeHarvestIfEnabled();
