@@ -1612,6 +1612,9 @@ const selectedCraftSlotChoicesByRecipe = {};
 // Chosen inventory item for recipes that consume a crafted item (shawerma
 // takes one flat bread out of the inventory).
 const selectedCraftItemByRecipe = {};
+// Optional sauce items added as extra ingredients. Keyed by recipe id and then
+// by bonus sauce slot.
+const selectedCraftSauceItemsByRecipe = {};
 
 function getCraftCategory(categoryId) {
     return CRAFT_CATEGORIES.find(function (category) {
@@ -1784,11 +1787,16 @@ function setCraftItemChoice(recipe, instanceId) {
 // potential bonuses, affordability and consumption all go through this so an
 // item ingredient behaves like any other ingredient.
 function getCraftInventoryIngredientItems(recipe) {
+    const items = [];
     const choice = getCraftItemChoice(recipe);
-    if (!choice) return [];
-
-    const selected = getSelectedCraftItemChoice(recipe);
-    return selected ? [{ choice: choice, item: selected }] : [];
+    if (choice) {
+        const selected = getSelectedCraftItemChoice(recipe);
+        if (selected) items.push({ choice: choice, item: selected });
+    }
+    getSelectedCraftSauceItems(recipe).forEach(function (item) {
+        items.push({ sauce: true, item: item });
+    });
+    return items;
 }
 
 function consumeCraftItemChoice(recipe, item) {
@@ -1868,16 +1876,56 @@ function getCookingBonusSlotCount() {
     return Math.max(1, Math.floor(Math.sqrt(cooking)));
 }
 
+function isExtraIngredientDish(recipe) {
+    if (!recipe || recipe.category !== "food") return false;
+    const tags = getCraftRecipeTags(recipe);
+    if (tags.indexOf("dessert") !== -1) return false;
+    if (tags.indexOf("ingredient") !== -1) return false;
+    if (tags.indexOf("drinks") !== -1) return false;
+    return true;
+}
+
+function getExtraBonusResourceIds(recipe) {
+    const ids = [];
+    const add = function (resourceIds) {
+        resourceIds.forEach(function (resourceId) {
+            if (ids.indexOf(resourceId) === -1) ids.push(resourceId);
+        });
+    };
+
+    if (!isExtraIngredientDish(recipe)) return ids;
+
+    add(SPICE_RESOURCE_IDS);
+
+    const tags = getCraftRecipeTags(recipe);
+    if (tags.indexOf("salad") !== -1) {
+        add(NUT_RESOURCE_IDS);
+        add(VEGETABLE_RESOURCE_IDS);
+        add(FRUIT_RESOURCE_IDS);
+    }
+    if (tags.indexOf("soup") !== -1) {
+        add(VEGETABLE_RESOURCE_IDS);
+        add(OIL_RESOURCE_IDS);
+    }
+
+    return ids;
+}
+
 function getCraftBonusSlotCount(recipe) {
     if (!recipe) return 0;
-    if (recipe.bonusChoiceSlotsFromCooking === true) {
-        const multiplier = Math.max(
+    const baseCount = recipe.bonusChoiceSlotsFromCooking === true
+        ? getCookingBonusSlotCount() * Math.max(
             1,
             Math.floor(Number(recipe.bonusChoiceSlotsMultiplier) || 1)
-        );
-        return getCookingBonusSlotCount() * multiplier;
+        )
+        : Math.max(0, Math.floor(Number(recipe.bonusChoiceSlots) || 0));
+
+    // Every non-dessert dish gets Cooking-scaled extra slots for spices and
+    // other suitable bonus ingredients.
+    if (isExtraIngredientDish(recipe)) {
+        return Math.max(baseCount, getCookingBonusSlotCount());
     }
-    return Math.max(0, Math.floor(Number(recipe.bonusChoiceSlots) || 0));
+    return baseCount;
 }
 
 function getCraftBonusChoices(recipe) {
@@ -1900,13 +1948,18 @@ function getCraftBonusChoices(recipe) {
 
 // Bonus ingredients usually reuse the main ingredient list, but a recipe may
 // accept a wider set (porridge takes grain as the base and anything edible as
-// the bonus).
+// the bonus). Extra spices, salad produce and soup vegetables are merged on top
+// of that pool for every eligible dish.
 function getCraftBonusResourceIds(recipe) {
-    if (recipe && Array.isArray(recipe.bonusChoiceResourceIds)
-        && recipe.bonusChoiceResourceIds.length) {
-        return recipe.bonusChoiceResourceIds;
-    }
-    return getCraftChoiceResourceIds(recipe);
+    const base = recipe && Array.isArray(recipe.bonusChoiceResourceIds)
+        && recipe.bonusChoiceResourceIds.length
+        ? recipe.bonusChoiceResourceIds.slice()
+        : getCraftChoiceResourceIds(recipe).slice();
+
+    getExtraBonusResourceIds(recipe).forEach(function (resourceId) {
+        if (base.indexOf(resourceId) === -1) base.push(resourceId);
+    });
+    return base;
 }
 
 function setCraftBonusChoice(recipe, index, resourceId) {
@@ -1929,6 +1982,76 @@ function setCraftBonusChoice(recipe, index, resourceId) {
     }
 
     choices[slot] = chosen;
+    return true;
+}
+
+function getCraftSauceItemIds() {
+    return typeof SAUCE_ITEM_DEFINITIONS !== "undefined"
+        ? SAUCE_ITEM_DEFINITIONS.map(function (sauce) { return sauce.id; })
+        : [];
+}
+
+function getCraftSauceSlotCount(recipe) {
+    if (!isExtraIngredientDish(recipe)) return 0;
+    return getCookingBonusSlotCount();
+}
+
+function getCraftSauceChoices(recipe) {
+    const count = getCraftSauceSlotCount(recipe);
+    if (count <= 0) return [];
+
+    let choices = selectedCraftSauceItemsByRecipe[recipe.id];
+    if (!Array.isArray(choices)) choices = [];
+    if (choices.length > count) choices = choices.slice(0, count);
+    while (choices.length < count) choices.push(null);
+
+    selectedCraftSauceItemsByRecipe[recipe.id] = choices;
+    return choices;
+}
+
+function getCraftSauceInventoryItems() {
+    if (typeof player === "undefined" || !player
+        || !Array.isArray(player.equipinventory)) {
+        return [];
+    }
+    const sauceIds = getCraftSauceItemIds();
+    return player.equipinventory.filter(function (item) {
+        return !!item && sauceIds.indexOf(item.itemId) !== -1;
+    });
+}
+
+function getSelectedCraftSauceItems(recipe) {
+    const choices = getCraftSauceChoices(recipe);
+    if (!choices.length) return [];
+    const items = getCraftSauceInventoryItems();
+    return choices.map(function (instanceId) {
+        if (instanceId == null) return null;
+        return items.find(function (item) {
+            return Number(item.instanceId) === Number(instanceId);
+        }) || null;
+    }).filter(Boolean);
+}
+
+function setCraftSauceChoice(recipe, index, instanceId) {
+    if (!recipe) return false;
+    const choices = getCraftSauceChoices(recipe);
+    const slot = Number(index);
+    if (!Number.isInteger(slot) || slot < 0 || slot >= choices.length) {
+        return false;
+    }
+
+    if (instanceId == null || instanceId === "") {
+        choices[slot] = null;
+        return true;
+    }
+
+    const id = Number(instanceId);
+    const exists = getCraftSauceInventoryItems().some(function (item) {
+        return Number(item.instanceId) === id;
+    });
+    if (!exists) return false;
+
+    choices[slot] = id;
     return true;
 }
 
@@ -2203,7 +2326,7 @@ function canCraftRecipe(recipe) {
     }
     const itemChoice = getCraftItemChoice(recipe);
     if (itemChoice && itemChoice.optional !== true
-        && getCraftInventoryIngredientItems(recipe).length === 0) {
+        && !getSelectedCraftItemChoice(recipe)) {
         return false;
     }
     return canAffordCraft(recipe);
@@ -2300,7 +2423,10 @@ function getCraftPotentialBonuses(recipe, quality, rarity) {
     if (recipe.noPotentialBonuses === true) return null;
     if (getCraftChoiceResourceIds(recipe).length === 0
         && getCraftChoiceSlots(recipe).length === 0
-        && getCraftInventoryIngredientItems(recipe).length === 0) {
+        && getCraftInventoryIngredientItems(recipe).length === 0
+        && getCraftBonusChoices(recipe).filter(function (resourceId) {
+            return resourceId != null;
+        }).length === 0) {
         return null;
     }
 
@@ -3181,7 +3307,8 @@ function renderCraftResources(category) {
         bonusLabel.innerText = "Bonus ingredients (optional, "
             + bonusChoices.length + " slot"
             + (bonusChoices.length === 1 ? "" : "s")
-            + (recipe.bonusChoiceSlotsFromCooking === true ? " from Cooking" : "")
+            + ((recipe.bonusChoiceSlotsFromCooking === true
+                || isExtraIngredientDish(recipe)) ? " from Cooking" : "")
             + "):";
         bonusBox.appendChild(bonusLabel);
 
@@ -3212,6 +3339,60 @@ function renderCraftResources(category) {
         });
 
         panel.appendChild(bonusBox);
+    }
+
+    const sauceChoices = getCraftSauceChoices(recipe);
+    if (sauceChoices.length) {
+        const sauceBox = document.createElement("div");
+        sauceBox.className = "craftchoice craftchoice-sauce";
+        sauceBox.dataset.craftSauceSlots = String(sauceChoices.length);
+
+        const sauceLabel = document.createElement("div");
+        sauceLabel.className = "craftchoice-label";
+        sauceLabel.innerText = "Extra sauces (optional, "
+            + sauceChoices.length + " slot"
+            + (sauceChoices.length === 1 ? "" : "s")
+            + " from Cooking):";
+        sauceBox.appendChild(sauceLabel);
+
+        const inventorySauces = getCraftSauceInventoryItems();
+        sauceChoices.forEach(function (selectedInstanceId, index) {
+            const usedIds = sauceChoices.filter(function (id, slotIndex) {
+                return slotIndex !== index && id != null;
+            }).map(Number);
+            const available = inventorySauces.filter(function (item) {
+                return usedIds.indexOf(Number(item.instanceId)) === -1;
+            });
+            const selectedItem = inventorySauces.find(function (item) {
+                return Number(item.instanceId) === Number(selectedInstanceId);
+            }) || null;
+
+            const row = document.createElement("div");
+            row.className = "craftchoice-bonus-row";
+
+            const slotLabel = document.createElement("span");
+            slotLabel.className = "craftchoice-slot-label";
+            slotLabel.innerText = "Sauce " + (index + 1);
+
+            const sauceSelect = createCraftItemSelect({
+                id: "craftsauce-" + category.id + "-" + recipe.id + "-" + index,
+                items: available,
+                selectedItem: selectedItem,
+                includeNone: true,
+                onSelect: function (instanceId) {
+                    setCraftSauceChoice(recipe, index, instanceId);
+                    renderCraftResources(category);
+                    renderCraftDetails(category);
+                    refreshCraftAvailability();
+                },
+            });
+
+            row.appendChild(slotLabel);
+            row.appendChild(sauceSelect);
+            sauceBox.appendChild(row);
+        });
+
+        panel.appendChild(sauceBox);
     }
 
     const container = document.createElement("div");
@@ -3583,12 +3764,22 @@ function refreshCraftAvailability() {
                 }
             }
 
-            if (recipe.bonusChoiceSlotsFromCooking === true) {
+            if (getCraftBonusSlotCount(recipe) > 0) {
                 const bonusBox = resourcesPanel.querySelector(".craftchoice-bonus");
                 const renderedSlots = bonusBox
                     ? bonusBox.querySelectorAll(".craftchoice-bonus-row").length
                     : 0;
                 if (renderedSlots !== getCraftBonusChoices(recipe).length) {
+                    renderCraftResources(category);
+                }
+            }
+
+            if (getCraftSauceSlotCount(recipe) > 0) {
+                const sauceBox = resourcesPanel.querySelector(".craftchoice-sauce");
+                const renderedSauceSlots = sauceBox
+                    ? sauceBox.querySelectorAll(".craftchoice-bonus-row").length
+                    : 0;
+                if (renderedSauceSlots !== getCraftSauceChoices(recipe).length) {
                     renderCraftResources(category);
                 }
             }
@@ -3964,10 +4155,8 @@ function performCraft(recipe) {
     }
 
     const itemChoice = getCraftItemChoice(recipe);
-    const inventoryIngredients = getCraftInventoryIngredientItems(recipe);
-    const chosenItem = inventoryIngredients.length
-        ? inventoryIngredients[0].item
-        : null;
+    const chosenItem = getSelectedCraftItemChoice(recipe);
+    const selectedSauces = getSelectedCraftSauceItems(recipe);
     if (itemChoice && !chosenItem && itemChoice.optional !== true) {
         const neededDefinition = ITEM_DEFS[getCraftItemChoiceIds(itemChoice)[0]];
         logMessage("You need " + (neededDefinition ? neededDefinition.name : "an item")
@@ -3980,8 +4169,8 @@ function performCraft(recipe) {
         return false;
     }
 
-    // The consumed item frees a slot, so a full inventory is fine.
-    if (!hasFreeInventorySlot() && !chosenItem) {
+    // Consumed items free slots, so a full inventory is fine.
+    if (!hasFreeInventorySlot() && !chosenItem && !selectedSauces.length) {
         logMessage("Your inventory is full, cannot craft " + resultName);
         return false;
     }
@@ -3998,6 +4187,17 @@ function performCraft(recipe) {
 
     if (chosenItem) {
         consumeCraftItemChoice(recipe, chosenItem);
+    }
+
+    selectedSauces.forEach(function (sauceItem) {
+        const index = player.equipinventory.indexOf(sauceItem);
+        if (index !== -1) player.equipinventory[index] = null;
+    });
+    if (selectedCraftSauceItemsByRecipe[recipe.id]) {
+        selectedCraftSauceItemsByRecipe[recipe.id] =
+            selectedCraftSauceItemsByRecipe[recipe.id].map(function () {
+                return null;
+            });
     }
 
     getCraftRequirements(recipe).forEach(function (requirement) {
