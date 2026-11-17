@@ -71,6 +71,135 @@ function getCraftRecipeGroupName(groupId) {
     return CRAFT_GROUP_NAMES[groupId] || "Other";
 }
 
+// Craft tags describe what a dish is, not which section it lives in. They are
+// deliberately independent from CRAFT_GROUP_NAMES so a pizza can also be a
+// dessert and a soup can also be a meat dish.
+const CRAFT_TAG_LABELS = Object.freeze({
+    salad: "SaladType",
+    soup: "SoupType",
+    dessert: "Dessert",
+    ingredient: "Ingredient dish",
+    baking: "Baking",
+    drinks: "Drinks",
+    fried: "Fried",
+    porridge: "Porridge",
+    dumplings: "Dumplings",
+    pasta: "Pasta dish",
+    meat: "Meat dish",
+    spicy: "Spicy",
+    sweet: "Sweet",
+    streetfood: "Street food",
+    holiday: "Holiday",
+    vegetarian: "Vegetarian",
+});
+
+const CRAFT_RECIPE_TAGS = Object.freeze({
+    porridge: ["porridge"],
+    salad: ["salad", "vegetarian"],
+    "fruits-salad": ["salad", "dessert", "sweet", "vegetarian"],
+    shawerma: ["meat"],
+    soup: ["soup"],
+    "flat-bread": ["baking", "ingredient"],
+    dough: ["ingredient"],
+    "sweet-dough": ["ingredient", "sweet"],
+    bread: ["baking", "ingredient"],
+    "toast-bread": ["baking", "ingredient"],
+    "italian-spaghetti-aglio-e-olio": ["pasta", "vegetarian"],
+    "italian-spaghetti-carbonara": ["pasta", "meat"],
+    "italian-spaghetti-bolognese": ["pasta", "meat"],
+    "italian-penne-arrabbiata": ["pasta", "spicy", "vegetarian"],
+    "italian-linguine-pesto": ["pasta", "vegetarian"],
+    "italian-rigatoni-marinara": ["pasta", "vegetarian"],
+    "italian-fettuccine-alfredo": ["pasta", "vegetarian"],
+    "italian-lasagne": ["pasta", "meat", "baking"],
+    "italian-ravioli": ["pasta", "dumplings", "vegetarian"],
+    "italian-tortellini": ["pasta", "dumplings", "meat"],
+    "italian-macaroni-bake": ["pasta", "meat", "baking"],
+    "italian-gnocchi": ["dumplings", "vegetarian"],
+    "italian-risotto": ["porridge", "vegetarian"],
+    "italian-polenta": ["porridge", "vegetarian"],
+    "italian-bruschetta": ["baking", "vegetarian"],
+    "italian-caprese": ["salad", "vegetarian"],
+    "italian-panzanella": ["salad", "vegetarian"],
+    "italian-arancini": ["fried", "streetfood", "vegetarian"],
+    "italian-frittata": ["fried", "vegetarian"],
+    "soviet-borscht": ["soup", "meat"],
+    "soviet-shchi": ["soup", "vegetarian"],
+    "soviet-rassolnik": ["soup", "meat"],
+    "soviet-solyanka": ["soup", "meat"],
+    "soviet-olivier": ["salad", "holiday"],
+    "soviet-vinaigrette": ["salad", "vegetarian"],
+    "soviet-pelmeni": ["dumplings", "meat"],
+    "soviet-varenyky": ["dumplings", "vegetarian"],
+    "soviet-stroganoff": ["meat"],
+    "soviet-chicken-kiev": ["meat", "fried"],
+    "soviet-golubtsy": ["meat"],
+    "soviet-plov": ["meat"],
+    "soviet-buckwheat-mushrooms": ["vegetarian"],
+    "soviet-mashed-potatoes": ["vegetarian"],
+    "soviet-fried-potatoes": ["fried", "vegetarian"],
+    "soviet-draniki": ["fried", "vegetarian"],
+    "soviet-millet-kasha": ["porridge", "vegetarian"],
+    "soviet-oatmeal": ["porridge", "vegetarian"],
+    "soviet-blini": ["fried"],
+    "soviet-pirozhki": ["baking", "streetfood", "meat"],
+    "soviet-belyash": ["fried", "streetfood", "meat"],
+    "soviet-chebureki": ["fried", "streetfood", "meat"],
+    "soviet-mushroom-soup": ["soup", "vegetarian"],
+    "soviet-pea-soup": ["soup", "meat"],
+    "soviet-makarony-flotski": ["pasta", "meat"],
+    "soviet-tushonka": ["meat"],
+    "soviet-kotleta": ["meat", "fried"],
+    "soviet-beet-salad": ["salad", "vegetarian"],
+    "soviet-carrot-salad": ["salad", "vegetarian"],
+    "soviet-cabbage-salad": ["salad", "vegetarian"],
+    "soviet-kompot": ["drinks", "sweet"],
+    "soviet-kissel": ["drinks", "dessert", "sweet"],
+    "soviet-baked-apples": ["dessert", "baking", "sweet"],
+    "soviet-apple-charlotte": ["dessert", "baking", "sweet"],
+    "soviet-napoleon-cake": ["dessert", "baking", "holiday", "sweet"],
+    "soviet-honey-cake": ["dessert", "baking", "sweet"],
+    "pizza-margherita": ["baking", "vegetarian"],
+    "pizza-diavola": ["baking", "meat", "spicy"],
+    "pizza-capricciosa": ["baking", "meat"],
+    "pizza-quattro-stagioni": ["baking", "meat"],
+    "pizza-funghi": ["baking", "vegetarian"],
+    "pizza-pollo": ["baking", "meat"],
+    "pizza-bbq-chicken": ["baking", "meat"],
+    "pizza-pesto": ["baking", "vegetarian"],
+    "pizza-marinara": ["baking", "vegetarian"],
+    "pizza-napoletana": ["baking", "vegetarian"],
+    "pizza-mediterranean": ["baking", "vegetarian"],
+    "pizza-vegetariana": ["baking", "vegetarian"],
+    "pizza-spinaci": ["baking", "vegetarian"],
+    "pizza-patate": ["baking", "vegetarian"],
+    "pizza-cipolla": ["baking", "vegetarian", "spicy"],
+    "pizza-uovo": ["baking", "vegetarian"],
+    "pizza-rustica": ["baking", "vegetarian"],
+    "pizza-zucca": ["baking", "vegetarian"],
+    "pizza-barbabietola": ["baking", "vegetarian"],
+    "pizza-cavolo": ["baking", "vegetarian"],
+    "pizza-piselli": ["baking", "vegetarian"],
+    "pizza-mais": ["baking", "vegetarian"],
+    "pizza-aglio-erbe": ["baking", "vegetarian"],
+    "pizza-dolce": ["baking", "dessert", "sweet"],
+    "pizza-frutti-bosco": ["baking", "dessert", "sweet"],
+});
+
+function getCraftRecipeTags(recipe) {
+    if (!recipe) return [];
+    if (Array.isArray(recipe.tags)) return recipe.tags;
+    if (CRAFT_RECIPE_TAGS[recipe.id]) return CRAFT_RECIPE_TAGS[recipe.id];
+    if (recipe.group === "pasta") return ["ingredient"];
+    if (recipe.group === "sauces") return ["ingredient"];
+    if (recipe.group === "pizza") return ["baking"];
+    return [];
+}
+
+function getCraftTagLabel(tagId) {
+    return CRAFT_TAG_LABELS[tagId] || String(tagId || "");
+}
+
 // Crafting recipes ask the shared technology unlock table. A recipe without
 // an entry is always available.
 function isCraftRecipeUnlocked(recipe) {
@@ -1458,6 +1587,9 @@ const CRAFT_RARITY_LADDER = Object.freeze(
 // Which recipe is selected in each category. Kept in memory only: it is a UI
 // detail and does not need to be saved.
 const selectedCraftByCategory = {};
+// Collapsed craft groups are kept for the session so rebuilding the list does
+// not immediately reopen a category the player closed.
+const collapsedCraftGroups = Object.create(null);
 // Selected mushroom/vegetable for recipes that let the player choose one
 // flexible ingredient. Keyed by recipe id.
 const selectedCraftChoiceByRecipe = {};
@@ -2398,6 +2530,19 @@ function renderCraftList(category) {
         groupTitle.innerText = groupInfo.name;
         group.appendChild(groupTitle);
 
+        const groupKey = category.id + ":" + groupInfo.id;
+        groupTitle.classList.add("craftcollapsible");
+        if (collapsedCraftGroups[groupKey] === true) {
+            group.classList.add("collapsed");
+        }
+        groupTitle.addEventListener("click", function () {
+            collapsedCraftGroups[groupKey] = !collapsedCraftGroups[groupKey];
+            group.classList.toggle(
+                "collapsed",
+                collapsedCraftGroups[groupKey] === true
+            );
+        });
+
         const recipeList = document.createElement("ul");
         recipeList.className = "habitlist";
 
@@ -2414,10 +2559,14 @@ function renderCraftList(category) {
 
             const switchElement = document.createElement("span");
             switchElement.className = "habitswitch";
+            const tagText = getCraftRecipeTags(recipe)
+                .map(getCraftTagLabel)
+                .join(", ");
             switchElement.setAttribute(
                 "data-tooltip",
                 "Craft " + getCraftResultName(recipe)
                     + "<br>Skill: " + getCraftSkillName(recipe)
+                    + (tagText ? "<br>Tags: " + tagText : "")
             );
 
             const slider = document.createElement("span");
@@ -2457,6 +2606,19 @@ function renderSpiceCraftGroup(list) {
     groupTitle.className = "habitcategorytitle";
     groupTitle.innerText = "Spices";
     group.appendChild(groupTitle);
+
+    const groupKey = "food:spices";
+    groupTitle.classList.add("craftcollapsible");
+    if (collapsedCraftGroups[groupKey] === true) {
+        group.classList.add("collapsed");
+    }
+    groupTitle.addEventListener("click", function () {
+        collapsedCraftGroups[groupKey] = !collapsedCraftGroups[groupKey];
+        group.classList.toggle(
+            "collapsed",
+            collapsedCraftGroups[groupKey] === true
+        );
+    });
 
     const recipeList = document.createElement("ul");
     recipeList.className = "habitlist";
@@ -3033,6 +3195,19 @@ function renderCraftDetails(category) {
     heading.innerHTML = getItemNameHtml(preview, preview.name)
         + " | quality: " + qualityInfo.quality;
     info.appendChild(heading);
+
+    const tags = getCraftRecipeTags(recipe);
+    if (tags.length) {
+        const tagBox = document.createElement("div");
+        tagBox.className = "crafttags";
+        tags.forEach(function (tagId) {
+            const tag = document.createElement("span");
+            tag.className = "crafttag";
+            tag.innerText = getCraftTagLabel(tagId);
+            tagBox.appendChild(tag);
+        });
+        info.appendChild(tagBox);
+    }
 
     const rarityNote = document.createElement("div");
     rarityNote.className = "craftnote";

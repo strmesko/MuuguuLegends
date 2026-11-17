@@ -2396,3 +2396,40 @@ ul.resource-tree li a:before {
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* Collapsible craft groups. */
+.habitcategorytitle.craftcollapsible {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+.habitcategorytitle.craftcollapsible::before {
+  content: "\25BC";
+  font-size: 0.75em;
+  line-height: 1;
+}
+.craftcategory.collapsed .habitcategorytitle.craftcollapsible::before {
+  content: "\25B6";
+}
+.craftcategory.collapsed .habitlist {
+  display: none;
+}
+
+/* Craft tags shown in the result details and tooltips. */
+.crafttags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin: 3px 0;
+}
+.crafttag {
+  padding: 1px 5px;
+  font-size: 0.75em;
+  color: #1f5f2a;
+  background: #b9edc5;
+  border: 1px solid #63c47a;
+  border-radius: 8px;
+  white-space: nowrap;
+}
