@@ -1109,6 +1109,13 @@ function craftSpice(recipe) {
     logMessage("You grind " + (definition ? definition.name : "a spice") + ".");
     if (player.cooking) player.cooking.addexp(1);
     if (typeof renderResources === "function") renderResources();
+    const foodCategory = typeof getCraftCategory === "function"
+        ? getCraftCategory("food")
+        : null;
+    if (foodCategory) {
+        renderCraftResources(foodCategory);
+        renderCraftDetails(foodCategory);
+    }
     refreshCraftAvailability();
     return true;
 }
@@ -1590,6 +1597,9 @@ const selectedCraftByCategory = {};
 // Collapsed craft groups are kept for the session so rebuilding the list does
 // not immediately reopen a category the player closed.
 const collapsedCraftGroups = Object.create(null);
+// Spice recipes output resources, so they use a separate selection state from
+// the item recipes while still sharing the Food tab panels.
+let selectedSpiceRecipeId = null;
 // Selected mushroom/vegetable for recipes that let the player choose one
 // flexible ingredient. Keyed by recipe id.
 const selectedCraftChoiceByRecipe = {};
@@ -2553,7 +2563,8 @@ function renderCraftList(category) {
             recipeItem.dataset.recipeId = recipe.id;
             recipeItem.classList.toggle(
                 "selected",
-                !!selectedRecipe && selectedRecipe.id === recipe.id
+                !selectedSpiceRecipeId
+                    && !!selectedRecipe && selectedRecipe.id === recipe.id
             );
             recipeItem.classList.toggle("unavailable", !canCraftRecipe(recipe));
 
@@ -2633,6 +2644,10 @@ function renderSpiceCraftGroup(list) {
         recipeItem.id = "spicerecipe-" + recipe.id;
         recipeItem.dataset.spiceRecipeId = recipe.id;
         recipeItem.classList.toggle("unavailable", !canCraftSpice(recipe));
+        recipeItem.classList.toggle(
+            "selected",
+            selectedSpiceRecipeId === recipe.id
+        );
 
         const costText = recipe.resources.map(function (requirement) {
             const resource = RESOURCE_DEFS[requirement.resourceId];
@@ -2659,7 +2674,7 @@ function renderSpiceCraftGroup(list) {
         switchElement.appendChild(name);
         recipeItem.appendChild(switchElement);
         recipeItem.addEventListener("click", function () {
-            craftSpice(recipe);
+            selectSpiceRecipe(recipe.id);
         });
 
         recipeList.appendChild(recipeItem);
@@ -2674,6 +2689,148 @@ function refreshSpiceCraftRows() {
     SPICE_CRAFT_RECIPES.forEach(function (recipe) {
         const row = document.getElementById("spicerecipe-" + recipe.id);
         if (row) row.classList.toggle("unavailable", !canCraftSpice(recipe));
+        if (row) row.classList.toggle(
+            "selected",
+            selectedSpiceRecipeId === recipe.id
+        );
+    });
+}
+
+function renderSpiceResources(panel, recipe) {
+    panel.appendChild(createCraftPanelTitle("Required resources"));
+
+    const container = document.createElement("div");
+    container.className = "craftresources";
+    container.dataset.spiceRecipeId = recipe.id;
+
+    recipe.resources.forEach(function (requirement) {
+        const definition = RESOURCE_DEFS[requirement.resourceId];
+        if (!definition) return;
+
+        const have = getResourceAmount(requirement.resourceId);
+        const row = document.createElement("div");
+        row.className = "craftresource "
+            + (have >= requirement.amount ? "enough" : "missing");
+        row.dataset.spiceResource = requirement.resourceId;
+        row.setAttribute("data-tooltip", definition.description);
+
+        row.appendChild(createItemImage(definition.name, "craftresourceicon"));
+
+        const name = document.createElement("span");
+        name.className = "craftresource-name";
+        name.innerText = definition.name;
+
+        const amount = document.createElement("span");
+        amount.className = "craftresource-amount";
+        amount.innerText = round2(have) + " / " + requirement.amount;
+
+        row.appendChild(name);
+        row.appendChild(amount);
+        container.appendChild(row);
+    });
+
+    panel.appendChild(container);
+
+    const skillRow = document.createElement("div");
+    skillRow.className = "craftskillrow";
+    skillRow.innerText = "Skill: Cooking Lv "
+        + round2(getEffectiveLevel("cooking"));
+    panel.appendChild(skillRow);
+
+    const qualityRow = document.createElement("div");
+    qualityRow.className = "craftskillrow";
+    qualityRow.innerText = "Expected quality: "
+        + round2(getSpiceCraftQuality(recipe));
+    panel.appendChild(qualityRow);
+}
+
+function renderSpiceDetails(panel, recipe) {
+    panel.appendChild(createCraftPanelTitle("Result"));
+
+    const spiceId = getSpiceCraftSpiceId(recipe);
+    const definition = spiceId != null ? RESOURCE_DEFS[spiceId] : null;
+    if (!definition) return;
+
+    const quality = getSpiceCraftQuality(recipe);
+    const info = document.createElement("div");
+    info.className = "craftdetailsitem";
+
+    info.appendChild(createItemImage(definition.name, "craftitemicon"));
+
+    const heading = document.createElement("div");
+    heading.innerText = definition.name + " | quality: " + round2(quality);
+    info.appendChild(heading);
+
+    const tagBox = document.createElement("div");
+    tagBox.className = "crafttags";
+    const tag = document.createElement("span");
+    tag.className = "crafttag";
+    tag.innerText = "Kitchen spice";
+    tagBox.appendChild(tag);
+    info.appendChild(tagBox);
+
+    const bonuses = definition.potentialBonuses;
+    if (bonuses && typeof bonuses === "object") {
+        Object.keys(bonuses).forEach(function (statKey) {
+            const value = Number(bonuses[statKey]);
+            if (!Number.isFinite(value) || value <= 0) return;
+            const row = document.createElement("div");
+            row.className = "craftnote";
+            row.innerText = "Dish bonus: " + describeItemStat(
+                statKey,
+                value * (1 + quality / 10)
+            );
+            info.appendChild(row);
+        });
+    }
+
+    const description = document.createElement("div");
+    description.className = "craftitemdescription";
+    description.innerText = definition.description;
+    info.appendChild(description);
+
+    panel.appendChild(info);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.id = "foodspicecraftbutton";
+    button.className = "craftbutton";
+    button.innerText = "Grind 1";
+    button.disabled = !canCraftSpice(recipe);
+    button.addEventListener("click", function () {
+        craftSpice(recipe);
+    });
+    panel.appendChild(button);
+
+    panel.dataset.craftQuality = "spice:" + String(quality);
+}
+
+function refreshSpiceCraftSelection() {
+    const recipe = getSelectedSpiceRecipe();
+    if (!recipe) return;
+    refreshSpiceCraftRows();
+
+    const button = document.getElementById("foodspicecraftbutton");
+    if (button) button.disabled = !canCraftSpice(recipe);
+
+    const panel = document.getElementById("foodcraftdescription");
+    if (!panel) return;
+    const container = panel.querySelector("[data-spice-recipe-id]");
+    if (!container || container.dataset.spiceRecipeId !== recipe.id) {
+        renderCraftResources(getCraftCategory("food"));
+        return;
+    }
+
+    recipe.resources.forEach(function (requirement) {
+        const row = container.querySelector(
+            '[data-spice-resource="' + requirement.resourceId + '"]'
+        );
+        if (!row) return;
+        const have = getResourceAmount(requirement.resourceId);
+        const amount = row.querySelector(".craftresource-amount");
+        if (amount) amount.innerText = round2(have) + " / " + requirement.amount;
+        row.classList.toggle("enough", have >= requirement.amount);
+        row.classList.toggle("missing", have < requirement.amount);
     });
 }
 
@@ -2895,6 +3052,15 @@ function renderCraftResources(category) {
     if (!panel) return;
 
     panel.innerHTML = "";
+
+    if (category.id === "food") {
+        const spiceRecipe = getSelectedSpiceRecipe();
+        if (spiceRecipe) {
+            renderSpiceResources(panel, spiceRecipe);
+            return;
+        }
+    }
+
     panel.appendChild(createCraftPanelTitle("Required resources"));
 
     const recipe = getSelectedCraftRecipe(category.id);
@@ -3155,6 +3321,14 @@ function renderCraftDetails(category) {
 
     panel.innerHTML = "";
 
+    if (category.id === "food") {
+        const spiceRecipe = getSelectedSpiceRecipe();
+        if (spiceRecipe) {
+            renderSpiceDetails(panel, spiceRecipe);
+            return;
+        }
+    }
+
     const recipe = getSelectedCraftRecipe(category.id);
     if (!recipe) {
         panel.appendChild(createCraftPanelTitle("Result"));
@@ -3295,8 +3469,33 @@ function selectCraft(categoryId, recipeId) {
     const category = getCraftCategory(categoryId);
     if (!category) return;
 
+    selectedSpiceRecipeId = null;
     selectedCraftByCategory[categoryId] = recipeId;
 
+    renderCraftList(category);
+    renderCraftResources(category);
+    renderCraftDetails(category);
+    refreshCraftAvailability();
+}
+
+function getSelectedSpiceRecipe() {
+    if (selectedSpiceRecipeId == null) return null;
+    if (typeof SPICE_CRAFT_RECIPES === "undefined") return null;
+    return SPICE_CRAFT_RECIPES.find(function (recipe) {
+        return recipe.id === selectedSpiceRecipeId;
+    }) || null;
+}
+
+function selectSpiceRecipe(recipeId) {
+    const category = getCraftCategory("food");
+    if (!category) return;
+    if (typeof SPICE_CRAFT_RECIPES === "undefined") return;
+    const exists = SPICE_CRAFT_RECIPES.some(function (recipe) {
+        return recipe.id === recipeId;
+    });
+    if (!exists) return;
+
+    selectedSpiceRecipeId = recipeId;
     renderCraftList(category);
     renderCraftResources(category);
     renderCraftDetails(category);
@@ -3309,6 +3508,11 @@ function refreshCraftAvailability() {
     if (typeof CRAFT_CATEGORIES === "undefined") return;
 
     CRAFT_CATEGORIES.forEach(function (category) {
+        if (category.id === "food" && getSelectedSpiceRecipe()) {
+            refreshSpiceCraftSelection();
+            return;
+        }
+
         getCraftRecipesByCategory(category.id).forEach(function (recipe) {
             const row = document.getElementById(
                 "craftrecipe-" + category.id + "-" + recipe.id
