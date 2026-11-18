@@ -835,6 +835,44 @@ function runSleepProduction(diff) {
 
     // A good dream can permanently raise one random skill's potential.
     tryDreamPotentialGain(sleepDiff);
+
+    trySleepTileDiscovery(sleepDiff);
+}
+
+const SLEEP_TILE_DISCOVERY_SECONDS = 60;
+let sleepTileDiscoveryElapsed = 0;
+let sleepTileDiscoveryAwarded = false;
+
+function resetSleepTileDiscovery() {
+    sleepTileDiscoveryElapsed = 0;
+    sleepTileDiscoveryAwarded = false;
+}
+
+function trySleepTileDiscovery(seconds) {
+    if (sleepTileDiscoveryAwarded) return;
+    sleepTileDiscoveryElapsed += Math.max(0, Number(seconds) || 0);
+    if (sleepTileDiscoveryElapsed < SLEEP_TILE_DISCOVERY_SECONDS) return;
+
+    sleepTileDiscoveryAwarded = true;
+    if (!window.mapView
+        || typeof window.mapView.discoverOneNewTile !== "function"
+        || typeof currentTile === "undefined"
+        || !currentTile) {
+        return;
+    }
+
+    const discovery = window.mapView.discoverOneNewTile(
+        currentTile.x,
+        currentTile.y,
+        12
+    );
+    if (!discovery) return;
+
+    logMessage("You dream of a distant place: " + discovery.name
+        + " at X: " + discovery.x + ", Y: " + discovery.y + ".");
+    if (typeof window.mapView.refresh === "function") {
+        window.mapView.refresh();
+    }
 }
 
 // --- Hearthfire buff ------------------------------------------------------
@@ -1195,6 +1233,10 @@ function runPhotosynthesisHunger(diff) {
 
 function productionLoop(diff, options) {
     if (diff == null) diff = 1;
+
+    if (actionStates.sleep !== Activity.Active) {
+        resetSleepTileDiscovery();
+    }
 
     // No mana cost exists yet; a net mana loss during the tick is treated as
     // spending so future mana costs feed hunger automatically.

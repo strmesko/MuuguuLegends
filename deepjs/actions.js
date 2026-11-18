@@ -1208,6 +1208,9 @@ function startTimedAction(action) {
     }
 
     logMessage(action.startMessage);
+    if (action.id === "sleep" && typeof resetSleepTileDiscovery === "function") {
+        resetSleepTileDiscovery();
+    }
     if (typeof action.onStart === "function") action.onStart();
     actionStates[action.id] = Activity.Active;
     // Restoration actions are recovery, never something to auto-resume.

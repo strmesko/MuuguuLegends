@@ -661,14 +661,75 @@ class MapView {
             : 0;
         const centerX = Number(currentTile.x) || 0;
         const centerY = Number(currentTile.y) || 0;
-        const maxDistanceSquared = range * range;
+        this.discoverTilesAround(centerX, centerY, range);
+    }
 
+    discoverTilesAround(centerX, centerY, radius) {
+        const range = Math.max(0, Math.floor(Number(radius) || 0));
+        const maxDistanceSquared = range * range;
         for (let dy = -range; dy <= range; dy++) {
             for (let dx = -range; dx <= range; dx++) {
                 if (dx * dx + dy * dy > maxDistanceSquared) continue;
                 const tile = this.getGameplayTile(centerX + dx, centerY + dy);
                 if (tile) tile.discovered = true;
             }
+        }
+    }
+
+    isRareDiscoveryTile(tile) {
+        if (!tile) return false;
+        return [
+            19, 86, 87, 88, 90, 92, 93, 94, 95, 96, 97, 98, 99,
+        ].indexOf(Number(tile.type)) !== -1;
+    }
+
+    discoverOneNewTile(centerX, centerY, radius) {        const range = Math.max(1, Math.floor(Number(radius) || 10));
+        const rareCandidates = [];
+        const otherCandidates = [];
+
+        for (let dy = -range; dy <= range; dy++) {
+            for (let dx = -range; dx <= range; dx++) {
+                if (dx === 0 && dy === 0) continue;
+                if (dx * dx + dy * dy > range * range) continue;
+
+                const x = centerX + dx;
+                const y = centerY + dy;
+                const tile = this.getGameplayTile(x, y);
+                if (!tile || tile.discovered) continue;
+
+                const entry = { tile: tile, x: x, y: y };
+                if (this.isRareDiscoveryTile(tile)) {
+                    rareCandidates.push(entry);
+                } else {
+                    otherCandidates.push(entry);
+                }
+            }
+        }
+
+        const pool = rareCandidates.length ? rareCandidates : otherCandidates;
+        if (!pool.length) return null;
+
+        const chosen = pool[Math.floor(Math.random() * pool.length)];
+        chosen.tile.discovered = true;
+        const type = this.tileTypeById.get(chosen.tile.type);
+        return {
+            x: chosen.x,
+            y: chosen.y,
+            name: type ? type.name : "Unknown",
+            rare: this.isRareDiscoveryTile(chosen.tile),
+        };
+    }
+
+    clearDiscoveredTiles() {
+        this.world.chunks.forEach((chunk) => {
+            chunk.forEach((row) => {
+                row.forEach((tile) => {
+                    if (tile) tile.discovered = false;
+                });
+            });
+        });
+        if (typeof currentTile !== "undefined" && currentTile) {
+            currentTile.discovered = false;
         }
     }
 
@@ -830,6 +891,11 @@ function initMapView() {
     window.mapView = new MapView(mapContent);
     if (typeof ensureStartCoordinates === "function") {
         ensureStartCoordinates();
+    }
+    if (window.mapView && typeof window.mapView.discoverTilesAround === "function"
+        && typeof currentTile !== "undefined" && currentTile) {
+        window.mapView.discoverTilesAround(currentTile.x, currentTile.y, 10);
+        window.mapView.refresh();
     }
 }
 

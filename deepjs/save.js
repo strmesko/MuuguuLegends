@@ -902,6 +902,10 @@
             ? Math.max(0, (Date.now() - savedAt) / 1000)
             : 0;
 
+        if (window.mapView && typeof window.mapView.clearDiscoveredTiles === "function") {
+            window.mapView.clearDiscoveredTiles();
+        }
+
         setLogSuppressed(true);
         // The first tick after loading may replay offline progress; hide the
         // Autism level-up spam it can produce.
