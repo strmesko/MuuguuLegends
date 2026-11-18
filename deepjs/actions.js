@@ -221,6 +221,39 @@ const ACTIONS = [
         },
     },
     {
+        id: "vitaminsrush",
+        label: "Vitamins rush",
+        tags: ["Magic", "Toggleable"],
+        description: function () {
+            const level = Math.max(
+                0,
+                Number(getEffectiveLevel("digestomancy")) || 0
+            );
+            return "Toggle a magical vitamin surge."
+                + "<br>While active, potential bonuses from food are multiplied by "
+                + round2(2 + 0.01 * level) + "."
+                + "<br>Each food consumption costs 30 mana."
+                + "<br>If mana is insufficient, the action switches itself off."
+                + "<br>Toggleable actions do not spend action points.";
+        },
+        kind: ACTION_KIND.Toggle,
+        initialState: Activity.Idle,
+        isVisible: function () {
+            return getEffectiveLevel("digestomancy") >= 1;
+        },
+        isEnabled: function () {
+            return typeof isCombatActive !== "function" || !isCombatActive();
+        },
+        performToggle: function (action) {
+            const active = isActionActive(action.id);
+            actionStates[action.id] = active ? Activity.Idle : Activity.Active;
+            logMessage(active
+                ? "Vitamins rush deactivated."
+                : "Vitamins rush activated.");
+            updateActionButton(action.id);
+        },
+    },
+    {
         id: "entercombat",
         label: "Enter combat",
         tags: ["combat"],
@@ -1799,6 +1832,36 @@ function isCaloriesBoosterActive() {
     return actionStates.caloriesbooster === Activity.Active
         && typeof getEffectiveLevel === "function"
         && getEffectiveLevel("digestomancy") >= 10;
+}
+
+function isVitaminsRushActive() {
+    return actionStates.vitaminsrush === Activity.Active
+        && typeof getEffectiveLevel === "function"
+        && getEffectiveLevel("digestomancy") >= 1;
+}
+
+// Returns the potential-bonus multiplier for one food consumption. The 30 mana
+// is charged only while the toggle is active; a failed payment switches it off
+// and leaves the food unboosted.
+function consumeVitaminsRushMana() {
+    if (!isVitaminsRushActive()) return 1;
+
+    const cost = 30;
+    const mana = Math.max(0, Number(player && player.mana) || 0);
+    if (mana < cost) {
+        actionStates.vitaminsrush = Activity.Idle;
+        updateActionButton("vitaminsrush");
+        logMessage("Vitamins rush fizzles: not enough mana.");
+        return 1;
+    }
+
+    player.mana = round2(Math.max(0, mana - cost));
+    logMessage("Vitamins rush consumes 30 mana.");
+    const level = Math.max(
+        0,
+        Number(getEffectiveLevel("digestomancy")) || 0
+    );
+    return 2 + 0.01 * level;
 }
 
 function clickAction(actionId) {

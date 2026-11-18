@@ -570,6 +570,9 @@ function consumeInventoryFood(index) {
             ? getFeastModifier(currentTile)
             : 0
     ) / 100;
+    const vitaminsMultiplier = typeof consumeVitaminsRushMana === "function"
+        ? consumeVitaminsRushMana()
+        : 1;
     const potentialLines = [];
     if (item.potentialBonuses && typeof item.potentialBonuses === "object") {
         Object.keys(item.potentialBonuses).forEach(function (statName) {
@@ -579,7 +582,10 @@ function consumeInventoryFood(index) {
             const stat = player[statName];
             if (!stat || typeof increasePotential !== "function") return;
 
-            const gained = increasePotential(stat, value * feastMultiplier);
+            const gained = increasePotential(
+                stat,
+                value * feastMultiplier * vitaminsMultiplier
+            );
             if (gained > 0) {
                 const label = stat.name || String(statName).toUpperCase();
                 potentialLines.push("+" + roundItemNumber(gained) + " " + label + " potential");

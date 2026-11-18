@@ -597,6 +597,12 @@ function updateAutoHungerEating() {
         hunger = round2(Math.max(0, hunger - consumed * restorePerUnit));
         player.hunger = hunger;
 
+        // Vitamins rush charges once per food stack eaten and multiplies the
+        // potential restored by that food.
+        const vitaminsMultiplier = typeof consumeVitaminsRushMana === "function"
+            ? consumeVitaminsRushMana()
+            : 1;
+
         // Eating also restores the bound stat's potential. One unit restores
         // 1 + ResourceQuality / 10 potential; the best SittingPlace building's
         // FeastModifier increases that gain by BuildingQuality percent.
@@ -610,7 +616,8 @@ function updateAutoHungerEating() {
                 : 1;
             increasePotential(
                 boundStat,
-                consumed * (1 + quality / 10) * feastMultiplier
+                consumed * (1 + quality / 10)
+                    * feastMultiplier * vitaminsMultiplier
             );
         }
 
