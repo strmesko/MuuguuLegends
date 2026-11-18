@@ -168,6 +168,7 @@ function getSleepynessEffectTotals() {
 const HUNGER_MAX_BASE = 1000;
 const HUNGER_MAX_PER_VIT = 5;
 const HUNGER_MAX_PER_SOU = 3;
+const HUNGER_MAX_CHARACTER_LEVEL_MULTIPLIER = 1.01;
 const HUNGER_POINTS_PER_SPEND = 10;
 const WELL_FED_HUNGER_THRESHOLD = 100;
 const WELL_FED_REGEN_MULTIPLIER = 1.15;
@@ -209,10 +210,18 @@ const HUNGER_TIERS = Object.freeze([
 function getHungerMax() {
     const vit = Math.max(0, Number(getEffectiveLevel("vit")) || 0);
     const sou = Math.max(0, Number(getEffectiveLevel("sou")) || 0);
+    const characterLevel = Math.max(
+        0,
+        Number(player && player.lvl) || 0
+    );
     return Math.max(
         1,
         (HUNGER_MAX_BASE + vit * HUNGER_MAX_PER_VIT + sou * HUNGER_MAX_PER_SOU)
         * getGlobalPropertyMultiplier("maxHunger")
+        * Math.pow(
+            HUNGER_MAX_CHARACTER_LEVEL_MULTIPLIER,
+            characterLevel
+        )
     );
 }
 
