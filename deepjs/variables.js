@@ -327,20 +327,18 @@ function formatSuffixNumber(value) {
     const absolute = Math.abs(value);
     if (!Number.isFinite(absolute)) return String(value);
     if (absolute < 1000) {
-        return sign + trimFormattedNumber(absolute.toFixed(2));
+        return sign + absolute.toFixed(2);
     }
 
     let tier = Math.floor(Math.log10(absolute) / 3);
     tier = Math.min(tier, NUMBER_SUFFIX_UNITS.length - 1);
     const scaled = absolute / Math.pow(1000, tier);
-    return sign + trimFormattedNumber(scaled.toFixed(2))
-        + NUMBER_SUFFIX_UNITS[tier];
+    return sign + scaled.toFixed(2) + NUMBER_SUFFIX_UNITS[tier];
 }
 
 function formatScientificNumber(value) {
     if (!Number.isFinite(value) || value === 0) return String(value);
-    const parts = value.toExponential(2).split("e");
-    return trimFormattedNumber(parts[0]) + "e" + parts[1];
+    return value.toExponential(2);
 }
 
 function formatEngineeringNumber(value) {
@@ -350,7 +348,7 @@ function formatEngineeringNumber(value) {
     let exponent = Math.floor(Math.log10(absolute));
     exponent = Math.floor(exponent / 3) * 3;
     const mantissa = absolute / Math.pow(10, exponent);
-    return sign + trimFormattedNumber(mantissa.toFixed(2))
+    return sign + mantissa.toFixed(2)
         + "e" + (exponent >= 0 ? "+" : "") + exponent;
 }
 
