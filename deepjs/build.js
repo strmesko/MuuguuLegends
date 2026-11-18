@@ -24,6 +24,8 @@ const BUILDING_IDS = Object.freeze({
     BIG_GRINDING_STONE: "big-grinding-stone",
     OIL_PRESS: "oil-press",
     LOOM: "loom",
+    LINEN_BED: "linen-bed",
+    BOOKCASE: "bookcase",
     DREAM_CATCHER: "dream-catcher",
     MAPLE_EXTRACTOR: "maple-extractor",
 });
@@ -108,7 +110,7 @@ function setSelectedMapleMetalSheetId(resourceId) {
     return true;
 }
 
-const LOOM_NAIL_CHOICES = Object.freeze([
+const NAIL_CHOICES = Object.freeze([
     RESOURCE_IDS.IRON_NAILS,
     RESOURCE_IDS.COPPER_NAILS,
     RESOURCE_IDS.TIN_NAILS,
@@ -117,20 +119,27 @@ const LOOM_NAIL_CHOICES = Object.freeze([
     RESOURCE_IDS.GOLD_NAILS,
 ]);
 
-let selectedLoomNailId = LOOM_NAIL_CHOICES[0];
+const selectedNailIdByBuilding = Object.create(null);
 
-function getSelectedLoomNailId() {
-    if (LOOM_NAIL_CHOICES.indexOf(selectedLoomNailId) === -1) {
-        selectedLoomNailId = LOOM_NAIL_CHOICES[0];
+const NAIL_REQUIREMENT_AMOUNTS = Object.freeze({
+    [BUILDING_IDS.LOOM]: 50,
+    [BUILDING_IDS.LINEN_BED]: 5,
+    [BUILDING_IDS.BOOKCASE]: 6,
+});
+
+function getSelectedNailId(buildingId) {
+    const stored = selectedNailIdByBuilding[buildingId];
+    if (NAIL_CHOICES.indexOf(stored) === -1) {
+        selectedNailIdByBuilding[buildingId] = NAIL_CHOICES[0];
     }
-    return selectedLoomNailId;
+    return selectedNailIdByBuilding[buildingId];
 }
 
-function setSelectedLoomNailId(resourceId) {
+function setSelectedNailId(buildingId, resourceId) {
     const id = Number(resourceId);
-    if (LOOM_NAIL_CHOICES.indexOf(id) === -1) return false;
+    if (NAIL_CHOICES.indexOf(id) === -1) return false;
 
-    selectedLoomNailId = id;
+    selectedNailIdByBuilding[buildingId] = id;
     if (typeof renderFurniturePanels === "function") {
         renderFurniturePanels();
     }
@@ -181,10 +190,11 @@ function getBuildingBuildRequirements(def) {
         });
     }
 
-    if (def.id === BUILDING_IDS.LOOM) {
+    const nailAmount = NAIL_REQUIREMENT_AMOUNTS[def.id];
+    if (nailAmount != null) {
         requirements.push({
-            resourceId: getSelectedLoomNailId(),
-            amount: 50,
+            resourceId: getSelectedNailId(def.id),
+            amount: nailAmount,
         });
     }
 
@@ -239,32 +249,32 @@ function createMapleMetalChoiceBox() {    const box = document.createElement("di
     return box;
 }
 
-function createLoomNailChoiceBox() {
+function createNailChoiceBox(buildingId) {
     const box = document.createElement("div");
     box.className = "craftchoice";
 
     const label = document.createElement("label");
     label.className = "craftchoice-label";
     label.innerText = "Choose nails:";
-    label.htmlFor = "loom-nail-choice";
+    label.htmlFor = "nail-choice-" + buildingId;
     box.appendChild(label);
 
     if (typeof createCraftIngredientSelect === "function") {
         box.appendChild(createCraftIngredientSelect({
-            id: "loom-nail-choice",
-            resourceIds: LOOM_NAIL_CHOICES,
-            selectedResourceId: getSelectedLoomNailId(),
+            id: label.htmlFor,
+            resourceIds: NAIL_CHOICES,
+            selectedResourceId: getSelectedNailId(buildingId),
             includeNone: false,
             onSelect: function (resourceId) {
-                setSelectedLoomNailId(resourceId);
+                setSelectedNailId(buildingId, resourceId);
             },
         }));
         return box;
     }
 
     const select = document.createElement("select");
-    select.id = "loom-nail-choice";
-    LOOM_NAIL_CHOICES.forEach(function (resourceId) {
+    select.id = label.htmlFor;
+    NAIL_CHOICES.forEach(function (resourceId) {
         const option = document.createElement("option");
         option.value = String(resourceId);
         option.innerText = RESOURCE_DEFS[resourceId]
@@ -272,9 +282,9 @@ function createLoomNailChoiceBox() {
             : String(resourceId);
         select.appendChild(option);
     });
-    select.value = String(getSelectedLoomNailId());
+    select.value = String(getSelectedNailId(buildingId));
     select.addEventListener("change", function () {
-        setSelectedLoomNailId(Number(select.value));
+        setSelectedNailId(buildingId, Number(select.value));
     });
     box.appendChild(select);
     return box;
@@ -725,6 +735,46 @@ const BUILDING_DEFS = Object.freeze({
         effects: Object.freeze([]),
         iconClass: "fa-moon-o",
         effectText: "Multiplies the chance of a dream event during sleep by 1 + BuildingQuality. Only one Dream catcher can be built per tile.",
+    }),
+    [BUILDING_IDS.LINEN_BED]: Object.freeze({
+        id: BUILDING_IDS.LINEN_BED,
+        name: "Linen bed",
+        category: FURNITURE_CATEGORY.id,
+        description: "An advanced bed that made with linen sheets that stuffed with leaves for excta comfort",
+        resources: Object.freeze([
+            Object.freeze({ resourceId: RESOURCE_IDS.FIBERS, amount: 5 }),
+            Object.freeze({ resourceId: RESOURCE_IDS.WOODEN_BEAMS, amount: 4 }),
+            Object.freeze({ resourceId: RESOURCE_IDS.WOODEN_PLANK, amount: 10 }),
+            Object.freeze({ resourceId: RESOURCE_IDS.LINEN_CLOTH, amount: 20 }),
+            Object.freeze({ resourceId: RESOURCE_IDS.LEAVES, amount: 150 }),
+        ]),
+        workPoints: 6000,
+        roomSpace: 1,
+        skill: "carpentry",
+        requiredCarpentryLevel: 10,
+        tags: Object.freeze(["SleepingPlace"]),
+        sleepQualityDivisor: 20,
+        sleepQualityMultiplier: 3,
+        effects: Object.freeze([]),
+        iconClass: "fa-bed",
+        effectText: "Sleep quality is three times the Stray bed bonus: 3 × (1 + BuildingQuality / 20). Only the best SleepingPlace bonus on a tile applies.",
+    }),
+    [BUILDING_IDS.BOOKCASE]: Object.freeze({
+        id: BUILDING_IDS.BOOKCASE,
+        name: "BookCase",
+        category: FURNITURE_CATEGORY.id,
+        description: "Storage your knowledge and give better access to it.",
+        resources: Object.freeze([
+            Object.freeze({ resourceId: RESOURCE_IDS.WOODEN_BEAMS, amount: 6 }),
+            Object.freeze({ resourceId: RESOURCE_IDS.WOODEN_PLANK, amount: 20 }),
+        ]),
+        workPoints: 8000,
+        roomSpace: 2,
+        skill: "carpentry",
+        requiredCarpentryLevel: 15,
+        effects: Object.freeze([]),
+        iconClass: "fa-book",
+        effectText: "Each completed BookCase on the map increases Research effectiveness by 1.2 + 0.05 × BuildingQuality. All BookCases stack.",
     }),
     [BUILDING_IDS.MAPLE_EXTRACTOR]: Object.freeze({
         id: BUILDING_IDS.MAPLE_EXTRACTOR,
@@ -1224,6 +1274,10 @@ function canBuildBuilding(def) {
     if (getCharacterChoppingPower() < (Number(def.requiredChoppingPower) || 0)) {
         return false;
     }
+    if ((Number(def.requiredCarpentryLevel) || 0) > 0
+        && getEffectiveLevel("carpentry") < def.requiredCarpentryLevel) {
+        return false;
+    }
 
     if (Array.isArray(def.spaceElementRequirements)
         && def.spaceElementRequirements.some(function (requirement) {
@@ -1409,6 +1463,24 @@ function getDreamCatcherSleepEventMultiplier(tile) {
     return quality === null ? 1 : 1 + Math.max(0, Number(quality) || 0);
 }
 
+// Completed BookCases anywhere on the map stack their Research bonus.
+function getBookCaseResearchMultiplier() {
+    let multiplier = 1;
+    if (typeof buildings === "undefined" || !Array.isArray(buildings)) {
+        return multiplier;
+    }
+
+    buildings.forEach(function (building) {
+        if (!building || !building.completed || building.removed
+            || building.defId !== BUILDING_IDS.BOOKCASE) {
+            return;
+        }
+        multiplier += 1.2 + 0.05 * getBuildingQualityValue(building);
+    });
+
+    return multiplier;
+}
+
 // Any completed building tagged SleepingPlace can improve sleep quality.
 // Every candidate grants +1 + (BuildingQuality / its divisor); only the
 // single largest bonus on the tile applies.
@@ -1417,7 +1489,6 @@ function getSleepQualityBuildingBonus(tile) {
     if (!targetTile || !Array.isArray(targetTile.buildings)) return 0;
 
     let bestBonus = 0;
-
     targetTile.buildings.forEach(function (building) {
         if (!building || !building.completed) return;
 
@@ -1427,7 +1498,8 @@ function getSleepQualityBuildingBonus(tile) {
         const divisor = Number(def.sleepQualityDivisor);
         if (!Number.isFinite(divisor) || divisor <= 0) return;
 
-        const bonus = 1 + getBuildingQualityValue(building) / divisor;
+        const bonus = (1 + getBuildingQualityValue(building) / divisor)
+            * Math.max(0, Number(def.sleepQualityMultiplier) || 1);
         if (bonus > bestBonus) {
             bestBonus = bonus;
         }
@@ -3294,8 +3366,8 @@ function renderFurnitureResources() {
     if (def.id === BUILDING_IDS.MAPLE_EXTRACTOR) {
         panel.appendChild(createMapleMetalChoiceBox());
     }
-    if (def.id === BUILDING_IDS.LOOM) {
-        panel.appendChild(createLoomNailChoiceBox());
+    if (NAIL_REQUIREMENT_AMOUNTS[def.id] != null) {
+        panel.appendChild(createNailChoiceBox(def.id));
     }
     if (def.id === BUILDING_IDS.DREAM_CATCHER) {
         panel.appendChild(createDreamCatcherHerbChoiceBox());
@@ -3356,6 +3428,18 @@ function renderFurnitureResources() {
             choppingPower >= def.requiredChoppingPower ? "enough" : "missing"
         );
         container.appendChild(powerRow);
+    }
+    if ((Number(def.requiredCarpentryLevel) || 0) > 0) {
+        const carpentry = getEffectiveLevel("carpentry");
+        const levelRow = createBuildValueRow(
+            "Carpentry",
+            round2(carpentry) + " / " + def.requiredCarpentryLevel,
+            "carpentry"
+        );
+        levelRow.classList.add(
+            carpentry >= def.requiredCarpentryLevel ? "enough" : "missing"
+        );
+        container.appendChild(levelRow);
     }
 
     if (Array.isArray(def.spaceElementRequirements)) {

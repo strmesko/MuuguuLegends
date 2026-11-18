@@ -1353,7 +1353,12 @@ function runResearchProduction(diff) {
     const technology = activeResearchTechnology;
     if (!technology) return;
 
-    const researchPower = getEffectiveLevel("int") * getEffectiveLevel("science") * diff * getActionEffectivenessMultiplier("research");
+    const bookCaseMultiplier = typeof getBookCaseResearchMultiplier === "function"
+        ? getBookCaseResearchMultiplier()
+        : 1;
+    const researchPower = getEffectiveLevel("int") * getEffectiveLevel("science") * diff
+        * getActionEffectivenessMultiplier("research")
+        * bookCaseMultiplier;
     const levelCompleted = technology.applyResearchProgress(researchPower, player);
 
     if (levelCompleted) {
