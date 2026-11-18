@@ -385,6 +385,11 @@
             : 0;
         restoredPlayer.autoEatActive = savedPlayer
             && savedPlayer.autoEatActive === true;
+        // Character exp uses its own level curve; recalculate the threshold so
+        // old saves pick up the current formula immediately.
+        restoredPlayer.maxexp = getCharacterExperienceRequiredForLevel(
+            restoredPlayer.lvl || 1
+        );
         return restoredPlayer;
     }
 

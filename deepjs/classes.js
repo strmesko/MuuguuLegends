@@ -1,4 +1,6 @@
 const BASE_EXP = 100;
+const CHARACTER_EXP_LEVEL_STEP = 10;
+const CHARACTER_EXP_LEVEL_MULTIPLIER = 1.01;
 // 100% is the baseline potential scale used by experience calculations. It is
 // not a hard cap: research and minimum-potential bonuses can push it above 100.
 const MAX_POTENTIAL = 100;
@@ -2157,13 +2159,13 @@ function addPlayerExp(amount) {
 
     amount *= getGlobalPropertyMultiplier("characterExp");
 
-    player.maxexp = player.maxexp || getExperienceRequiredForLevel(player.lvl || 1);
+    player.maxexp = player.maxexp || getCharacterExperienceRequiredForLevel(player.lvl || 1);
     player.exp += amount;
 
     while (player.exp >= player.maxexp) {
         player.exp -= player.maxexp;
         player.lvl += 1;
-        player.maxexp = getExperienceRequiredForLevel(player.lvl);
+        player.maxexp = getCharacterExperienceRequiredForLevel(player.lvl);
         logMessage("Your character are now level " + player.lvl);
     }
 
@@ -2316,6 +2318,16 @@ function getStatPropertyKey(stat) {
 function getExperienceRequiredForLevel(level) {
     const value = Number(level);
     return (Number.isFinite(value) && value > 0 ? value : 1) * BASE_EXP;
+}
+
+// Character levels use their own requirement curve: every 10th level applies
+// another 1.01 multiplier to the experience needed for the next level.
+function getCharacterExperienceRequiredForLevel(level) {
+    const value = Number(level);
+    const current = Number.isFinite(value) && value > 0 ? value : 1;
+    const tiers = Math.floor(current / CHARACTER_EXP_LEVEL_STEP);
+    return current * BASE_EXP
+        * Math.pow(CHARACTER_EXP_LEVEL_MULTIPLIER, tiers);
 }
 
 function getExperiencePotentialRate(entry) {
