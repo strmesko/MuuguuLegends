@@ -111,6 +111,7 @@
                 x: currentTile.x,
                 y: currentTile.y,
                 revealed: currentTile.revealed,
+                scouted: currentTile.scouted ?? currentTile.revealed,
                 investigated: currentTile.investigated,
                 hiddenstuff: currentTile.hiddenstuff,
         maxSearchUnits: currentTile.maxSearchUnits || 0,
@@ -585,7 +586,8 @@
             currentTile = { x: tileX, y: tileY, land: {}, resourceMultipliers: {} };
         }
 
-        currentTile.revealed = tileState.revealed ?? 0;
+        currentTile.revealed = tileState.revealed ?? tileState.scouted ?? 0;
+        currentTile.scouted = tileState.scouted ?? currentTile.revealed;
         currentTile.investigated = tileState.investigated ?? 0;
         currentTile.hiddenstuff = tileState.hiddenstuff ?? 0;
     currentTile.maxSearchUnits = Math.max(

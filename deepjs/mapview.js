@@ -3,7 +3,10 @@ function ensureGameplayTileState(tile, x, y) {
 
     tile.x = x;
     tile.y = y;
-    if (typeof tile.revealed !== "number") tile.revealed = 0;
+    if (typeof tile.revealed !== "number") {
+        tile.revealed = typeof tile.scouted === "number" ? tile.scouted : 0;
+    }
+    if (typeof tile.scouted !== "number") tile.scouted = tile.revealed;
     if (typeof tile.investigated !== "number") tile.investigated = 0;
     if (typeof tile.hiddenstuff !== "number") tile.hiddenstuff = 0;
     if (typeof tile.maxSearchUnits !== "number") {
@@ -210,11 +213,21 @@ class MapView {
         if (!state || typeof state !== 'object') return tile;
 
         const revealed = Number(state.revealed);
+        const scouted = Number(state.scouted);
         const investigated = Number(state.investigated);
         const hiddenstuff = Number(state.hiddenstuff);
         const maxSearchUnits = Number(state.maxSearchUnits);
 
-        if (Number.isFinite(revealed)) tile.revealed = Math.max(0, revealed);
+        if (Number.isFinite(revealed)) {
+            tile.revealed = Math.max(0, revealed);
+        } else if (Number.isFinite(scouted)) {
+            tile.revealed = Math.max(0, scouted);
+        }
+        if (Number.isFinite(scouted)) {
+            tile.scouted = Math.max(0, scouted);
+        } else {
+            tile.scouted = tile.revealed;
+        }
         if (Number.isFinite(investigated)) tile.investigated = Math.max(0, investigated);
         if (Number.isFinite(hiddenstuff)) tile.hiddenstuff = Math.max(0, hiddenstuff);
         if (typeof state.discovered === "boolean") {
@@ -263,6 +276,7 @@ class MapView {
                     if (!tile) return;
 
                     const revealed = Math.max(0, Number(tile.revealed) || 0);
+                    const scouted = Math.max(0, Number(tile.scouted) || 0);
                     const investigated = Math.max(0, Number(tile.investigated) || 0);
                     const hiddenstuff = Math.max(0, Number(tile.hiddenstuff) || 0);
                     const maxSearchUnits = Math.max(
@@ -277,6 +291,7 @@ class MapView {
                         chunkY * size + localY
                     )] = {
                         revealed: revealed,
+                        scouted: scouted,
                         investigated: investigated,
                         hiddenstuff: hiddenstuff,
                         maxSearchUnits: maxSearchUnits,
@@ -290,6 +305,7 @@ class MapView {
         // fallback for the initial plain tile before the map has been built.
         if (typeof currentTile !== 'undefined' && currentTile) {
             const revealed = Math.max(0, Number(currentTile.revealed) || 0);
+            const scouted = Math.max(0, Number(currentTile.scouted) || 0);
             const investigated = Math.max(0, Number(currentTile.investigated) || 0);
             const hiddenstuff = Math.max(0, Number(currentTile.hiddenstuff) || 0);
             const maxSearchUnits = Math.max(
@@ -300,6 +316,7 @@ class MapView {
             if (discovered || revealed > 0 || investigated > 0 || hiddenstuff > 0) {
                 states[this.getTileStateKey(currentTile.x, currentTile.y)] = {
                     revealed: revealed,
+                    scouted: scouted,
                     investigated: investigated,
                     hiddenstuff: hiddenstuff,
                     maxSearchUnits: maxSearchUnits,
