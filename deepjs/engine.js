@@ -123,7 +123,11 @@ function getSleepynessResistChance() {
 function getActiveActionCount() {
     let count = 0;
     Object.keys(actionStates).forEach(function (actionId) {
-        if (actionStates[actionId] === Activity.Active) count += 1;
+        if (actionStates[actionId] !== Activity.Active) return;
+        const action = typeof getAction === "function"
+            ? getAction(actionId)
+            : null;
+        if (action && action.kind === "timed") count += 1;
     });
     return count;
 }
@@ -316,13 +320,26 @@ function getDigestomancyHungerDivisor() {
     return (1 + scaled) / scaled;
 }
 
+function getCaloriesBoosterHungerDivisor() {
+    if (typeof isCaloriesBoosterActive !== "function"
+        || !isCaloriesBoosterActive()) {
+        return 1;
+    }
+    const level = Math.max(
+        0,
+        Number(getEffectiveLevel("digestomancy")) || 0
+    );
+    return 1 + 0.01 * level;
+}
+
 function addHunger(amount) {
     const numeric = Number(amount);
     if (!Number.isFinite(numeric) || numeric <= 0) return;
 
     const gained = numeric
         * getHungerUseMultiplier()
-        / getDigestomancyHungerDivisor();
+        / getDigestomancyHungerDivisor()
+        / getCaloriesBoosterHungerDivisor();
     const before = getRawHungerValue();
     const after = Math.min(
         getHungerMax(),

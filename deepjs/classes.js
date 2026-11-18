@@ -1937,6 +1937,7 @@ function getGlobalPropertyMultiplier(key) {
         : 1;
 }
 const ACTION_ACTIVE_COLOR = "#fcf088";
+const ACTION_TOGGLE_ACTIVE_COLOR = "#d9b3ff";
 // Action colours by tag: ordinary green, harvesting orange, restoration blue,
 // magic very light purple, resource-processing a muted green and movement a
 // light salad green.

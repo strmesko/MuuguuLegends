@@ -1,6 +1,7 @@
 const ACTION_KIND = Object.freeze({
     Timed: "timed",
     Instant: "instant",
+    Toggle: "toggle",
 });
 
 // --- Focus ---------------------------------------------------------------
@@ -186,6 +187,38 @@ const ACTIONS = [
         isEnabled: isFocusAvailable,
         unavailableMessage: "Focus requires an active action other than Rest.",
         run: performFocus,
+    },
+    {
+        id: "caloriesbooster",
+        label: "Calories booster",
+        tags: ["Magic", "Toggleable"],
+        description: function () {
+            const level = Math.max(
+                0,
+                Number(getEffectiveLevel("digestomancy")) || 0
+            );
+            return "Toggle a magical digestion boost."
+                + "<br>While active, hunger gain is divided by "
+                + round2(1 + 0.01 * level) + "."
+                + "<br>Toggleable actions do not spend action points."
+                + "<br>Requires Digestomancy level 10.";
+        },
+        kind: ACTION_KIND.Toggle,
+        initialState: Activity.Idle,
+        isVisible: function () {
+            return getEffectiveLevel("digestomancy") >= 10;
+        },
+        isEnabled: function () {
+            return typeof isCombatActive !== "function" || !isCombatActive();
+        },
+        performToggle: function (action) {
+            const active = isActionActive(action.id);
+            actionStates[action.id] = active ? Activity.Idle : Activity.Active;
+            logMessage(active
+                ? "Calories booster deactivated."
+                : "Calories booster activated.");
+            updateActionButton(action.id);
+        },
     },
     {
         id: "entercombat",
@@ -1040,8 +1073,11 @@ function updateActionButton(actionId) {
     const state = isActionActive(actionId) ? "active" : "idle";
     // Apply the colour even when the state did not change: freshly created
     // buttons start with data-state="idle" before their first paint.
+    const activeColor = action && action.kind === ACTION_KIND.Toggle
+        ? ACTION_TOGGLE_ACTIVE_COLOR
+        : ACTION_ACTIVE_COLOR;
     button.style.backgroundColor = state === "active"
-        ? ACTION_ACTIVE_COLOR
+        ? activeColor
         : getActionIdleColor(action);
     if (button.dataset.state === state) return;
 
@@ -1748,11 +1784,21 @@ function performAction(action) {
     }
     if (action.kind === ACTION_KIND.Timed) {
         toggleTimedAction(action);
+    } else if (action.kind === ACTION_KIND.Toggle) {
+        if (typeof action.performToggle === "function") {
+            action.performToggle(action);
+        }
     } else if (action.move) {
         movePlayer(action.move.dx, action.move.dy, action.move.message);
     } else if (action.run) {
         action.run();
     }
+}
+
+function isCaloriesBoosterActive() {
+    return actionStates.caloriesbooster === Activity.Active
+        && typeof getEffectiveLevel === "function"
+        && getEffectiveLevel("digestomancy") >= 10;
 }
 
 function clickAction(actionId) {
@@ -1808,7 +1854,7 @@ function refreshActionButtons(silent) {
         if (!visible) {
             if (isActionActive(action.id)) {
                 actionStates[action.id] = Activity.Done;
-                actionsCount += 1;
+                if (action.kind === ACTION_KIND.Timed) actionsCount += 1;
             }
             if (button) button.remove();
             return;
