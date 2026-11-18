@@ -546,6 +546,7 @@ class WorldGen {
 
         this.chunks = new Map();
         this.resourceGenerator = new ResourceGenerator(this);
+        this.generationBounds = null;
 
         this.riverLinks = new Map();
         this.tracedRiverSources = new Set();
@@ -1628,10 +1629,39 @@ class WorldGen {
 
     getChunk(cx, cy) {
         const key = this.getChunkKey(cx, cy);
-        if (!this.chunks.has(key)) {
-            this.chunks.set(key, this.generateChunk(cx, cy));
+        if (this.chunks.has(key)) {
+            return this.chunks.get(key);
         }
+
+        // Do not generate new chunks far outside the area the player has
+        // already discovered. Existing chunks always remain accessible.
+        if (this.generationBounds
+            && !this.chunkIntersectsGenerationBounds(cx, cy)) {
+            return null;
+        }
+
+        this.chunks.set(key, this.generateChunk(cx, cy));
         return this.chunks.get(key);
+    }
+
+    setGenerationBounds(bounds) {
+        this.generationBounds = bounds && typeof bounds === "object"
+            ? bounds
+            : null;
+    }
+
+    chunkIntersectsGenerationBounds(cx, cy) {
+        const bounds = this.generationBounds;
+        if (!bounds) return true;
+        const size = this.chunkSize;
+        const minX = cx * size;
+        const minY = cy * size;
+        const maxX = minX + size - 1;
+        const maxY = minY + size - 1;
+        return maxX >= bounds.minX
+            && minX <= bounds.maxX
+            && maxY >= bounds.minY
+            && minY <= bounds.maxY;
     }
 
     getTileData(wx, wy) {
@@ -1640,7 +1670,8 @@ class WorldGen {
         const lx = ((wx % this.chunkSize) + this.chunkSize) % this.chunkSize;
         const ly = ((wy % this.chunkSize) + this.chunkSize) % this.chunkSize;
 
-        return this.getChunk(cx, cy)[ly][lx];
+        const chunk = this.getChunk(cx, cy);
+        return chunk ? chunk[ly][lx] : null;
     }
 
     setSeed(seed) {

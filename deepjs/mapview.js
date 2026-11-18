@@ -51,6 +51,8 @@ class MapView {
         // applied once per tile after loading.
         this.savedTileStates = {};
         this.tileStateGeneration = 0;
+        this.discoveryBounds = null;
+        this.generationMargin = 12;
         this.tileTypeById = new Map(this.world.tileTypes.map((type) => [type.id, type]));
 
         this.container.innerHTML = '';
@@ -146,9 +148,54 @@ class MapView {
         this.savedTileStates = states && typeof states === 'object'
             ? states
             : {};
+        Object.keys(this.savedTileStates).forEach((key) => {
+            const state = this.savedTileStates[key];
+            if (!state || typeof state !== "object") return;
+            if (state.discovered !== true && !(Number(state.revealed) > 0)) {
+                return;
+            }
+            const coordinates = String(key).split(",");
+            const x = Number(coordinates[0]);
+            const y = Number(coordinates[1]);
+            if (Number.isFinite(x) && Number.isFinite(y)) {
+                this.noteDiscoveredTile(x, y);
+            }
+        });
+        this.updateGenerationBounds();
         // Invalidate the "already restored" marker on any tile object that
         // survived a reload in the same page.
         this.tileStateGeneration += 1;
+    }
+
+    noteDiscoveredTile(x, y) {
+        const tileX = Number(x);
+        const tileY = Number(y);
+        if (!Number.isFinite(tileX) || !Number.isFinite(tileY)) return;
+
+        if (!this.discoveryBounds) {
+            this.discoveryBounds = {
+                minX: tileX, maxX: tileX, minY: tileY, maxY: tileY,
+            };
+            return;
+        }
+        this.discoveryBounds.minX = Math.min(this.discoveryBounds.minX, tileX);
+        this.discoveryBounds.maxX = Math.max(this.discoveryBounds.maxX, tileX);
+        this.discoveryBounds.minY = Math.min(this.discoveryBounds.minY, tileY);
+        this.discoveryBounds.maxY = Math.max(this.discoveryBounds.maxY, tileY);
+    }
+
+    updateGenerationBounds() {
+        if (!this.discoveryBounds || !this.world
+            || typeof this.world.setGenerationBounds !== "function") {
+            return;
+        }
+        const margin = this.generationMargin;
+        this.world.setGenerationBounds({
+            minX: this.discoveryBounds.minX - margin,
+            maxX: this.discoveryBounds.maxX + margin,
+            minY: this.discoveryBounds.minY - margin,
+            maxY: this.discoveryBounds.maxY + margin,
+        });
     }
 
     applySavedTileState(tile, x, y) {
@@ -182,6 +229,10 @@ class MapView {
         tile.maxSearchUnits = Number.isFinite(maxSearchUnits)
             ? Math.max(tile.hiddenstuff, maxSearchUnits)
             : Math.max(tile.maxSearchUnits || 0, tile.hiddenstuff);
+        if (tile.discovered) {
+            this.noteDiscoveredTile(x, y);
+            this.updateGenerationBounds();
+        }
         return tile;
     }
 
@@ -477,7 +528,7 @@ class MapView {
     renderCoordinates(tileX, tileY, detailed) {
         const tile = this.getGameplayTile(tileX, tileY);
         const sightRange = typeof getSightRange === "function" ? getSightRange() : 0;
-        if (!tile.discovered) {
+        if (!tile || !tile.discovered) {
             this.coordinates.innerHTML = `X: ${tileX}, Y: ${tileY} | Not discovered territory`
                 + `<br>SightRange: ${sightRange}`;
             return;
@@ -544,7 +595,7 @@ class MapView {
         const tileX = Math.floor((this.cameraX + mouseX) / this.tileSize);
         const tileY = Math.floor((this.cameraY + mouseY) / this.tileSize);
         const tile = this.getGameplayTile(tileX, tileY);
-        if (!tile.discovered) {
+        if (!tile || !tile.discovered) {
             this.hover = { x: tileX, y: tileY };
             this.renderCoordinates(tileX, tileY, true);
             this.tooltip.innerHTML = "Not discovered territory";
@@ -655,6 +706,8 @@ class MapView {
         if (typeof currentTile === "undefined" || !currentTile) return;
         ensureGameplayTileState(currentTile, currentTile.x, currentTile.y);
         currentTile.discovered = true;
+        this.noteDiscoveredTile(currentTile.x, currentTile.y);
+        this.updateGenerationBounds();
 
         const range = typeof getSightRange === "function"
             ? Math.max(0, Math.floor(getSightRange()))
@@ -671,9 +724,13 @@ class MapView {
             for (let dx = -range; dx <= range; dx++) {
                 if (dx * dx + dy * dy > maxDistanceSquared) continue;
                 const tile = this.getGameplayTile(centerX + dx, centerY + dy);
-                if (tile) tile.discovered = true;
+                if (tile) {
+                    tile.discovered = true;
+                    this.noteDiscoveredTile(centerX + dx, centerY + dy);
+                }
             }
         }
+        this.updateGenerationBounds();
     }
 
     isRareDiscoveryTile(tile) {
@@ -711,6 +768,8 @@ class MapView {
 
         const chosen = pool[Math.floor(Math.random() * pool.length)];
         chosen.tile.discovered = true;
+        this.noteDiscoveredTile(chosen.x, chosen.y);
+        this.updateGenerationBounds();
         const type = this.tileTypeById.get(chosen.tile.type);
         return {
             x: chosen.x,
@@ -730,6 +789,10 @@ class MapView {
         });
         if (typeof currentTile !== "undefined" && currentTile) {
             currentTile.discovered = false;
+        }
+        this.discoveryBounds = null;
+        if (this.world && typeof this.world.setGenerationBounds === "function") {
+            this.world.setGenerationBounds(null);
         }
     }
 
@@ -769,10 +832,13 @@ class MapView {
         for (let y = startY; y <= endY; y++) {
             for (let x = startX; x <= endX; x++) {
                 const tile = this.world.getTileData(x, y);
-                if (!tile) continue;
-
                 const screenX = x * this.tileSize - this.cameraX;
                 const screenY = y * this.tileSize - this.cameraY;
+                if (!tile) {
+                    this.ctx.fillStyle = '#000000';
+                    this.ctx.fillRect(screenX, screenY, this.tileSize, this.tileSize);
+                    continue;
+                }
                 const type = this.tileTypeById.get(tile.type);
                 const color = type && type.color ? type.color : '#4a8a4a';
                 const char = type ? type.char : '';
