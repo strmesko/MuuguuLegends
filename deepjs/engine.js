@@ -341,15 +341,23 @@ function addHunger(amount) {
         / getDigestomancyHungerDivisor()
         / getCaloriesBoosterHungerDivisor();
     const before = getRawHungerValue();
-    const after = Math.min(
+    const rawAfter = Math.min(
         getHungerMax(),
         round2(before + gained)
     );
+    let actualGain = Math.max(0, round2(rawAfter - before));
+    if (typeof applyManaDigestionToHunger === "function") {
+        actualGain = applyManaDigestionToHunger(actualGain);
+    }
+    const after = round2(Math.min(
+        getHungerMax(),
+        before + actualGain
+    ));
     player.hunger = after;
 
     // Digestomancy is trained by the hunger points that were actually added
     // after all multipliers and the hunger cap, not by the raw amount.
-    const actualGain = Math.max(0, round2(after - before));
+    actualGain = Math.max(0, round2(after - before));
     if (actualGain > 0
         && player.digestomancy
         && typeof player.digestomancy.addexp === "function") {
@@ -597,6 +605,9 @@ function updateAutoHungerEating() {
         hunger = round2(Math.max(0, hunger - consumed * restorePerUnit));
         player.hunger = hunger;
 
+        if (typeof consumeCaloriesBoosterMana === "function") {
+            consumeCaloriesBoosterMana();
+        }
         // Vitamins rush charges once per food stack eaten and multiplies the
         // potential restored by that food.
         const vitaminsMultiplier = typeof consumeVitaminsRushMana === "function"

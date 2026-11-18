@@ -254,6 +254,40 @@ const ACTIONS = [
         },
     },
     {
+        id: "manadigestion",
+        label: "Mana digestion",
+        tags: ["Magic", "Toggleable"],
+        description: function () {
+            const level = Math.max(
+                0,
+                Number(getEffectiveLevel("digestomancy")) || 0
+            );
+            const scaled = level * 0.03;
+            const divisor = scaled > 0 ? (1 + scaled) / scaled : 1;
+            return "Toggle magical digestion paid with mana."
+                + "<br>While active, half of every hunger gain is paid with mana instead."
+                + "<br>Mana cost is divided by " + round2(divisor) + "."
+                + "<br>If mana is insufficient, the action switches itself off."
+                + "<br>Requires Digestomancy level 40.";
+        },
+        kind: ACTION_KIND.Toggle,
+        initialState: Activity.Idle,
+        isVisible: function () {
+            return getEffectiveLevel("digestomancy") >= 40;
+        },
+        isEnabled: function () {
+            return typeof isCombatActive !== "function" || !isCombatActive();
+        },
+        performToggle: function (action) {
+            const active = isActionActive(action.id);
+            actionStates[action.id] = active ? Activity.Idle : Activity.Active;
+            logMessage(active
+                ? "Mana digestion deactivated."
+                : "Mana digestion activated.");
+            updateActionButton(action.id);
+        },
+    },
+    {
         id: "entercombat",
         label: "Enter combat",
         tags: ["combat"],
@@ -1862,6 +1896,60 @@ function consumeVitaminsRushMana() {
         Number(getEffectiveLevel("digestomancy")) || 0
     );
     return 2 + 0.01 * level;
+}
+
+function consumeCaloriesBoosterMana() {
+    if (!isCaloriesBoosterActive()) return true;
+
+    const cost = 5;
+    const mana = Math.max(0, Number(player && player.mana) || 0);
+    if (mana < cost) {
+        actionStates.caloriesbooster = Activity.Idle;
+        updateActionButton("caloriesbooster");
+        logMessage("Calories booster fizzles: not enough mana.");
+        return false;
+    }
+
+    player.mana = round2(Math.max(0, mana - cost));
+    logMessage("Calories booster consumes 5 mana.");
+    return true;
+}
+
+function isManaDigestionActive() {
+    return actionStates.manadigestion === Activity.Active
+        && typeof getEffectiveLevel === "function"
+        && getEffectiveLevel("digestomancy") >= 40;
+}
+
+function getManaDigestionCostDivisor() {
+    const level = Math.max(
+        0,
+        Number(getEffectiveLevel("digestomancy")) || 0
+    );
+    if (level <= 0) return 1;
+    const scaled = level * 0.03;
+    return (1 + scaled) / scaled;
+}
+
+// Half of the actual hunger gain is replaced with mana. The mana cost is
+// divided by the Digestomancy-based divisor; failed payment switches the
+// toggle off and leaves the hunger gain unchanged.
+function applyManaDigestionToHunger(hungerGain) {
+    const gain = Math.max(0, Number(hungerGain) || 0);
+    if (!isManaDigestionActive() || gain <= 0) return gain;
+
+    const half = gain / 2;
+    const cost = half / getManaDigestionCostDivisor();
+    const mana = Math.max(0, Number(player && player.mana) || 0);
+    if (mana < cost) {
+        actionStates.manadigestion = Activity.Idle;
+        updateActionButton("manadigestion");
+        logMessage("Mana digestion fizzles: not enough mana.");
+        return gain;
+    }
+
+    player.mana = round2(Math.max(0, mana - cost));
+    return half;
 }
 
 function clickAction(actionId) {

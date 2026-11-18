@@ -570,6 +570,9 @@ function consumeInventoryFood(index) {
             ? getFeastModifier(currentTile)
             : 0
     ) / 100;
+    if (typeof consumeCaloriesBoosterMana === "function") {
+        consumeCaloriesBoosterMana();
+    }
     const vitaminsMultiplier = typeof consumeVitaminsRushMana === "function"
         ? consumeVitaminsRushMana()
         : 1;
