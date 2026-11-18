@@ -65,6 +65,31 @@ const DIET_BASICS_TECHNOLOGY = new Technology(
         "Allows restricting auto-cooking to one cuisine category in Habits.",
     ]
 );
+const FAUNA_BULLY_TECHNOLOGY = new Technology(
+    "Fauna bully",
+    "Learn to pick fights with the local wildlife on your own terms. Each level makes the habit smarter and more survivable.<br>Requires: DietBasics level 1, Autism level 10 (+5 per level)",
+    function (level) {
+        return 20000 + 10000 * level;
+    },
+    "habitfaunabully",
+    function (technology) {
+        return DIET_BASICS_TECHNOLOGY.level >= 1
+            && player.autism.lvl >= 10 + 5 * technology.level;
+    },
+    null,
+    4,
+    [
+        "Unlocks the Bully local fauna habit. When enabled, combat starts automatically at full HP if you are not resting or travelling.",
+        "Will not attack monsters with a higher level than the character.",
+        "Automatically uses Spirit Speak during combat when HP is below half and there is enough mana.",
+        "Automatically uses Spirit Speak when current HP plus the heal amount is below Max HP.",
+    ],
+    function () {
+        if (typeof updateHabitVisibility === "function") updateHabitVisibility();
+        if (typeof updateHabitSettings === "function") updateHabitSettings();
+    }
+);
+
 const HARVEST_THE_YUMMIES_TECHNOLOGY = new Technology(
     "Harvest the yummies",
     "Fruit and nuts are just lying around, waiting to be picked. Automate tree harvesting and make it respect your favourite stat.<br>Requires: Lazy basics Lv6, DietBasics Lv1, Gardening Lv3",
@@ -709,6 +734,20 @@ var HABIT_CATEGORIES = [
                     { value: "pizza", label: "Pizza" },
                     { value: "shawarma", label: "Shawarma" },
                 ],
+            },
+        ],
+    },
+    {
+        id: "combat",
+        name: "Combat",
+        habits: [
+            {
+                id: "bullyLocalFauna",
+                name: "Bully local fauna",
+                description: "Fauna bully: automatically start combat at full HP when not resting or travelling. Higher levels avoid stronger mobs and use Spirit Speak automatically.",
+                requiredTechnology: "faunaBully",
+                requiredLevel: 1,
+                defaultEnabled: false,
             },
         ],
     },

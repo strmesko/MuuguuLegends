@@ -1281,6 +1281,10 @@ function updateCombat(diff) {
         );
     }
 
+    if (typeof tryAutoSpiritSpeak === "function") {
+        tryAutoSpiritSpeak();
+    }
+
     if (activeCombat.player.hp <= 0) {
         finishCombat(false);
         return;
@@ -1324,6 +1328,80 @@ function updateCombat(diff) {
     }
 
     renderCombatOverlay();
+}
+
+function getBullyMobLevel() {
+    const tile = typeof currentTile !== "undefined" && currentTile
+        ? currentTile
+        : { x: 0, y: 0 };
+    const baseLevel = typeof getMobLevelForTile === "function"
+        ? getMobLevelForTile(tile.x, tile.y)
+        : 1;
+    const gearBonus = typeof getCombatGearStat === "function"
+        ? Math.floor(getCombatGearStat("mobLevelBonus"))
+        : 0;
+    return Math.max(1, baseLevel + gearBonus);
+}
+
+function isRestingOrSleepingForCombat() {
+    if (typeof actionStates === "undefined") return false;
+    return actionStates.rest === Activity.Active
+        || actionStates.sleep === Activity.Active;
+}
+
+function tryStartBullyCombat() {
+    if (typeof FAUNA_BULLY_TECHNOLOGY === "undefined"
+        || FAUNA_BULLY_TECHNOLOGY.level < 1) {
+        return false;
+    }
+    if (typeof isHabitEnabled === "function"
+        && !isHabitEnabled("bullyLocalFauna")) {
+        return false;
+    }
+    if (typeof offlineSimulationActive !== "undefined" && offlineSimulationActive) {
+        return false;
+    }
+    if (activeCombat || typeof player === "undefined" || !player) return false;
+    if (Number(player.hp) <= 0) return false;
+    if (Number(player.hp) + 0.01 < Number(player.maxhp)) return false;
+    if (typeof isTraveling === "function" && isTraveling()) return false;
+    if (isRestingOrSleepingForCombat()) return false;
+
+    // Level 2: never pick a fight above the character's level.
+    if (FAUNA_BULLY_TECHNOLOGY.level >= 2
+        && getBullyMobLevel() > Math.max(1, Number(player.lvl) || 1)) {
+        return false;
+    }
+
+    return enterCombat();
+}
+
+function tryAutoSpiritSpeak() {
+    if (typeof FAUNA_BULLY_TECHNOLOGY === "undefined"
+        || FAUNA_BULLY_TECHNOLOGY.level < 3) {
+        return false;
+    }
+    if (typeof isHabitEnabled === "function"
+        && !isHabitEnabled("bullyLocalFauna")) {
+        return false;
+    }
+    if (!activeCombat || activeCombat.finished) return false;
+
+    const hp = Math.max(0, Number(player && player.hp) || 0);
+    const maxHp = Math.max(0, Number(player && player.maxhp) || 0);
+    if (hp <= 0 || maxHp <= 0) return false;
+
+    let shouldCast = false;
+    if (FAUNA_BULLY_TECHNOLOGY.level >= 4) {
+        shouldCast = hp + getSpiritSpeakHeal() < maxHp;
+    } else {
+        shouldCast = hp < maxHp / 2;
+    }
+    if (!shouldCast) return false;
+
+    const mana = Math.max(0, Number(player && player.mana) || 0);
+    if (mana < getSpiritSpeakManaCost()) return false;
+    return castSpiritSpeak();
 }
 
 function enterCombat(mobId, options) {

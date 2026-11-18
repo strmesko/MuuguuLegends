@@ -1207,6 +1207,9 @@ function productionLoop(diff, options) {
     if (!skipManaRegen) manaRegen(diff);
     runPhotosynthesisHunger(diff);
     updateDayDreamUnlock(diff);
+    if (typeof tryStartBullyCombat === "function") {
+        tryStartBullyCombat();
+    }
     runTravelProduction(diff);
     runActiveActions(diff);
     if (typeof updateAssPoison === "function") updateAssPoison(diff);

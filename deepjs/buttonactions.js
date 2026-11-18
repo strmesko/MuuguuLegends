@@ -86,6 +86,9 @@
     habitharvesttheyummies.onclick = function(){
         tryStartResearch(HARVEST_THE_YUMMIES_TECHNOLOGY);
     };
+    habitfaunabully.onclick = function(){
+        tryStartResearch(FAUNA_BULLY_TECHNOLOGY);
+    };
     knowledgesurvival101.onclick = function(){
         tryStartResearch(SURVIVAL_101_TECHNOLOGY);
     };

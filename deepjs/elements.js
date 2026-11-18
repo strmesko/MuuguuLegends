@@ -1325,6 +1325,9 @@ function renderStatusIcons() {
     createChildElement('li', 'habit-node', '', 'habitharvesttheyummiesnode', 'habitdietbasicschildren', '');
     createChildElement('button', 'habit-skill', HARVEST_THE_YUMMIES_TECHNOLOGY.name, 'habitharvesttheyummies', 'habitharvesttheyummiesnode', HARVEST_THE_YUMMIES_TECHNOLOGY.getDescription());
     decorateResearchNode('habitharvesttheyummies', 'fa-tree', HARVEST_THE_YUMMIES_TECHNOLOGY);
+    createChildElement('li', 'habit-node open', '', 'habitfaunabullynode', 'habitdietbasicschildren', '');
+    createChildElement('button', 'habit-skill', FAUNA_BULLY_TECHNOLOGY.name, 'habitfaunabully', 'habitfaunabullynode', FAUNA_BULLY_TECHNOLOGY.getDescription());
+    decorateResearchNode('habitfaunabully', 'fa-hand-rock-o', FAUNA_BULLY_TECHNOLOGY);
     createChildElement('li', 'habit-node open', '', 'habitcozysciencenode', 'habitlazybasicschildren', '');
     createChildElement('button', 'habit-skill', COZY_SCIENCE_TECHNOLOGY.name, 'habitcozyscience', 'habitcozysciencenode', COZY_SCIENCE_TECHNOLOGY.getDescription());
     decorateResearchNode('habitcozyscience', 'fa-coffee', COZY_SCIENCE_TECHNOLOGY);
@@ -1369,6 +1372,9 @@ function renderStatusIcons() {
         }
         if (habit.requiredTechnology === "harvestTheYummies") {
             return typeof HARVEST_THE_YUMMIES_TECHNOLOGY === "undefined" ? null : HARVEST_THE_YUMMIES_TECHNOLOGY;
+        }
+        if (habit.requiredTechnology === "faunaBully") {
+            return typeof FAUNA_BULLY_TECHNOLOGY === "undefined" ? null : FAUNA_BULLY_TECHNOLOGY;
         }
         return typeof LAZY_BASICS_TECHNOLOGY === "undefined" ? null : LAZY_BASICS_TECHNOLOGY;
     }
