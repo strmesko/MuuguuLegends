@@ -736,15 +736,15 @@
     }
 
     function getOfflineChunkSeconds(totalSeconds) {
-        if (totalSeconds <= 60) return 1;
-        if (totalSeconds <= 600) return 2;
-        if (totalSeconds <= 3600) return 5;
-        if (totalSeconds <= 21600) return 15;
-        if (totalSeconds <= 86400) return 30;
-        if (totalSeconds <= 604800) return 60;
-        if (totalSeconds <= 7776000) return 900;
-        if (totalSeconds <= 31536000) return 1800;
-        return 3600;
+        if (totalSeconds <= 60) return 5;
+        if (totalSeconds <= 600) return 10;
+        if (totalSeconds <= 3600) return 25;
+        if (totalSeconds <= 21600) return 75;
+        if (totalSeconds <= 86400) return 150;
+        if (totalSeconds <= 604800) return 300;
+        if (totalSeconds <= 7776000) return 4500;
+        if (totalSeconds <= 31536000) return 9000;
+        return 18000;
     }
 
     function createOfflineOverlay() {
