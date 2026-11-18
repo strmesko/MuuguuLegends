@@ -261,6 +261,15 @@ class MapView {
         return Number.isFinite(passability) && passability > 0 ? passability : 1;
     }
 
+    getTileStateSource(tile, x, y) {
+        if (!tile) return null;
+        const saved = this.savedTileStates[this.getTileStateKey(x, y)];
+        const applied = tile.__tileStateGeneration === this.tileStateGeneration;
+        return !applied && saved && typeof saved === "object"
+            ? saved
+            : tile;
+    }
+
     collectTileStates() {
         const states = {};
         const size = this.world.chunkSize;
@@ -275,21 +284,26 @@ class MapView {
                 row.forEach((tile, localX) => {
                     if (!tile) return;
 
-                    const revealed = Math.max(0, Number(tile.revealed) || 0);
-                    const scouted = Math.max(0, Number(tile.scouted) || 0);
-                    const investigated = Math.max(0, Number(tile.investigated) || 0);
-                    const hiddenstuff = Math.max(0, Number(tile.hiddenstuff) || 0);
+                    const worldX = chunkX * size + localX;
+                    const worldY = chunkY * size + localY;
+                    const source = this.getTileStateSource(tile, worldX, worldY) || tile;
+                    const revealed = Math.max(0, Number(source.revealed) || 0);
+                    const scouted = Math.max(
+                        Math.max(0, Number(source.scouted) || 0),
+                        revealed
+                    );
+                    const investigated = Math.max(0, Number(source.investigated) || 0);
+                    const hiddenstuff = Math.max(0, Number(source.hiddenstuff) || 0);
                     const maxSearchUnits = Math.max(
                         hiddenstuff,
-                        Number(tile.maxSearchUnits) || 0
+                        Number(source.maxSearchUnits) || 0
                     );
-                    const discovered = tile.discovered === true;
+                    const discovered = source.discovered === true
+                        || revealed > 0
+                        || investigated > 0;
                     if (!discovered && revealed <= 0 && investigated <= 0 && hiddenstuff <= 0) return;
 
-                    states[this.getTileStateKey(
-                        chunkX * size + localX,
-                        chunkY * size + localY
-                    )] = {
+                    states[this.getTileStateKey(worldX, worldY)] = {
                         revealed: revealed,
                         scouted: scouted,
                         investigated: investigated,
@@ -304,15 +318,25 @@ class MapView {
         // The current tile normally belongs to a generated chunk, but keep a
         // fallback for the initial plain tile before the map has been built.
         if (typeof currentTile !== 'undefined' && currentTile) {
-            const revealed = Math.max(0, Number(currentTile.revealed) || 0);
-            const scouted = Math.max(0, Number(currentTile.scouted) || 0);
-            const investigated = Math.max(0, Number(currentTile.investigated) || 0);
-            const hiddenstuff = Math.max(0, Number(currentTile.hiddenstuff) || 0);
+            const source = this.getTileStateSource(
+                currentTile,
+                currentTile.x,
+                currentTile.y
+            ) || currentTile;
+            const revealed = Math.max(0, Number(source.revealed) || 0);
+            const scouted = Math.max(
+                Math.max(0, Number(source.scouted) || 0),
+                revealed
+            );
+            const investigated = Math.max(0, Number(source.investigated) || 0);
+            const hiddenstuff = Math.max(0, Number(source.hiddenstuff) || 0);
             const maxSearchUnits = Math.max(
                 hiddenstuff,
-                Number(currentTile.maxSearchUnits) || 0
+                Number(source.maxSearchUnits) || 0
             );
-            const discovered = currentTile.discovered === true;
+            const discovered = source.discovered === true
+                || revealed > 0
+                || investigated > 0;
             if (discovered || revealed > 0 || investigated > 0 || hiddenstuff > 0) {
                 states[this.getTileStateKey(currentTile.x, currentTile.y)] = {
                     revealed: revealed,
