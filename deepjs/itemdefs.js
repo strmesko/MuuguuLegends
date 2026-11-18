@@ -282,6 +282,22 @@ const ITEM_IDS = Object.freeze({
     BAKLAVA: ITEM_ID_BASE + 376,
     BASBOUSA: ITEM_ID_BASE + 377,
     HALVA: ITEM_ID_BASE + 378,
+    LINEN_PANTS: ITEM_ID_BASE + 400,
+    LINEN_HOOD: ITEM_ID_BASE + 401,
+    LINEN_MASK: ITEM_ID_BASE + 402,
+    LINEN_NECKLACE: ITEM_ID_BASE + 403,
+    LINEN_SHIRT: ITEM_ID_BASE + 404,
+    LINEN_SHOULDERPADS: ITEM_ID_BASE + 405,
+    LINEN_CLOAK: ITEM_ID_BASE + 406,
+    LINEN_BELT: ITEM_ID_BASE + 407,
+    LINEN_POUCH: ITEM_ID_BASE + 408,
+    LINEN_BASKET_BACKPACK: ITEM_ID_BASE + 409,
+    LINEN_GLOVE_I: ITEM_ID_BASE + 410,
+    LINEN_WRISTBAND_I: ITEM_ID_BASE + 411,
+    LINEN_TROUSERS: ITEM_ID_BASE + 412,
+    LINEN_LEGGINGS: ITEM_ID_BASE + 413,
+    LINEN_BOOTS: ITEM_ID_BASE + 414,
+    LINEN_ANKLET_I: ITEM_ID_BASE + 415,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -516,6 +532,33 @@ function createLeafClothingDefinition(id, name, slot, icon, equipSlots, descript
         icon: icon,
         stats: Object.freeze({ defence: 1 }),
         description: description || "Just like Adam or Eva. Better than nothing!",
+    });
+}
+
+// Linen clothing copies the leaf set's slots and behaviour, but every fixed
+// stat and every random property is three times stronger. The multiplier is
+// applied together with the item's quality and rarity in getStats/rolls.
+function createLinenClothingDefinition(id, name, slot, icon, equipSlots, description) {
+    const allowedSlots = Array.isArray(equipSlots) && equipSlots.length
+        ? equipSlots.slice()
+        : [slot];
+
+    return Object.freeze({
+        id: id,
+        name: name,
+        kind: ITEM_KINDS.Equipment,
+        slot: slot,
+        equipSlots: Object.freeze(allowedSlots),
+        stackable: false,
+        weight: 0.05,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 10,
+        icon: icon,
+        stats: Object.freeze({ defence: 1 }),
+        statMultiplier: 3,
+        propertyMultiplier: 3,
+        description: description || "Woven linen clothing. Three times sturdier than leaves.",
     });
 }
 
@@ -1875,6 +1918,59 @@ const ITEM_DEFS = Object.freeze({
         ITEM_IDS.LEAF_ANKLET_I, "Leaf Anklet I", "ankle1", "leafankleti",
         ["ankle1", "ankle2"]
     ),
+    [ITEM_IDS.LINEN_PANTS]: createLinenClothingDefinition(
+        ITEM_IDS.LINEN_PANTS, "Linen Pants", "pants", "linenpants"
+    ),
+    [ITEM_IDS.LINEN_HOOD]: createLinenClothingDefinition(
+        ITEM_IDS.LINEN_HOOD, "Linen Hood", "head", "linenhood"
+    ),
+    [ITEM_IDS.LINEN_MASK]: createLinenClothingDefinition(
+        ITEM_IDS.LINEN_MASK, "Linen Mask", "face", "linenmask"
+    ),
+    [ITEM_IDS.LINEN_NECKLACE]: createLinenClothingDefinition(
+        ITEM_IDS.LINEN_NECKLACE, "Linen Necklace", "neck", "linennecklace"
+    ),
+    [ITEM_IDS.LINEN_SHIRT]: createLinenClothingDefinition(
+        ITEM_IDS.LINEN_SHIRT, "Linen Shirt", "torso", "linenshirt"
+    ),
+    [ITEM_IDS.LINEN_SHOULDERPADS]: createLinenClothingDefinition(
+        ITEM_IDS.LINEN_SHOULDERPADS, "Linen Shoulderpads", "shoulders", "linenshoulderpads"
+    ),
+    [ITEM_IDS.LINEN_CLOAK]: createLinenClothingDefinition(
+        ITEM_IDS.LINEN_CLOAK, "Linen Cloak", "back", "linencloak"
+    ),
+    [ITEM_IDS.LINEN_BELT]: createLinenClothingDefinition(
+        ITEM_IDS.LINEN_BELT, "Linen Belt", "belt", "linenbelt"
+    ),
+    [ITEM_IDS.LINEN_POUCH]: createLinenClothingDefinition(
+        ITEM_IDS.LINEN_POUCH, "Linen Pouch", "pounch", "linenpouch"
+    ),
+    [ITEM_IDS.LINEN_BASKET_BACKPACK]: createLinenClothingDefinition(
+        ITEM_IDS.LINEN_BASKET_BACKPACK, "Linen Basket Backpack", "backpack",
+        "linenbasketbackpack", null,
+        "A sturdy linen bag for carrying equipment."
+    ),
+    [ITEM_IDS.LINEN_GLOVE_I]: createLinenClothingDefinition(
+        ITEM_IDS.LINEN_GLOVE_I, "Linen Glove I", "glove1", "linenglovei",
+        ["glove1", "glove2"]
+    ),
+    [ITEM_IDS.LINEN_WRISTBAND_I]: createLinenClothingDefinition(
+        ITEM_IDS.LINEN_WRISTBAND_I, "Linen Wristband I", "wrist1", "linenwristbandi",
+        ["wrist1", "wrist2"]
+    ),
+    [ITEM_IDS.LINEN_TROUSERS]: createLinenClothingDefinition(
+        ITEM_IDS.LINEN_TROUSERS, "Linen Trousers", "pants", "linentrousers"
+    ),
+    [ITEM_IDS.LINEN_LEGGINGS]: createLinenClothingDefinition(
+        ITEM_IDS.LINEN_LEGGINGS, "Linen Leggings", "legs", "linenleggings"
+    ),
+    [ITEM_IDS.LINEN_BOOTS]: createLinenClothingDefinition(
+        ITEM_IDS.LINEN_BOOTS, "Linen Boots", "feet", "linenboots"
+    ),
+    [ITEM_IDS.LINEN_ANKLET_I]: createLinenClothingDefinition(
+        ITEM_IDS.LINEN_ANKLET_I, "Linen Anklet I", "ankle1", "linenankleti",
+        ["ankle1", "ankle2"]
+    ),
     ...METAL_VARIANT_ITEM_DEFS,
     ...METAL_POT_ITEM_DEFS,
     ...METAL_PAN_ITEM_DEFS,
@@ -2436,12 +2532,15 @@ function getItemPropertyTemplates() {
 // Picks distinct property templates (stat/skill level, stat/skill growth or a
 // standalone global effect). Every value uses the unified quality * rarity
 // scaling and a 50%-150% variance roll.
-function rollItemProperties(rarityId, quality) {
+function rollItemProperties(rarityId, quality, powerMultiplier) {
     const count = getItemPropertyCount(rarityId);
     if (count <= 0) return [];
 
     const pool = getItemPropertyTemplates();
     const rarityMultiplier = getRarityMultiplier(rarityId);
+    const extraPower = Number.isFinite(Number(powerMultiplier))
+        ? Math.max(1, Number(powerMultiplier))
+        : 1;
     const properties = [];
 
     for (let index = 0; index < count; index++) {
@@ -2467,7 +2566,7 @@ function rollItemProperties(rarityId, quality) {
                     quality,
                     rarityMultiplier,
                     rollItemPropertyVariance()
-                )
+                ) * extraPower
             ));
         } else {
             property.percent = roundItemNumber(
@@ -2475,7 +2574,7 @@ function rollItemProperties(rarityId, quality) {
                     quality,
                     rarityMultiplier,
                     rollItemPropertyVariance()
-                )
+                ) * extraPower
             );
         }
 
@@ -2795,7 +2894,11 @@ class ItemInstance {
         // Food does not use equipment properties; its crafting bonuses are
         // stored as potential instead.
         this.properties = savedProperties
-            || (definition.food ? [] : rollItemProperties(this.rarityId, this.quality));
+            || (definition.food ? [] : rollItemProperties(
+                this.rarityId,
+                this.quality,
+                definition.propertyMultiplier
+            ));
     }
 
     get definition() {
@@ -2842,10 +2945,15 @@ class ItemInstance {
             this.rarityMultiplier,
             this.powerVariance
         );
+        const statMultiplier = Number.isFinite(Number(this.definition.statMultiplier))
+            ? Math.max(1, Number(this.definition.statMultiplier))
+            : 1;
         const stats = {};
 
         Object.keys(baseStats).forEach(function (statName) {
-            stats[statName] = roundItemNumber(baseStats[statName] * multiplier);
+            stats[statName] = roundItemNumber(
+                baseStats[statName] * multiplier * statMultiplier
+            );
         });
 
         return stats;

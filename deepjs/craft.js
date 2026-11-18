@@ -49,6 +49,7 @@ const CRAFT_GROUP_NAMES = Object.freeze({
     shovels: "Shovels",
     spears: "Spears",
     "leaf-clothing": "Leaf clothing",
+    "linen-clothing": "Linen clothing",
     containers: "Containers",
     cutlery: "Cutlery",
     pots: "Pots",
@@ -350,6 +351,47 @@ function createLeafClothingRecipe(id, itemId, fibers) {
         ]),
     });
 }
+
+// Every linen clothing item mirrors a leaf item but uses woven linen cloth.
+function createLinenClothingRecipe(id, itemId, clothAmount) {
+    const amount = Number.isFinite(clothAmount) && clothAmount > 0
+        ? clothAmount
+        : 3;
+    const group = (id === "pouch" || id === "basket-backpack")
+        ? "containers"
+        : "linen-clothing";
+
+    return Object.freeze({
+        id: "linen-" + id,
+        category: "common",
+        itemId: itemId,
+        skill: "tailoring",
+        group: group,
+        resources: Object.freeze([
+            Object.freeze({ resourceId: RESOURCE_IDS.LINEN_CLOTH, amount: amount }),
+            Object.freeze({ resourceId: RESOURCE_IDS.FIBERS, amount: 1 }),
+        ]),
+    });
+}
+
+const LINEN_CLOTHING_RECIPES = Object.freeze([
+    createLinenClothingRecipe("pants", ITEM_IDS.LINEN_PANTS, 6),
+    createLinenClothingRecipe("hood", ITEM_IDS.LINEN_HOOD, 4),
+    createLinenClothingRecipe("mask", ITEM_IDS.LINEN_MASK, 3),
+    createLinenClothingRecipe("necklace", ITEM_IDS.LINEN_NECKLACE, 2),
+    createLinenClothingRecipe("shirt", ITEM_IDS.LINEN_SHIRT, 6),
+    createLinenClothingRecipe("shoulderpads", ITEM_IDS.LINEN_SHOULDERPADS, 4),
+    createLinenClothingRecipe("cloak", ITEM_IDS.LINEN_CLOAK, 7),
+    createLinenClothingRecipe("belt", ITEM_IDS.LINEN_BELT, 3),
+    createLinenClothingRecipe("pouch", ITEM_IDS.LINEN_POUCH, 5),
+    createLinenClothingRecipe("basket-backpack", ITEM_IDS.LINEN_BASKET_BACKPACK, 8),
+    createLinenClothingRecipe("glove-i", ITEM_IDS.LINEN_GLOVE_I, 2),
+    createLinenClothingRecipe("wristband-i", ITEM_IDS.LINEN_WRISTBAND_I, 2),
+    createLinenClothingRecipe("trousers", ITEM_IDS.LINEN_TROUSERS, 5),
+    createLinenClothingRecipe("leggings", ITEM_IDS.LINEN_LEGGINGS, 5),
+    createLinenClothingRecipe("boots", ITEM_IDS.LINEN_BOOTS, 5),
+    createLinenClothingRecipe("anklet-i", ITEM_IDS.LINEN_ANKLET_I, 2),
+]);
 
 const KEBOB_INGREDIENT_IDS = Object.freeze(
     MUSHROOM_RESOURCE_IDS.concat(
@@ -2084,6 +2126,7 @@ const CRAFT_RECIPES = Object.freeze([
     createLeafClothingRecipe("leggings", ITEM_IDS.LEAF_LEGGINGS),
     createLeafClothingRecipe("boots", ITEM_IDS.LEAF_BOOTS),
     createLeafClothingRecipe("anklet-i", ITEM_IDS.LEAF_ANKLET_I),
+    ...LINEN_CLOTHING_RECIPES,
     ...SAUCE_RECIPES,
     ...ASIAN_SAUCE_RECIPES,
     ...ARABIC_SAUCE_RECIPES,
