@@ -1106,6 +1106,9 @@ function finishCombat(victory) {
 
     renderCombatOverlay();
     if (typeof refreshActionButtons === "function") refreshActionButtons();
+    if (!victory && typeof checkPlayerDeath === "function") {
+        checkPlayerDeath();
+    }
 
     const combatSnapshot = activeCombat;
     if (combatSnapshot.autoCloseTimer) clearTimeout(combatSnapshot.autoCloseTimer);

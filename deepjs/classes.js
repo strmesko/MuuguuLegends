@@ -2376,6 +2376,11 @@ function addExperienceToEntry(entry, amount, options) {
         ? opts.getPropertyKey(entry)
         : null;
 
+    // Permanent rebirth growth bonus applies to both stats and skills.
+    if (typeof getAscensionMultiplier === "function") {
+        amount *= getAscensionMultiplier(opts.propertyType);
+    }
+
     if (key && typeof getEquippedPropertyMultiplier === "function") {
         amount *= getEquippedPropertyMultiplier(opts.propertyType, key);
     }

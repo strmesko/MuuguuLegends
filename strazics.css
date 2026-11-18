@@ -2501,3 +2501,13 @@ ul.resource-tree li a:before {
   font-family: "SimSun", serif;
   font-size: 8px;
 }
+
+/* Permanent rebirth multiplier shown in the character header. */
+.ascensionmultiplier {
+  margin-top: 2px;
+  font: max(6px, 0.66em) "SimSun";
+  color: #6b3d8a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

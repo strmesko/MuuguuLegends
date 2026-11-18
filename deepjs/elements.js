@@ -255,6 +255,13 @@
     charState.appendChild(manaBarText);
     charState.appendChild(staminaBarText);
     charState.appendChild(expBarText);
+const ascensionMultiplierText = document.createElement('div');
+ascensionMultiplierText.className = 'ascensionmultiplier';
+ascensionMultiplierText.id = 'ascensionmultiplier';
+charState.appendChild(ascensionMultiplierText);
+if (typeof updateAscensionMultiplierDisplay === 'function') {
+    updateAscensionMultiplierDisplay();
+}
     resourcePanel.appendChild(leftSelector);
     leftSelector.appendChild(resourcesButton);
     leftSelector.appendChild(skillsButton);
