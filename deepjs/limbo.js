@@ -32,6 +32,13 @@ const ASCENSION_UPGRADE_DEFS = Object.freeze([
         baseCost: 1000,
         costGrowth: 1.1,
     }),
+    Object.freeze({
+        id: "ethernalSmuggling",
+        name: "ethernal smuggling",
+        description: "Smuggle one item from the old world into the new one.",
+        baseCost: 2026,
+        costGrowth: 5,
+    }),
 ]);
 
 var ascensionSkillPercent = 0;
@@ -42,6 +49,7 @@ var ascensionUpgrades = {
     megagrid: 0,
     wonderland: 0,
     photosynthesis: 0,
+    ethernalSmuggling: 0,
 };
 var playerDeathInProgress = false;
 
@@ -61,6 +69,7 @@ function loadAscensionProgress() {
             megagrid: Math.max(0, Math.floor(Number(upgrades.megagrid) || 0)),
             wonderland: Math.max(0, Math.floor(Number(upgrades.wonderland) || 0)),
             photosynthesis: Math.max(0, Math.floor(Number(upgrades.photosynthesis) || 0)),
+            ethernalSmuggling: Math.max(0, Math.floor(Number(upgrades.ethernalSmuggling) || 0)),
         };
     } catch (error) {
         ascensionSkillPercent = 0;
@@ -71,6 +80,7 @@ function loadAscensionProgress() {
             megagrid: 0,
             wonderland: 0,
             photosynthesis: 0,
+            ethernalSmuggling: 0,
         };
     }
 }
@@ -182,6 +192,147 @@ function getWonderlandSleepMultiplier() {
 
 function getPhotosynthesisLevel() {
     return getAscensionUpgradeLevel("photosynthesis");
+}
+
+const SMUGGLED_ITEM_STORAGE_KEY = "muuguu_smuggled_item";
+const NEXT_WORLD_SEED_KEY = "muuguu_next_seed";
+
+function getInventoryItemEntries() {
+    if (!player || !Array.isArray(player.equipinventory)) return [];
+    return player.equipinventory.map(function (item, index) {
+        return item ? { item: item, index: index } : null;
+    }).filter(Boolean);
+}
+
+function applySmuggledItem() {
+    try {
+        const raw = localStorage.getItem(SMUGGLED_ITEM_STORAGE_KEY);
+        if (!raw) return;
+        const saved = JSON.parse(raw);
+        const item = typeof restoreItemInstance === "function"
+            ? restoreItemInstance(saved)
+            : null;
+        if (!item || !player || !Array.isArray(player.equipinventory)) {
+            localStorage.removeItem(SMUGGLED_ITEM_STORAGE_KEY);
+            return;
+        }
+        const emptyIndex = player.equipinventory.indexOf(null);
+        if (emptyIndex !== -1) {
+            player.equipinventory[emptyIndex] = item;
+        }
+        localStorage.removeItem(SMUGGLED_ITEM_STORAGE_KEY);
+    } catch (error) {
+        // A malformed transfer is simply discarded.
+    }
+}
+
+function queueNextWorldSeed() {
+    try {
+        const current = window.mapView && typeof window.mapView.getSeed === "function"
+            ? Number(window.mapView.getSeed())
+            : Number(window.pendingMapSeed);
+        let next = Math.floor(Math.random() * 1000000);
+        while (Number.isFinite(current) && next === current) {
+            next = Math.floor(Math.random() * 1000000);
+        }
+        localStorage.setItem(NEXT_WORLD_SEED_KEY, String(next));
+    } catch (error) {
+        // The new page still generates a random seed when storage is blocked.
+    }
+}
+
+function showSmuggleSelection(cause) {
+    if (document.getElementById("smuggleoverlay")) return;
+    const entries = getInventoryItemEntries();
+    if (!entries.length) {
+        showLimbo(cause);
+        return;
+    }
+
+    const overlay = document.createElement("div");
+    overlay.id = "smuggleoverlay";
+    overlay.className = "limbo smuggleoverlay";
+
+    const title = document.createElement("div");
+    title.className = "limbo-title";
+    title.innerText = "SMUGGLE ONE ITEM";
+    overlay.appendChild(title);
+
+    const subtitle = document.createElement("div");
+    subtitle.className = "limbo-cause";
+    subtitle.innerText = "Choose one item to carry into the new world.";
+    overlay.appendChild(subtitle);
+
+    const list = document.createElement("div");
+    list.className = "smuggle-list";
+    let selectedIndex = null;
+
+    entries.forEach(function (entry) {
+        const item = entry.item;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "smuggle-item";
+        const name = typeof getInventoryItemName === "function"
+            ? getInventoryItemName(item)
+            : "item";
+        const rarity = typeof getItemRarityId === "function"
+            ? getItemRarityId(item)
+            : null;
+        const rarityLabel = rarity && typeof getRarityLabel === "function"
+            ? getRarityLabel(rarity)
+            : "";
+        button.innerText = name
+            + " | Q" + (Number(item.quality) || 1)
+            + (rarityLabel ? " | " + rarityLabel : "");
+        button.addEventListener("click", function () {
+            selectedIndex = entry.index;
+            Array.prototype.forEach.call(list.children, function (child) {
+                child.classList.toggle("selected", child === button);
+            });
+            smuggleButton.disabled = false;
+        });
+        list.appendChild(button);
+    });
+
+    overlay.appendChild(list);
+
+    const footer = document.createElement("div");
+    footer.className = "smuggle-footer";
+
+    const skipButton = document.createElement("button");
+    skipButton.type = "button";
+    skipButton.className = "limboreborn";
+    skipButton.innerText = "skip";
+    skipButton.addEventListener("click", function () {
+        overlay.remove();
+        showLimbo(cause);
+    });
+    footer.appendChild(skipButton);
+
+    const smuggleButton = document.createElement("button");
+    smuggleButton.type = "button";
+    smuggleButton.className = "limboreborn";
+    smuggleButton.innerText = "smuggle";
+    smuggleButton.disabled = true;
+    smuggleButton.addEventListener("click", function () {
+        if (selectedIndex == null) return;
+        const item = player.equipinventory[selectedIndex];
+        if (!item) return;
+        try {
+            localStorage.setItem(
+                SMUGGLED_ITEM_STORAGE_KEY,
+                JSON.stringify(item)
+            );
+        } catch (error) {
+            // The run continues without a transfer if storage is blocked.
+        }
+        overlay.remove();
+        showLimbo(cause);
+    });
+    footer.appendChild(smuggleButton);
+    overlay.appendChild(footer);
+
+    document.body.appendChild(overlay);
 }
 
 function getAscensionUpgradeCost(id) {
@@ -304,6 +455,7 @@ function showLimbo(cause) {
     rebornButton.innerText = "reborn";
     rebornButton.addEventListener("click", function () {
         rebornButton.disabled = true;
+        queueNextWorldSeed();
         window.location.reload();
     });
     limbo.appendChild(rebornButton);
@@ -326,8 +478,14 @@ function checkPlayerDeath(cause) {
             + pointsEarned + " Ascension points.");
     }
     updateAscensionMultiplierDisplay();
-    showLimbo(cause);
+    if (getAscensionUpgradeLevel("ethernalSmuggling") > 0
+        && getInventoryItemEntries().length > 0) {
+        showSmuggleSelection(cause);
+    } else {
+        showLimbo(cause);
+    }
     return true;
 }
 
 loadAscensionProgress();
+applySmuggledItem();

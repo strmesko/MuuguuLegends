@@ -1843,6 +1843,23 @@ function getOrCreateMapSeed() {
     if (window.mapView && typeof window.mapView.getSeed === "function") {
         return window.mapView.getSeed();
     }
+    // Rebirth queues a fresh seed before reloading so a new life cannot reuse
+    // the previous world.
+    try {
+        const queued = typeof localStorage !== "undefined"
+            ? localStorage.getItem("muuguu_next_seed")
+            : null;
+        if (queued != null) {
+            const queuedSeed = Number(queued);
+            localStorage.removeItem("muuguu_next_seed");
+            if (Number.isFinite(queuedSeed)) {
+                window.pendingMapSeed = Math.floor(queuedSeed);
+                return window.pendingMapSeed;
+            }
+        }
+    } catch (error) {
+        // Fall back to a random pending seed.
+    }
     if (typeof window.pendingMapSeed !== "number"
         || !Number.isFinite(window.pendingMapSeed)) {
         window.pendingMapSeed = Math.floor(Math.random() * 1000000);

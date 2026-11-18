@@ -2633,3 +2633,43 @@ ul.resource-tree li a:before {
   opacity: 0.5;
   cursor: default;
 }
+
+/* Item transfer selection shown before Limbo. */
+.smuggleoverlay {
+  overflow: auto;
+}
+.smuggle-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 6px;
+  width: min(760px, 100%);
+  max-height: 48vh;
+  margin-top: 14px;
+  overflow: auto;
+}
+.smuggle-item {
+  padding: 6px 8px;
+  color: #e9d5ff;
+  text-align: left;
+  background: rgba(28, 8, 42, 0.82);
+  border: 1px solid #8b5cf6;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.smuggle-item:hover,
+.smuggle-item.selected {
+  color: #ffffff;
+  border-color: #f59e0b;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(139, 92, 246, 0.35));
+}
+.smuggle-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  width: min(760px, 100%);
+  margin-top: 14px;
+}
