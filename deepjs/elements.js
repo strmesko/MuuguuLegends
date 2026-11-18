@@ -1186,9 +1186,14 @@ function renderStatusIcons() {
         const lines = [
             '<b>' + status.name + '</b>',
             (status.showAbove ? 'Appears above ' : 'Appears below ')
-                + status.threshold + ' sleepyness.',
+                + round2(typeof getSleepynessStatusThreshold === 'function'
+                    ? getSleepynessStatusThreshold(status)
+                    : status.threshold) + ' sleepyness.',
         ].concat(getSleepynessEffectDescriptions(status));
-        lines.push('Sleepyness: ' + sleepyness + '/' + SLEEPYNESS_LIMIT);
+        lines.push('Sleepyness: ' + sleepyness + '/'
+            + round2(typeof getSleepynessLimit === 'function'
+                ? getSleepynessLimit()
+                : SLEEPYNESS_LIMIT));
 
         icon.setAttribute('data-tooltip', lines.join('<br>'));
     });

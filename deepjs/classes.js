@@ -120,16 +120,31 @@ const SLEEPYNESS_STATUSES = Object.freeze([
     },
 ]);
 
+function getSleepynessStatusThreshold(status) {
+    const multiplier = typeof getWonderlandSleepMultiplier === "function"
+        ? getWonderlandSleepMultiplier()
+        : 1;
+    return (Number(status && status.threshold) || 0) * multiplier;
+}
+
 function isSleepynessStatusActive(status, sleepyness) {
+    const threshold = getSleepynessStatusThreshold(status);
     return status.showAbove
-        ? sleepyness > status.threshold
-        : sleepyness < status.threshold;
+        ? sleepyness > threshold
+        : sleepyness < threshold;
+}
+
+function getSleepynessLimit() {
+    const multiplier = typeof getWonderlandSleepMultiplier === "function"
+        ? getWonderlandSleepMultiplier()
+        : 1;
+    return SLEEPYNESS_LIMIT * multiplier;
 }
 
 function clampSleepyness(value) {
     const numeric = Number(value);
     if (!Number.isFinite(numeric) || numeric < 0) return 0;
-    return Math.min(SLEEPYNESS_LIMIT, numeric);
+    return Math.min(getSleepynessLimit(), numeric);
 }
 const RESOURCE_CATEGORIES = Object.freeze({
     Food: "food",

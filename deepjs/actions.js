@@ -2230,9 +2230,12 @@ function runActiveActions(diff) {
 // Never triggers while traveling between tiles.
 function getForcedSleepChance() {
     const sleepyness = Number(player && player.sleepyness) || 0;
+    const wonderland = typeof getWonderlandSleepMultiplier === "function"
+        ? getWonderlandSleepMultiplier()
+        : 1;
     return Math.max(
         0,
-        Math.min(1, (sleepyness - FORCED_SLEEP_THRESHOLD) / PERCENT)
+        Math.min(1, (sleepyness - FORCED_SLEEP_THRESHOLD * wonderland) / PERCENT)
     );
 }
 

@@ -762,7 +762,10 @@ function getDreamMasteryLevel() {
 
 // Sleep is available above this sleepyness. DreamMastery lowers the bar.
 function getSleepThreshold() {
-    return Math.max(0, SLEEP_THRESHOLD_BASE - getDreamMasteryLevel());
+    const wonderland = typeof getWonderlandSleepMultiplier === "function"
+        ? getWonderlandSleepMultiplier()
+        : 1;
+    return Math.max(0, SLEEP_THRESHOLD_BASE * wonderland - getDreamMasteryLevel());
 }
 
 // 1 + sqrt((ins + sou) / 2 * DreamMastery)
@@ -1158,6 +1161,38 @@ function updateSkillGUI(skillName, lvl, exp, description, potential) {
 
 }
 
+function runPhotosynthesisHunger(diff) {
+    const level = typeof getPhotosynthesisLevel === "function"
+        ? getPhotosynthesisLevel()
+        : 0;
+    if (level <= 0) return;
+    if (typeof gameTime === "undefined"
+        || typeof gameMinutesToDateTime !== "function"
+        || typeof isGameNight !== "function") {
+        return;
+    }
+
+    const dateTime = gameMinutesToDateTime(gameTime.totalMinutes);
+    if (isGameNight(dateTime.minuteOfDay)) return;
+
+    const weather = typeof getGameWeather === "function"
+        ? getGameWeather()
+        : null;
+    if (!weather || (weather.id !== "clear" && weather.id !== "partly-cloudy")) {
+        return;
+    }
+
+    const seconds = Math.max(0, Number(diff) || 0);
+    const reduction = level * seconds;
+    if (reduction <= 0) return;
+
+    player.hunger = round2(Math.max(
+        -100,
+        getRawHungerValue() - reduction
+    ));
+    if (player.hunger <= 0) player.autoEatActive = false;
+}
+
 function productionLoop(diff, options) {
     if (diff == null) diff = 1;
 
@@ -1170,6 +1205,7 @@ function productionLoop(diff, options) {
     staminaRegen(diff);
     hpRegen(diff);
     if (!skipManaRegen) manaRegen(diff);
+    runPhotosynthesisHunger(diff);
     updateDayDreamUnlock(diff);
     runTravelProduction(diff);
     runActiveActions(diff);

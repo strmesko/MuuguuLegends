@@ -18,6 +18,20 @@ const ASCENSION_UPGRADE_DEFS = Object.freeze([
         baseCost: 200,
         costGrowth: 1.1,
     }),
+    Object.freeze({
+        id: "wonderland",
+        name: "Wonderland",
+        description: "Deepens your sleep",
+        baseCost: 250,
+        costGrowth: 1.2,
+    }),
+    Object.freeze({
+        id: "photosynthesis",
+        name: "Photosynthesis",
+        description: "gain power from sun",
+        baseCost: 1000,
+        costGrowth: 1.1,
+    }),
 ]);
 
 var ascensionSkillPercent = 0;
@@ -26,6 +40,8 @@ var ascensionPoints = 0;
 var ascensionUpgrades = {
     dankNullSpace: 0,
     megagrid: 0,
+    wonderland: 0,
+    photosynthesis: 0,
 };
 var playerDeathInProgress = false;
 
@@ -43,12 +59,19 @@ function loadAscensionProgress() {
         ascensionUpgrades = {
             dankNullSpace: Math.max(0, Math.floor(Number(upgrades.dankNullSpace) || 0)),
             megagrid: Math.max(0, Math.floor(Number(upgrades.megagrid) || 0)),
+            wonderland: Math.max(0, Math.floor(Number(upgrades.wonderland) || 0)),
+            photosynthesis: Math.max(0, Math.floor(Number(upgrades.photosynthesis) || 0)),
         };
     } catch (error) {
         ascensionSkillPercent = 0;
         ascensionStatPercent = 0;
         ascensionPoints = 0;
-        ascensionUpgrades = { dankNullSpace: 0, megagrid: 0 };
+        ascensionUpgrades = {
+            dankNullSpace: 0,
+            megagrid: 0,
+            wonderland: 0,
+            photosynthesis: 0,
+        };
     }
 }
 
@@ -151,6 +174,14 @@ function getAscensionUpgradeDefinition(id) {
 
 function getAscensionUpgradeLevel(id) {
     return Math.max(0, Math.floor(Number(ascensionUpgrades[id]) || 0));
+}
+
+function getWonderlandSleepMultiplier() {
+    return Math.pow(1.2, getAscensionUpgradeLevel("wonderland"));
+}
+
+function getPhotosynthesisLevel() {
+    return getAscensionUpgradeLevel("photosynthesis");
 }
 
 function getAscensionUpgradeCost(id) {
