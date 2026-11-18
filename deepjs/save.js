@@ -113,6 +113,7 @@
                 revealed: currentTile.revealed,
                 investigated: currentTile.investigated,
                 hiddenstuff: currentTile.hiddenstuff,
+        maxSearchUnits: currentTile.maxSearchUnits || 0,
                 land: Object.assign({}, currentTile.land),
                 resourceMultipliers: Object.assign({}, currentTile.resourceMultipliers),
                 space: Object.assign({}, currentTile.space),
@@ -586,6 +587,10 @@
         currentTile.revealed = tileState.revealed ?? 0;
         currentTile.investigated = tileState.investigated ?? 0;
         currentTile.hiddenstuff = tileState.hiddenstuff ?? 0;
+    currentTile.maxSearchUnits = Math.max(
+        currentTile.hiddenstuff,
+        tileState.maxSearchUnits ?? currentTile.hiddenstuff
+    );
         currentTile.land = Object.assign({ trees: 0, grass: 0, rocks: 0, water: 0 }, tileState.land || {});
         currentTile.resourceMultipliers = Object.assign({}, tileState.resourceMultipliers || {});
         currentTile.space = Object.assign(

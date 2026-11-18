@@ -1317,7 +1317,13 @@ function runSearchProduction(diff) {
 
     const distanceDivisor = 1 + Math.abs(currentTile.x + currentTile.y) / 10;
     const searchPower = (Math.sqrt(getEffectiveLevel("per") * getEffectiveLevel("exploration")) * (getEffectiveLevel("speed") / PERCENT)) * diff / distanceDivisor * getActionEffectivenessMultiplier("search");
-    currentTile.hiddenstuff = round2(currentTile.hiddenstuff + SEARCH_UNITS_RATE * searchPower);
+    const searchGain = SEARCH_UNITS_RATE * searchPower;
+    const previousMax = Math.max(
+        Number(currentTile.maxSearchUnits) || 0,
+        Number(currentTile.hiddenstuff) || 0
+    );
+    currentTile.hiddenstuff = round2(currentTile.hiddenstuff + searchGain);
+    currentTile.maxSearchUnits = round2(previousMax + searchGain);
     currentTile.investigated = Math.min(currentTile.revealed, currentTile.investigated + SEARCH_INVESTIGATION_RATE * searchPower);
     for (let t = 0; t < round2(searchPower); t++) {
         generateLand(currentTile);

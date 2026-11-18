@@ -6,6 +6,9 @@ function ensureGameplayTileState(tile, x, y) {
     if (typeof tile.revealed !== "number") tile.revealed = 0;
     if (typeof tile.investigated !== "number") tile.investigated = 0;
     if (typeof tile.hiddenstuff !== "number") tile.hiddenstuff = 0;
+    if (typeof tile.maxSearchUnits !== "number") {
+        tile.maxSearchUnits = tile.hiddenstuff;
+    }
     if (!tile.land) tile.land = { trees: 0, grass: 0, rocks: 0, water: 0 };
     if (!tile.resourceMultipliers) tile.resourceMultipliers = {};
     if (!tile.space) tile.space = { EmptySpace: 1000, RoomSpace: 0 };
@@ -148,10 +151,14 @@ class MapView {
         const revealed = Number(state.revealed);
         const investigated = Number(state.investigated);
         const hiddenstuff = Number(state.hiddenstuff);
+        const maxSearchUnits = Number(state.maxSearchUnits);
 
         if (Number.isFinite(revealed)) tile.revealed = Math.max(0, revealed);
         if (Number.isFinite(investigated)) tile.investigated = Math.max(0, investigated);
         if (Number.isFinite(hiddenstuff)) tile.hiddenstuff = Math.max(0, hiddenstuff);
+        tile.maxSearchUnits = Number.isFinite(maxSearchUnits)
+            ? Math.max(tile.hiddenstuff, maxSearchUnits)
+            : Math.max(tile.maxSearchUnits || 0, tile.hiddenstuff);
         return tile;
     }
 
@@ -184,6 +191,10 @@ class MapView {
                     const revealed = Math.max(0, Number(tile.revealed) || 0);
                     const investigated = Math.max(0, Number(tile.investigated) || 0);
                     const hiddenstuff = Math.max(0, Number(tile.hiddenstuff) || 0);
+                    const maxSearchUnits = Math.max(
+                        hiddenstuff,
+                        Number(tile.maxSearchUnits) || 0
+                    );
                     if (revealed <= 0 && investigated <= 0 && hiddenstuff <= 0) return;
 
                     states[this.getTileStateKey(
@@ -193,6 +204,7 @@ class MapView {
                         revealed: revealed,
                         investigated: investigated,
                         hiddenstuff: hiddenstuff,
+                        maxSearchUnits: maxSearchUnits,
                     };
                 });
             });
@@ -204,11 +216,16 @@ class MapView {
             const revealed = Math.max(0, Number(currentTile.revealed) || 0);
             const investigated = Math.max(0, Number(currentTile.investigated) || 0);
             const hiddenstuff = Math.max(0, Number(currentTile.hiddenstuff) || 0);
+            const maxSearchUnits = Math.max(
+                hiddenstuff,
+                Number(currentTile.maxSearchUnits) || 0
+            );
             if (revealed > 0 || investigated > 0 || hiddenstuff > 0) {
                 states[this.getTileStateKey(currentTile.x, currentTile.y)] = {
                     revealed: revealed,
                     investigated: investigated,
                     hiddenstuff: hiddenstuff,
+                    maxSearchUnits: maxSearchUnits,
                 };
             }
         }

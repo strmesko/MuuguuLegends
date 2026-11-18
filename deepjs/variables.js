@@ -547,6 +547,7 @@ var currentTile = {
     revealed: 0,
     investigated: 0,
     hiddenstuff: 0,
+    maxSearchUnits: 0,
     land: {
         trees: 0,
         grass: 0,

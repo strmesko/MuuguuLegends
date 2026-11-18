@@ -1481,6 +1481,22 @@ class WorldGen {
                     if (!(Number(tile.revealed) > 0)) return;
                     tile.harvestedTrees = {};
                     world.growVegetationOnTile(tile);
+
+                    // Search units recover on the same monthly tick as trees.
+                    const maxSearchUnits = Math.max(
+                        0,
+                        Number(tile.maxSearchUnits) || 0
+                    );
+                    const currentSearchUnits = Math.max(
+                        0,
+                        Number(tile.hiddenstuff) || 0
+                    );
+                    if (maxSearchUnits > currentSearchUnits) {
+                        tile.hiddenstuff = round2(
+                            currentSearchUnits
+                            + (maxSearchUnits - currentSearchUnits) / 32
+                        );
+                    }
                 });
             });
         });
