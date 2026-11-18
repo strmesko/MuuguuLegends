@@ -1119,6 +1119,10 @@ function createActionButton(action) {
 }
 
 function updateActionButton(actionId) {
+    if (typeof isOfflineSimulationRunning === "function"
+        && isOfflineSimulationRunning()) {
+        return;
+    }
     const button = getActionButton(actionId);
     if (!button) return;
 
@@ -1979,6 +1983,10 @@ function getNextVisibleActionButton(action) {
 }
 
 function refreshActionButtons(silent) {
+    if (typeof isOfflineSimulationRunning === "function"
+        && isOfflineSimulationRunning()) {
+        return;
+    }
     const actionPlace = document.getElementById("actionplace");
     if (!actionPlace) return;
 

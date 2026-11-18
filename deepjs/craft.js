@@ -4661,8 +4661,12 @@ function tryAutoCookRecipe(recipe, level, priorityStat) {
         }
 
         // Auto-cooking temporarily changes the ingredient selection, so put
-        // the manual crafting UI back the way the player left it.
-        if (typeof renderCraftPanels === "function") {
+        // the manual crafting UI back the way the player left it. Offline
+        // simulation skips this: rebuilding every panel per dish is what made
+        // long catch-up runs crawl.
+        if (typeof renderCraftPanels === "function"
+            && !(typeof isOfflineSimulationRunning === "function"
+                && isOfflineSimulationRunning())) {
             renderCraftPanels();
         }
     }
@@ -4833,10 +4837,21 @@ function performCraft(recipe) {
             + highlightLogText(suffix),
     });
 
-    if (typeof renderResources === "function") renderResources();
-    if (typeof renderInventorySlots === "function") renderInventorySlots();
+    if (typeof renderResources === "function"
+        && !(typeof isOfflineSimulationRunning === "function"
+            && isOfflineSimulationRunning())) {
+        renderResources();
+    }
+    if (typeof renderInventorySlots === "function"
+        && !(typeof isOfflineSimulationRunning === "function"
+            && isOfflineSimulationRunning())) {
+        renderInventorySlots();
+    }
 
-    renderCraftPanels();
+    if (typeof isOfflineSimulationRunning !== "function"
+        || !isOfflineSimulationRunning()) {
+        renderCraftPanels();
+    }
     return true;
 }
 

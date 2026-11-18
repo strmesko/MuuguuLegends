@@ -604,8 +604,16 @@ function consumeInventoryFood(index) {
         + (potentialLines.length ? ". " + potentialLines.join(", ") : "")
     );
 
-    if (typeof renderInventorySlots === "function") renderInventorySlots();
-    if (typeof updateGUI === "function") updateGUI();
+    if (typeof renderInventorySlots === "function"
+        && !(typeof isOfflineSimulationRunning === "function"
+            && isOfflineSimulationRunning())) {
+        renderInventorySlots();
+    }
+    if (typeof updateGUI === "function"
+        && !(typeof isOfflineSimulationRunning === "function"
+            && isOfflineSimulationRunning())) {
+        updateGUI();
+    }
     return true;
 }
 

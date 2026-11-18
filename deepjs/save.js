@@ -736,10 +736,15 @@
     }
 
     function getOfflineChunkSeconds(totalSeconds) {
-        if (totalSeconds <= 600) return 1;
-        if (totalSeconds <= 21600) return 5;
-        if (totalSeconds <= 259200) return 15;
-        return 60;
+        if (totalSeconds <= 60) return 1;
+        if (totalSeconds <= 600) return 2;
+        if (totalSeconds <= 3600) return 5;
+        if (totalSeconds <= 21600) return 15;
+        if (totalSeconds <= 86400) return 30;
+        if (totalSeconds <= 604800) return 60;
+        if (totalSeconds <= 7776000) return 900;
+        if (totalSeconds <= 31536000) return 1800;
+        return 3600;
     }
 
     function createOfflineOverlay() {
@@ -833,18 +838,26 @@
 
         function step() {
             if (!offlineSimulationActive) return;
-            const remaining = total - simulated;
-            const chunk = getOfflineChunkSeconds(total);
-            const seconds = Math.min(chunk, remaining);
+            const batchStarted = Date.now();
 
             try {
-                simulateTimePassage(seconds, { skipGUI: true });
+                // Process as much as possible in a small time slice, then yield
+                // to the browser so the overlay can repaint and Firefox stays
+                // responsive during very long catch-up runs.
+                while (simulated < total
+                    && Date.now() - batchStarted < 12) {
+                    const remaining = total - simulated;
+                    const chunk = getOfflineChunkSeconds(total);
+                    const seconds = Math.min(chunk, remaining);
+
+                    simulateTimePassage(seconds, { skipGUI: true });
+                    simulated += seconds;
+                }
             } catch (error) {
                 console.error("Offline simulation failed", error);
                 finish();
                 return;
             }
-            simulated += seconds;
 
             const now = Date.now();
             if (simulated >= total || now - lastPaint >= 50) {

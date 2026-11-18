@@ -3903,6 +3903,10 @@ let showDebugMessages = true;
 // advance the same seconds a second time.
 var offlineSimulationActive = false;
 
+function isOfflineSimulationRunning() {
+    return offlineSimulationActive === true;
+}
+
 function setLogSuppressed(suppressed){
     logSuppressed = suppressed;
 }
