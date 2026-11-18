@@ -2520,40 +2520,114 @@ ul.resource-tree li a:before {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  overflow: hidden;
   padding: 28px 32px;
   background: #000000;
-  color: #d8d8d8;
+  color: #d8b4fe;
   font-family: "MS Gothic", "SimSun", monospace;
 }
+.limbo-stars {
+  position: absolute;
+  inset: -25%;
+  pointer-events: none;
+  opacity: 0.7;
+  background-image:
+    radial-gradient(circle, #ffffff 1px, transparent 1.5px),
+    radial-gradient(circle, #c084fc 1px, transparent 1.5px),
+    radial-gradient(circle, #f59e0b 1px, transparent 1.5px);
+  background-size: 73px 73px, 113px 113px, 157px 157px;
+  background-position: 0 0, 40px 70px, 90px 30px;
+  animation: limbo-stars-drift 22s linear infinite;
+}
+@keyframes limbo-stars-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-90px, 140px, 0); }
+}
+.limbo > :not(.limbo-stars) {
+  position: relative;
+  z-index: 1;
+}
 .limbo-title {
-  color: #f2f2f2;
   font-size: 1.6em;
+  font-weight: bold;
   letter-spacing: 0.24em;
+  color: #c084fc;
+  background: linear-gradient(90deg, #f59e0b, #c084fc, #f59e0b);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.limbo-points {
+  margin-top: 10px;
+  color: #f59e0b;
+  font-size: 1em;
 }
 .limbo-cause {
   max-width: 70%;
-  margin-top: 14px;
-  color: #a9a9a9;
+  margin-top: 10px;
+  color: #c4a0ff;
   font-size: 1em;
   line-height: 1.4;
 }
+.limbo-shop {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(620px, 100%);
+  margin-top: 18px;
+}
+.limbo-upgrade {
+  padding: 8px 10px;
+  background: rgba(28, 8, 42, 0.82);
+  border: 1px solid #8b5cf6;
+  border-radius: 4px;
+}
+.limbo-upgrade-heading {
+  color: #f59e0b;
+  font-weight: bold;
+}
+.limbo-upgrade-description {
+  margin-top: 2px;
+  color: #bfa4dd;
+}
+.limbo-upgrade-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+.limbo-upgrade-cost {
+  color: #d8b4fe;
+}
+.limbo-upgrade-button,
+.limboreborn {
+  min-width: 92px;
+  padding: 5px 14px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(139, 92, 246, 0.28));
+  color: #e9d5ff;
+  border: 2px solid #8b5cf6;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+}
+.limbo-upgrade-button:hover,
+.limboreborn:hover {
+  border-color: #f59e0b;
+  color: #ffffff;
+}
+.limbo-upgrade-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
 .limbo-empty {
   flex: 1;
+  min-height: 60px;
 }
 .limboreborn {
   align-self: flex-end;
   min-width: 110px;
   padding: 8px 18px;
-  background: transparent;
-  color: #e8e8e8;
-  border: 2px double #777777;
-  border-radius: 4px;
-  cursor: pointer;
-  font: inherit;
-}
-.limboreborn:hover {
-  background: #171717;
-  border-color: #d8d8d8;
+  font-size: 1em;
 }
 .limboreborn:disabled {
   opacity: 0.5;

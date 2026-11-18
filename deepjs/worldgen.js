@@ -1364,6 +1364,29 @@ class WorldGen {
 
         this.replaceTreeSpecies(space, temperature, humidity);
 
+        // Permanent Limbo upgrades apply during map generation.
+        const megagridLevel = typeof getAscensionUpgradeLevel === "function"
+            ? getAscensionUpgradeLevel("megagrid")
+            : 0;
+        if (megagridLevel > 0) {
+            const multiplier = Math.pow(1.1, megagridLevel);
+            Object.keys(space).forEach(function (name) {
+                if (name === "EmptySpace") return;
+                space[name] = Math.max(
+                    0,
+                    Math.round((Number(space[name]) || 0) * multiplier)
+                );
+            });
+        }
+
+        const dankNullLevel = typeof getAscensionUpgradeLevel === "function"
+            ? getAscensionUpgradeLevel("dankNullSpace")
+            : 0;
+        if (dankNullLevel > 0) {
+            space.EmptySpace = (Number(space.EmptySpace) || 0)
+                + dankNullLevel;
+        }
+
         return space;
     }
 
