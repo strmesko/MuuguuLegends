@@ -9,6 +9,9 @@ function ensureGameplayTileState(tile, x, y) {
     if (typeof tile.maxSearchUnits !== "number") {
         tile.maxSearchUnits = tile.hiddenstuff;
     }
+    if (typeof tile.discovered !== "boolean") {
+        tile.discovered = false;
+    }
     if (!tile.land) tile.land = { trees: 0, grass: 0, rocks: 0, water: 0 };
     if (!tile.resourceMultipliers) tile.resourceMultipliers = {};
     if (!tile.space) tile.space = { EmptySpace: 1000, RoomSpace: 0 };
@@ -80,6 +83,17 @@ class MapView {
         this.coordinates.className = 'map-coordinates';
         this.coordinates.textContent = 'X: 0, Y: 0';
         this.container.appendChild(this.coordinates);
+
+        this.centerButton = document.createElement('button');
+        this.centerButton.type = 'button';
+        this.centerButton.className = 'map-center-button';
+        this.centerButton.innerText = 'Center on character';
+        this.centerButton.addEventListener('click', () => {
+            if (typeof currentTile !== 'undefined' && currentTile) {
+                this.centerOn(currentTile.x, currentTile.y);
+            }
+        });
+        this.container.appendChild(this.centerButton);
 
         // Camping buildings are represented on the map by the Tent image.
         this.campingOverlayImage = new Image();
@@ -156,6 +170,15 @@ class MapView {
         if (Number.isFinite(revealed)) tile.revealed = Math.max(0, revealed);
         if (Number.isFinite(investigated)) tile.investigated = Math.max(0, investigated);
         if (Number.isFinite(hiddenstuff)) tile.hiddenstuff = Math.max(0, hiddenstuff);
+        if (typeof state.discovered === "boolean") {
+            tile.discovered = state.discovered;
+        } else if ((Number.isFinite(revealed) && revealed > 0)
+            || (Number.isFinite(investigated) && investigated > 0)) {
+            // Old saves had no discovery flag: anything already explored was
+            // necessarily seen before.
+            tile.discovered = true;
+        }
+        if (tile.revealed >= EXPLORATION_COMPLETE) tile.discovered = true;
         tile.maxSearchUnits = Number.isFinite(maxSearchUnits)
             ? Math.max(tile.hiddenstuff, maxSearchUnits)
             : Math.max(tile.maxSearchUnits || 0, tile.hiddenstuff);
@@ -195,7 +218,8 @@ class MapView {
                         hiddenstuff,
                         Number(tile.maxSearchUnits) || 0
                     );
-                    if (revealed <= 0 && investigated <= 0 && hiddenstuff <= 0) return;
+                    const discovered = tile.discovered === true;
+                    if (!discovered && revealed <= 0 && investigated <= 0 && hiddenstuff <= 0) return;
 
                     states[this.getTileStateKey(
                         chunkX * size + localX,
@@ -205,6 +229,7 @@ class MapView {
                         investigated: investigated,
                         hiddenstuff: hiddenstuff,
                         maxSearchUnits: maxSearchUnits,
+                        discovered: discovered,
                     };
                 });
             });
@@ -220,12 +245,14 @@ class MapView {
                 hiddenstuff,
                 Number(currentTile.maxSearchUnits) || 0
             );
-            if (revealed > 0 || investigated > 0 || hiddenstuff > 0) {
+            const discovered = currentTile.discovered === true;
+            if (discovered || revealed > 0 || investigated > 0 || hiddenstuff > 0) {
                 states[this.getTileStateKey(currentTile.x, currentTile.y)] = {
                     revealed: revealed,
                     investigated: investigated,
                     hiddenstuff: hiddenstuff,
                     maxSearchUnits: maxSearchUnits,
+                    discovered: discovered,
                 };
             }
         }
@@ -448,7 +475,13 @@ class MapView {
     }
 
     renderCoordinates(tileX, tileY, detailed) {
-        const tile = this.world.getTileData(tileX, tileY);
+        const tile = this.getGameplayTile(tileX, tileY);
+        const sightRange = typeof getSightRange === "function" ? getSightRange() : 0;
+        if (!tile.discovered) {
+            this.coordinates.innerHTML = `X: ${tileX}, Y: ${tileY} | Not discovered territory`
+                + `<br>SightRange: ${sightRange}`;
+            return;
+        }
         const type = this.tileTypeById.get(tile.type);
         const name = type ? type.name : 'Unknown';
         const char = type ? type.char : '';
@@ -467,6 +500,7 @@ class MapView {
         }
 
         line += `<br>Buildings: ${this.getTileBuildingList(tileX, tileY)}`;
+        line += `<br>SightRange: ${sightRange}`;
         this.coordinates.innerHTML = line;
     }
 
@@ -509,7 +543,28 @@ class MapView {
         const mouseY = event.clientY - rect.top;
         const tileX = Math.floor((this.cameraX + mouseX) / this.tileSize);
         const tileY = Math.floor((this.cameraY + mouseY) / this.tileSize);
-        const tile = this.world.getTileData(tileX, tileY);
+        const tile = this.getGameplayTile(tileX, tileY);
+        if (!tile.discovered) {
+            this.hover = { x: tileX, y: tileY };
+            this.renderCoordinates(tileX, tileY, true);
+            this.tooltip.innerHTML = "Not discovered territory";
+            this.tooltip.style.display = 'block';
+
+            const undiscoveredWidth = this.tooltip.offsetWidth;
+            const undiscoveredHeight = this.tooltip.offsetHeight;
+            let undiscoveredLeft = event.clientX + 14;
+            let undiscoveredTop = event.clientY + 18;
+            if (undiscoveredLeft + undiscoveredWidth > window.innerWidth - 4) {
+                undiscoveredLeft = event.clientX - undiscoveredWidth - 14;
+            }
+            if (undiscoveredTop + undiscoveredHeight > window.innerHeight - 4) {
+                undiscoveredTop = event.clientY - undiscoveredHeight - 14;
+            }
+            this.tooltip.style.left = Math.max(4, undiscoveredLeft) + 'px';
+            this.tooltip.style.top = Math.max(4, undiscoveredTop) + 'px';
+            this.draw();
+            return;
+        }
         const type = this.tileTypeById.get(tile.type);
         const passability = Number(type && type.passability);
         const safePassability = Number.isFinite(passability) && passability > 0
@@ -596,9 +651,50 @@ class MapView {
         this.draw();
     }
 
+    updateDiscoveredTiles() {
+        if (typeof currentTile === "undefined" || !currentTile) return;
+        ensureGameplayTileState(currentTile, currentTile.x, currentTile.y);
+        currentTile.discovered = true;
+
+        const range = typeof getSightRange === "function"
+            ? Math.max(0, Math.floor(getSightRange()))
+            : 0;
+        const centerX = Number(currentTile.x) || 0;
+        const centerY = Number(currentTile.y) || 0;
+        const maxDistanceSquared = range * range;
+
+        for (let dy = -range; dy <= range; dy++) {
+            for (let dx = -range; dx <= range; dx++) {
+                if (dx * dx + dy * dy > maxDistanceSquared) continue;
+                const tile = this.getGameplayTile(centerX + dx, centerY + dy);
+                if (tile) tile.discovered = true;
+            }
+        }
+    }
+
+    drawFogOfWar(startX, startY, endX, endY) {
+        for (let y = startY; y <= endY; y++) {
+            for (let x = startX; x <= endX; x++) {
+                const tile = this.getGameplayTile(x, y);
+                if (!tile) continue;
+
+                const screenX = x * this.tileSize - this.cameraX;
+                const screenY = y * this.tileSize - this.cameraY;
+                if (!tile.discovered) {
+                    this.ctx.fillStyle = "#000000";
+                    this.ctx.fillRect(screenX, screenY, this.tileSize, this.tileSize);
+                } else if (Number(tile.revealed) < EXPLORATION_COMPLETE) {
+                    this.ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+                    this.ctx.fillRect(screenX, screenY, this.tileSize, this.tileSize);
+                }
+            }
+        }
+    }
+
     draw() {
         if (!this.ctx || this.width <= 1 || this.height <= 1) return;
 
+        this.updateDiscoveredTiles();
         this.ctx.clearRect(0, 0, this.width, this.height);
         this.ctx.fillStyle = '#1a1a2e';
         this.ctx.fillRect(0, 0, this.width, this.height);
@@ -671,6 +767,7 @@ class MapView {
         }
 
         this.drawCampingOverlays(startX, startY, endX, endY);
+        this.drawFogOfWar(startX, startY, endX, endY);
 
         if (this.hover) {
             const sx = this.hover.x * this.tileSize - this.cameraX;

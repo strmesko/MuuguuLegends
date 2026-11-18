@@ -2673,3 +2673,21 @@ ul.resource-tree li a:before {
   width: min(760px, 100%);
   margin-top: 14px;
 }
+
+/* Center-on-character control for the map. */
+.map-center-button {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  padding: 7px 12px;
+  color: #dff7ff;
+  background: rgba(26, 26, 46, 0.92);
+  border: 1px solid #4cc9f0;
+  border-radius: 8px;
+  font-family: "SimSun", serif;
+  cursor: pointer;
+}
+.map-center-button:hover {
+  background: rgba(44, 52, 86, 0.95);
+}

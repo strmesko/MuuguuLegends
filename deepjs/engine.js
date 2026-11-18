@@ -1258,6 +1258,9 @@ function runExploreProduction(diff) {
 
     const distanceDivisor = 1 + Math.abs(currentTile.x + currentTile.y) / 10;
     currentTile.revealed = Math.min(EXPLORATION_COMPLETE, currentTile.revealed + EXPLORATION_PROGRESS_RATE * (Math.sqrt(getEffectiveLevel("per") * getEffectiveLevel("exploration")) * (getEffectiveLevel("speed") / PERCENT)) * diff / distanceDivisor * getActionEffectivenessMultiplier("explore"));
+    if (window.mapView && typeof window.mapView.refresh === "function") {
+        window.mapView.refresh();
+    }
     player.per.addexp(0.5 * diff);
     player.exploration.addexp(1 * diff);
 }

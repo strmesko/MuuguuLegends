@@ -1964,6 +1964,13 @@ function getEffectiveLevel(key) {
     return effective;
 }
 
+// Sight radius in whole tiles. Never fractional.
+function getSightRange() {
+    const perception = Math.max(0, Number(getEffectiveLevel("per")) || 0);
+    const exploration = Math.max(0, Number(getEffectiveLevel("exploration")) || 0);
+    return Math.max(0, Math.floor(Math.sqrt(perception * exploration) / 10));
+}
+
 // Multiplier for standalone item properties such as Max HP or travel speed.
 function getGlobalPropertyMultiplier(key) {
     return typeof getEquippedGlobalPropertyMultiplier === "function"
