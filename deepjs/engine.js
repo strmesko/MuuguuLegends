@@ -1024,7 +1024,11 @@ function getSleepPotentialChance() {
         1,
         SLEEP_POTENTIAL_CHANCE_BASE - luck / SLEEP_POTENTIAL_LUCK_DIVISOR
     );
-    return Math.min(1, 1 / denominator);
+    const baseChance = Math.min(1, 1 / denominator);
+    const dreamCatcherMultiplier = typeof getDreamCatcherSleepEventMultiplier === "function"
+        ? getDreamCatcherSleepEventMultiplier(currentTile)
+        : 1;
+    return Math.min(1, baseChance * dreamCatcherMultiplier);
 }
 
 // Every Skill on the character, discovered dynamically: skills added in the

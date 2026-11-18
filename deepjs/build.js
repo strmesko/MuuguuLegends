@@ -24,6 +24,7 @@ const BUILDING_IDS = Object.freeze({
     BIG_GRINDING_STONE: "big-grinding-stone",
     OIL_PRESS: "oil-press",
     LOOM: "loom",
+    DREAM_CATCHER: "dream-catcher",
     MAPLE_EXTRACTOR: "maple-extractor",
 });
 
@@ -136,6 +137,32 @@ function setSelectedLoomNailId(resourceId) {
     return true;
 }
 
+const DREAM_CATCHER_HERB_CHOICES = Object.freeze(
+    (typeof HERB_ALCHEMY_RESOURCE_IDS !== "undefined"
+        ? HERB_ALCHEMY_RESOURCE_IDS
+        : []).slice()
+);
+
+let selectedDreamCatcherHerbId = DREAM_CATCHER_HERB_CHOICES[0] ?? null;
+
+function getSelectedDreamCatcherHerbId() {
+    if (DREAM_CATCHER_HERB_CHOICES.indexOf(selectedDreamCatcherHerbId) === -1) {
+        selectedDreamCatcherHerbId = DREAM_CATCHER_HERB_CHOICES[0] ?? null;
+    }
+    return selectedDreamCatcherHerbId;
+}
+
+function setSelectedDreamCatcherHerbId(resourceId) {
+    const id = Number(resourceId);
+    if (DREAM_CATCHER_HERB_CHOICES.indexOf(id) === -1) return false;
+
+    selectedDreamCatcherHerbId = id;
+    if (typeof renderFurniturePanels === "function") {
+        renderFurniturePanels();
+    }
+    return true;
+}
+
 function getBuildingBuildRequirements(def) {
     if (!def) return [];
 
@@ -158,6 +185,13 @@ function getBuildingBuildRequirements(def) {
         requirements.push({
             resourceId: getSelectedLoomNailId(),
             amount: 50,
+        });
+    }
+
+    if (def.id === BUILDING_IDS.DREAM_CATCHER) {
+        requirements.push({
+            resourceId: getSelectedDreamCatcherHerbId(),
+            amount: 1,
         });
     }
 
@@ -241,6 +275,47 @@ function createLoomNailChoiceBox() {
     select.value = String(getSelectedLoomNailId());
     select.addEventListener("change", function () {
         setSelectedLoomNailId(Number(select.value));
+    });
+    box.appendChild(select);
+    return box;
+}
+
+function createDreamCatcherHerbChoiceBox() {
+    const box = document.createElement("div");
+    box.className = "craftchoice";
+
+    const label = document.createElement("label");
+    label.className = "craftchoice-label";
+    label.innerText = "Choose alchemy herb:";
+    label.htmlFor = "dreamcatcher-herb-choice";
+    box.appendChild(label);
+
+    if (typeof createCraftIngredientSelect === "function") {
+        box.appendChild(createCraftIngredientSelect({
+            id: "dreamcatcher-herb-choice",
+            resourceIds: DREAM_CATCHER_HERB_CHOICES,
+            selectedResourceId: getSelectedDreamCatcherHerbId(),
+            includeNone: false,
+            onSelect: function (resourceId) {
+                setSelectedDreamCatcherHerbId(resourceId);
+            },
+        }));
+        return box;
+    }
+
+    const select = document.createElement("select");
+    select.id = "dreamcatcher-herb-choice";
+    DREAM_CATCHER_HERB_CHOICES.forEach(function (resourceId) {
+        const option = document.createElement("option");
+        option.value = String(resourceId);
+        option.innerText = RESOURCE_DEFS[resourceId]
+            ? RESOURCE_DEFS[resourceId].name
+            : String(resourceId);
+        select.appendChild(option);
+    });
+    select.value = String(getSelectedDreamCatcherHerbId());
+    select.addEventListener("change", function () {
+        setSelectedDreamCatcherHerbId(Number(select.value));
     });
     box.appendChild(select);
     return box;
@@ -633,6 +708,23 @@ const BUILDING_DEFS = Object.freeze({
         effects: Object.freeze([]),
         iconClass: "fa-th",
         effectText: "Enables Make linen cloth on this tile. Only one Loom can be built per tile. Loom quality increases both the amount of fibers processed and the quality of the cloth.",
+    }),
+    [BUILDING_IDS.DREAM_CATCHER]: Object.freeze({
+        id: BUILDING_IDS.DREAM_CATCHER,
+        name: "Dream catcher",
+        category: FURNITURE_CATEGORY.id,
+        description: "A woven hoop hung with feathers and a single alchemical herb. It hums softly while you sleep.",
+        resources: Object.freeze([
+            Object.freeze({ resourceId: RESOURCE_IDS.FIBERS, amount: 50 }),
+            Object.freeze({ resourceId: RESOURCE_IDS.SHAFTS, amount: 3 }),
+        ]),
+        workPoints: 4000,
+        roomSpace: 1,
+        maxPerTile: 1,
+        skill: "tailoring",
+        effects: Object.freeze([]),
+        iconClass: "fa-moon-o",
+        effectText: "Multiplies the chance of a dream event during sleep by 1 + BuildingQuality. Only one Dream catcher can be built per tile.",
     }),
     [BUILDING_IDS.MAPLE_EXTRACTOR]: Object.freeze({
         id: BUILDING_IDS.MAPLE_EXTRACTOR,
@@ -1303,6 +1395,18 @@ function getLoomQuality(tile) {
 
 function hasLoom(tile) {
     return getLoomQuality(tile) !== null;
+}
+
+function getDreamCatcherQuality(tile) {
+    return getBestCompletedBuildingQuality(
+        BUILDING_IDS.DREAM_CATCHER,
+        tile
+    );
+}
+
+function getDreamCatcherSleepEventMultiplier(tile) {
+    const quality = getDreamCatcherQuality(tile);
+    return quality === null ? 1 : 1 + Math.max(0, Number(quality) || 0);
 }
 
 // Any completed building tagged SleepingPlace can improve sleep quality.
@@ -3192,6 +3296,9 @@ function renderFurnitureResources() {
     }
     if (def.id === BUILDING_IDS.LOOM) {
         panel.appendChild(createLoomNailChoiceBox());
+    }
+    if (def.id === BUILDING_IDS.DREAM_CATCHER) {
+        panel.appendChild(createDreamCatcherHerbChoiceBox());
     }
 
     getBuildingBuildRequirements(def).forEach(function (requirement) {
