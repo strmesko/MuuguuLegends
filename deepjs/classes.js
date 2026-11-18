@@ -1811,7 +1811,7 @@ function getResourceMultiplier(tile, resourceId) {
 const PERCENT = 100;
 const CORE_STAT_COUNT = 9;
 const CORE_STAT_NAMES = ["str", "agi", "vit", "per", "int", "ins", "sou", "luck", "speed"];
-const LEARNABLE_SKILL_KEYS = ["exploration", "forage", "rest", "focus", "meditation", "wizardy", "alchemy", "masonry", "pottery", "regeneration", "autism", "science", "traveling", "dreammastery", "survival", "ropemaking", "tailoring", "carpentry", "architecture", "gardening", "digging", "lumberjack", "mining", "smithing", "cooking", "milling", "tactics", "anatomy", "dodging", "bullseye", "axechopping", "swordsswingin", "knifesstabbing", "spearsspooning", "brawlbaps", "hammerscrushworks", "dodgedancing", "critomancy", "spiritspeak"];
+const LEARNABLE_SKILL_KEYS = ["exploration", "forage", "rest", "focus", "meditation", "wizardy", "alchemy", "masonry", "pottery", "regeneration", "autism", "science", "traveling", "dreammastery", "survival", "ropemaking", "tailoring", "carpentry", "architecture", "gardening", "digging", "lumberjack", "mining", "smithing", "cooking", "milling", "tactics", "anatomy", "dodging", "bullseye", "axechopping", "swordsswingin", "knifesstabbing", "spearsspooning", "brawlbaps", "hammerscrushworks", "dodgedancing", "critomancy", "spiritspeak", "digestomancy"];
 
 // Every edible resource is bound to one core stat for the whole playthrough.
 // The binding is rolled once when a new game starts and is stored in saves.
@@ -2113,6 +2113,7 @@ class Character {
         this.dodgedancing = new Skill("Dodge dancing", "The art of dancing out of the way. Every dodge grants experience based on the attacker's base hit, and each level adds 2 flee.");
         this.critomancy = new Skill("Critomancy", "The art of finding the one perfect opening. Each level adds 1% critical damage and reshapes critical chance.");
         this.spiritspeak = new Skill("Spirit speak", "The art of asking the spirits for help. Heals sqrt(Soul + Spirit speak) HP in combat at triple the mana cost.");
+        this.digestomancy = new Skill("Digestomancy", "The art of getting more out of every meal. Divides hunger gain by (1 + level * 0.05) / (level * 0.05) and gains 1 exp per hunger point actually added.");
         this.wizardy = new Skill("Wizardy", "The art of channeling spent mana into arcane understanding.");
         this.alchemy = new Skill("Alchemy", "The art of mixing minerals, ash and water into useful compounds.");
         this.masonry = new Skill("Masonry", "The art of raising durable stone structures from rocks, mortar and timber.");

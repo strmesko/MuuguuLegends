@@ -771,6 +771,7 @@ const SKILL_DISPLAY_NAMES = Object.freeze({
     dodgedancing: "Dodge dancing",
     critomancy: "Critomancy",
     spiritspeak: "Spirit speak",
+    digestomancy: "Digestomancy",
     wizardy: "Wizardy",
     alchemy: "Alchemy",
     masonry: "Masonry",

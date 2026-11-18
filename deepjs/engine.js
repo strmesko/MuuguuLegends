@@ -38,6 +38,7 @@ const LEARNED_SKILLS = [
     { barId: 'skillsplacedodgedancing', key: 'dodgedancing', label: 'Dodge dancing', descriptionKey: 'dodgedancing' },
     { barId: 'skillsplacecritomancy', key: 'critomancy', label: 'Critomancy', descriptionKey: 'critomancy' },
     { barId: 'skillsplacespiritspeak', key: 'spiritspeak', label: 'Spirit speak', descriptionKey: 'spiritspeak' },
+    { barId: 'skillsplacedigestomancy', key: 'digestomancy', label: 'Digestomancy', descriptionKey: 'digestomancy' },
 ];
 
 function updateCharacterHeader() {
@@ -303,15 +304,40 @@ function getWellFedStatus() {
 
 const hungerSpendRemainders = { stamina: 0, mana: 0 };
 
+// Digestomancy reduces hunger gain by dividing it by the requested formula.
+// Level 0 leaves hunger unchanged; higher levels approach a 100% reduction.
+function getDigestomancyHungerDivisor() {
+    const level = Math.max(
+        0,
+        Number(getEffectiveLevel("digestomancy")) || 0
+    );
+    if (level <= 0) return 1;
+    const scaled = level * 0.05;
+    return (1 + scaled) / scaled;
+}
+
 function addHunger(amount) {
     const numeric = Number(amount);
     if (!Number.isFinite(numeric) || numeric <= 0) return;
 
-    const gained = numeric * getHungerUseMultiplier();
-    player.hunger = Math.min(
+    const gained = numeric
+        * getHungerUseMultiplier()
+        / getDigestomancyHungerDivisor();
+    const before = getRawHungerValue();
+    const after = Math.min(
         getHungerMax(),
-        round2(getRawHungerValue() + gained)
+        round2(before + gained)
     );
+    player.hunger = after;
+
+    // Digestomancy is trained by the hunger points that were actually added
+    // after all multipliers and the hunger cap, not by the raw amount.
+    const actualGain = Math.max(0, round2(after - before));
+    if (actualGain > 0
+        && player.digestomancy
+        && typeof player.digestomancy.addexp === "function") {
+        player.digestomancy.addexp(actualGain);
+    }
 }
 
 // Spending is tracked per resource with a remainder, so 10 spent points give
