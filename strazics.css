@@ -2511,3 +2511,51 @@ ul.resource-tree li a:before {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Full-screen death screen. Deliberately mostly empty for future content. */
+.limbo {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: 28px 32px;
+  background: #000000;
+  color: #d8d8d8;
+  font-family: "MS Gothic", "SimSun", monospace;
+}
+.limbo-title {
+  color: #f2f2f2;
+  font-size: 1.6em;
+  letter-spacing: 0.24em;
+}
+.limbo-cause {
+  max-width: 70%;
+  margin-top: 14px;
+  color: #a9a9a9;
+  font-size: 1em;
+  line-height: 1.4;
+}
+.limbo-empty {
+  flex: 1;
+}
+.limboreborn {
+  align-self: flex-end;
+  min-width: 110px;
+  padding: 8px 18px;
+  background: transparent;
+  color: #e8e8e8;
+  border: 2px double #777777;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+}
+.limboreborn:hover {
+  background: #171717;
+  border-color: #d8d8d8;
+}
+.limboreborn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

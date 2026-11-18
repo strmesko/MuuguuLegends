@@ -447,7 +447,9 @@ function updateHungerStarvationTick(diff) {
         logMessage("Starving: you lose " + damage + " HP");
     }
 
-    if (typeof checkPlayerDeath === "function") checkPlayerDeath();
+    if (typeof checkPlayerDeath === "function") {
+        checkPlayerDeath("You starved to death.");
+    }
 }
 
 // Automatic eating uses the canonical resource tag, not a hardcoded list of
@@ -1173,7 +1175,9 @@ function productionLoop(diff, options) {
     runActiveActions(diff);
     if (typeof updateAssPoison === "function") updateAssPoison(diff);
     if (typeof updateCombat === "function") updateCombat(diff);
-    if (typeof checkPlayerDeath === "function") checkPlayerDeath();
+    if (typeof checkPlayerDeath === "function") {
+        checkPlayerDeath("Your body gave out.");
+    }
 
     const manaAfter = Number(player.mana) || 0;
     if (manaAfter < manaBefore) {
@@ -3852,6 +3856,10 @@ let mainLoopRemainderMilliseconds = 0;
 function mainLoop(){
     const now = Date.now();
     if (offlineSimulationActive) {
+        lastUpdate = now;
+        return;
+    }
+    if (typeof playerDeathInProgress !== "undefined" && playerDeathInProgress) {
         lastUpdate = now;
         return;
     }

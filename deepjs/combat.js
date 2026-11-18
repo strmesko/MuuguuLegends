@@ -1107,7 +1107,8 @@ function finishCombat(victory) {
     renderCombatOverlay();
     if (typeof refreshActionButtons === "function") refreshActionButtons();
     if (!victory && typeof checkPlayerDeath === "function") {
-        checkPlayerDeath();
+        checkPlayerDeath("You were defeated by "
+            + activeCombat.enemy.name + ".");
     }
 
     const combatSnapshot = activeCombat;
