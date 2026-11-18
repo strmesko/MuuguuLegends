@@ -277,6 +277,52 @@
             setCheatStatus("Advanced the game clock by 1 day.");
             refreshGameUI();
         },
+
+        "travel-immediately": function () {
+            if (typeof activeTravel !== "undefined" && activeTravel) {
+                activeTravel.remaining = 0;
+                runTravelProduction(0);
+                setCheatStatus("Travel completed immediately.");
+                return;
+            }
+
+            const view = typeof window !== "undefined" ? window.mapView : null;
+            const target = view ? (view.hover || view.focalTile) : null;
+            if (!target) {
+                setCheatStatus("Select a destination on the map first.");
+                return;
+            }
+            if (target.x === currentTile.x && target.y === currentTile.y) {
+                setCheatStatus("You are already on that tile.");
+                return;
+            }
+
+            const pathInfo = typeof findMoveToXYPath === "function"
+                ? findMoveToXYPath(
+                    currentTile.x,
+                    currentTile.y,
+                    target.x,
+                    target.y
+                )
+                : null;
+            if (!pathInfo || !pathInfo.path || !pathInfo.path.length) {
+                setCheatStatus("No travel path to that tile.");
+                return;
+            }
+
+            pathInfo.targetX = target.x;
+            pathInfo.targetY = target.y;
+            if (!startMoveToXYTravel(pathInfo)) {
+                setCheatStatus("Cannot start travel right now.");
+                return;
+            }
+            if (activeTravel) {
+                activeTravel.remaining = 0;
+                runTravelProduction(0);
+            }
+            setCheatStatus("Travelled immediately to X: "
+                + target.x + ", Y: " + target.y + ".");
+        },
     });
 
     function buildCheatMenu() {
@@ -337,6 +383,7 @@
             + '    <h3>World</h3>'
             + '    <div class="cheatrow">'
             + '      <button type="button" data-cheat="reveal-tile">Reveal tile</button>'
+            + '      <button type="button" data-cheat="travel-immediately">Travel immediately</button>'
             + '      <button type="button" data-cheat="advance-hour">+1 hour</button>'
             + '      <button type="button" data-cheat="advance-day">+1 day</button>'
             + '    </div>'

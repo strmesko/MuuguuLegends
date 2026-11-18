@@ -583,6 +583,7 @@ class MapView {
     onDoubleClick(event) {
         event.preventDefault();
         const tile = this.getTileAtClientPoint(event);
+        this.focalTile = { x: tile.x, y: tile.y };
         if (typeof handleMapTileDoubleClick === "function") {
             handleMapTileDoubleClick(tile.x, tile.y, event);
         }
