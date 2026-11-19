@@ -1696,6 +1696,38 @@ function getAvailableBuildCategoryIds() {
     });
 }
 
+function updateTechnologyVisibility() {
+    const buttons = document.querySelectorAll(".habit-node > .habit-skill");
+    Array.prototype.forEach.call(buttons, function (button) {
+        const node = button.parentElement;
+        const parentList = node ? node.parentElement : null;
+        if (!node || !parentList
+            || !parentList.classList.contains("habit-children")) {
+            if (node) node.hidden = false;
+            return;
+        }
+
+        const parentNode = parentList.parentElement;
+        let parentButton = null;
+        if (parentNode) {
+            for (let index = 0; index < parentNode.children.length; index++) {
+                const child = parentNode.children[index];
+                if (child.classList && child.classList.contains("habit-skill")) {
+                    parentButton = child;
+                    break;
+                }
+            }
+        }
+        if (!parentButton) {
+            node.hidden = false;
+            return;
+        }
+
+        const parentLevel = Number(parentButton.dataset.level || 0);
+        node.hidden = !(parentLevel >= 1);
+    });
+}
+
 function refreshTabVisibility() {
     if (typeof player === "undefined" || !player) return;
 
@@ -1724,6 +1756,23 @@ function refreshTabVisibility() {
         const actionButton = document.getElementById("actiontab");
         if (actionButton) actionButton.click();
     }
+
+    // The Map is hidden until at least one tile reaches 100% exploration.
+    let fullyScouted = player.hasFullyScoutedTile === true;
+    if (!fullyScouted && window.mapView
+        && typeof window.mapView.hasFullyScoutedTile === "function") {
+        fullyScouted = window.mapView.hasFullyScoutedTile();
+        if (fullyScouted) player.hasFullyScoutedTile = true;
+    }
+    setTabElementHidden("maptab", !fullyScouted);
+    if (!fullyScouted && isPrimaryTabActive("maptab")) {
+        const actionButton = document.getElementById("actiontab");
+        if (actionButton) actionButton.click();
+    }
+
+    // Research technologies stay hidden until their parent technology in the
+    // tree has been researched at least once.
+    updateTechnologyVisibility();
 
     // Craft and its category tabs only appear while at least one recipe in
     // that category is currently craftable.

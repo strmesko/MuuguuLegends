@@ -296,13 +296,19 @@ const ACTIONS = [
         kind: ACTION_KIND.Instant,
         initialState: Activity.Idle,
         isVisible: function () {
-            return !(typeof isTraveling === "function" && isTraveling())
+            return typeof player !== "undefined"
+                && !!player
+                && Number(player.lvl) >= 2
+                && !(typeof isTraveling === "function" && isTraveling())
                 && !(typeof isCombatActive === "function" && isCombatActive());
         },
         isEnabled: function () {
-            return !(typeof isTraveling === "function" && isTraveling())
+            return typeof player !== "undefined"
+                && !!player
+                && Number(player.lvl) >= 2
+                && !(typeof isTraveling === "function" && isTraveling())
                 && !(typeof isCombatActive === "function" && isCombatActive())
-                && !!(typeof player !== "undefined" && player && player.hp > 0);
+                && player.hp > 0;
         },
         unavailableMessage: "You cannot enter combat right now.",
         run: function () {
@@ -2085,6 +2091,7 @@ function updateTechnologyButtons() {
     });
     if (typeof updateHabitVisibility === "function") updateHabitVisibility();
     if (typeof updateHabitSettings === "function") updateHabitSettings();
+    if (typeof updateTechnologyVisibility === "function") updateTechnologyVisibility();
 }
 
 function tryActivateAutoRest() {

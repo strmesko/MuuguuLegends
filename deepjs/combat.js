@@ -1208,6 +1208,9 @@ function performCombatAttack(attacker, defender, options) {
             addCombatSkillExp("dodging", 1);
             // Dodge dancing trains from the attacker's raw hit stat.
             addCombatSkillExp("dodgedancing", getCombatBaseHit(attacker));
+            if (typeof player !== "undefined" && player && player.agi) {
+                player.agi.addexp(hitChance);
+            }
         }
         return;
     }
@@ -1222,6 +1225,7 @@ function performCombatAttack(attacker, defender, options) {
 
     if (defender.kind === "player" && typeof player !== "undefined" && player) {
         player.hp = defender.hp;
+        if (player.vit) player.vit.addexp(damage);
     }
 
     if (attacker.kind === "player") {
@@ -1229,6 +1233,9 @@ function performCombatAttack(attacker, defender, options) {
         addCombatSkillExp("anatomy", 1);
         if (crit) addCombatSkillExp("bullseye", 2);
         grantWeaponSkillExp(damage);
+        if (typeof player !== "undefined" && player && player.str) {
+            player.str.addexp(damage);
+        }
     }
 
     if (attacker.kind === "mob" && attacker.id === "assspider") {

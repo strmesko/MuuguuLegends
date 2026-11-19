@@ -2136,6 +2136,7 @@ class Character {
         this.maxHunger = 1000;
         this.hasExperiencedHunger = false;
         this.hasDayDreamed = false;
+        this.hasFullyScoutedTile = false;
         this.autoEatActive = false;
         this.exp = 0;
         this.lvl = 1;

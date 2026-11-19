@@ -281,6 +281,26 @@ class MapView {
         };
     }
 
+    hasFullyScoutedTile() {
+        if (typeof currentTile !== "undefined" && currentTile
+            && Number(currentTile.revealed) >= EXPLORATION_COMPLETE) {
+            return true;
+        }
+        let found = false;
+        this.world.chunks.forEach(function (chunk) {
+            if (found) return;
+            chunk.forEach(function (row) {
+                if (found) return;
+                row.forEach(function (tile) {
+                    if (tile && Number(tile.revealed) >= EXPLORATION_COMPLETE) {
+                        found = true;
+                    }
+                });
+            });
+        });
+        return found;
+    }
+
     collectTileStates() {
         const states = {};
         const size = this.world.chunkSize;
