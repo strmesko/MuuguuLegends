@@ -1307,7 +1307,10 @@ function productionLoop(diff, options) {
     runHearthfireProduction(diff);
     staminaRegen(diff);
     hpRegen(diff);
-    if (!skipManaRegen) manaRegen(diff);
+    if (!skipManaRegen) {
+        if (typeof tryAutoFocusMana === "function") tryAutoFocusMana();
+        manaRegen(diff);
+    }
     runPhotosynthesisHunger(diff);
     updateDayDreamUnlock(diff);
     if (typeof tryStartBullyCombat === "function") {
@@ -3988,8 +3991,18 @@ function hpRegen(timeAmount){
         ));
     }
 }
+function getManaRegenPerSecond() {
+    return Math.pow((getEffectiveLevel("int") * getEffectiveLevel("meditation") * (getEffectiveLevel("sou") * 0.01)), 1 / 2)
+        * getSleepRegenMultiplier()
+        * getGlobalPropertyMultiplier("manaregen")
+        * getHearthfireRegenMultiplier()
+        * (typeof getDarkManaRegenMultiplier === "function" ? getDarkManaRegenMultiplier() : 1)
+        * getHungerManaRegenMultiplier()
+        * getWellFedRegenMultiplier();
+}
+
 function manaRegen(timeAmount){
-    var regenAmount = round2(Math.pow((getEffectiveLevel("int") * getEffectiveLevel("meditation") * (getEffectiveLevel("sou")* 0.01)), 1/2) * timeAmount * getSleepRegenMultiplier() * getGlobalPropertyMultiplier("manaregen") * getHearthfireRegenMultiplier() * (typeof getDarkManaRegenMultiplier === "function" ? getDarkManaRegenMultiplier() : 1) * getHungerManaRegenMultiplier() * getWellFedRegenMultiplier());
+    var regenAmount = round2(getManaRegenPerSecond() * timeAmount);
     if (player.mana == player.maxmana) {}
     else if (player.mana + regenAmount > player.maxmana){
         player.meditation.addexp(round2((player.maxmana - player.mana)/ regenAmount * timeAmount));

@@ -15,7 +15,7 @@ const LAZY_BASICS_TECHNOLOGY = new Technology(
         int: BASE_EXP / 10,
         ins: BASE_EXP / 5,
     },
-    6,
+    7,
     [
         "Automatically rest when stamina is low (can be disabled in Habits).",
         "Automatically resume all previous actions after resting (daydreaming is handled separately at level 5).",
@@ -23,6 +23,7 @@ const LAZY_BASICS_TECHNOLOGY = new Technology(
         "Automatically start foraging after searching is complete.",
         "Automatically start daydreaming when there is nothing to do.",
         "Start a new action even with no free action points by cancelling active actions.",
+        "Unlocks the Auto Focus mana habit, which costs 5 focus points to enable.",
     ]
 );
 const COZY_SCIENCE_TECHNOLOGY = new Technology(
@@ -675,6 +676,14 @@ var HABIT_CATEGORIES = [
                 requiredLevel: 5,
             },
             {
+                id: "autoFocusMana",
+                name: "Auto Focus at full mana",
+                description: "Lazy basics level 7: automatically use Focus when current mana plus one second of mana regeneration reaches maximum mana. Enabling costs 5 focus points; disabling refunds them.",
+                requiredLevel: 7,
+                defaultEnabled: false,
+                focusCost: 5,
+            },
+            {
                 id: "cozyScienceAutoResearch",
                 name: "Auto switch to research on selection",
                 description: "Cozy science: cancel the current action and start researching when no research is queued.",
@@ -765,6 +774,7 @@ var HABIT_CATEGORIES = [
                 requiredTechnology: "harvestTheYummies",
                 requiredLevel: 1,
                 defaultEnabled: false,
+                focusCost: HARVEST_TREES_FOCUS_COST,
             },
             {
                 id: "harvestTreePriorityStat",

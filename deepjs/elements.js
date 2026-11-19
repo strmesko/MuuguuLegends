@@ -1584,18 +1584,20 @@ function renderStatusIcons() {
                 input.id = 'habittoggle-' + habit.id;
                 input.checked = habitToggles[habit.id] !== false;
                 input.addEventListener('change', function () {
-                    if (habit.id === 'harvestTrees') {
+                    const focusCost = Math.max(0, Number(habit.focusCost) || 0);
+                    if (focusCost > 0) {
                         if (input.checked) {
-                            if (focusPoints < HARVEST_TREES_FOCUS_COST) {
+                            if (focusPoints < focusCost) {
                                 input.checked = false;
                                 habitToggles[habit.id] = false;
                                 logMessage('Not enough focus points to enable ' + habit.name + ' ('
-                                    + HARVEST_TREES_FOCUS_COST + ' required).');
+                                    + focusCost + ' required).');
                                 return;
                             }
-                            focusPoints -= HARVEST_TREES_FOCUS_COST;
+                            focusPoints -= focusCost;
                             habitToggles[habit.id] = true;
-                            if (typeof previousTimedActionIds !== 'undefined'
+                            if (habit.id === 'harvestTrees'
+                                && typeof previousTimedActionIds !== 'undefined'
                                 && Array.isArray(previousTimedActionIds)) {
                                 previousTimedActionIds = previousTimedActionIds.filter(function (actionId) {
                                     return actionId !== 'treesharvest';
@@ -1603,16 +1605,17 @@ function renderStatusIcons() {
                             }
                             updateFocusPointsDisplay();
                             logMessage(habit.name + ' habit enabled (-'
-                                + HARVEST_TREES_FOCUS_COST + ' focus points).');
-                            if (typeof startTreeHarvestIfEnabled === 'function') {
+                                + focusCost + ' focus points).');
+                            if (habit.id === 'harvestTrees'
+                                && typeof startTreeHarvestIfEnabled === 'function') {
                                 startTreeHarvestIfEnabled();
                             }
                         } else {
                             habitToggles[habit.id] = false;
-                            focusPoints += HARVEST_TREES_FOCUS_COST;
+                            focusPoints += focusCost;
                             updateFocusPointsDisplay();
                             logMessage(habit.name + ' habit disabled (+'
-                                + HARVEST_TREES_FOCUS_COST + ' focus points refunded).');
+                                + focusCost + ' focus points refunded).');
                         }
                         return;
                     }

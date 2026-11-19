@@ -98,6 +98,58 @@ function performFocus() {
     return true;
 }
 
+let autoFocusManaRunning = false;
+
+// Lazy basics level 7: spend mana through Focus when the next second of
+// regeneration would otherwise overflow the mana bar. Repeats while the
+// condition still holds and Focus remains available.
+function tryAutoFocusMana() {
+    if (autoFocusManaRunning) return false;
+    if (typeof isHabitEnabled !== "function"
+        || !isHabitEnabled("autoFocusMana")) {
+        return false;
+    }
+    if (typeof isFocusAvailable !== "function" || !isFocusAvailable()) {
+        return false;
+    }
+    if (typeof player === "undefined" || !player) return false;
+
+    const maxMana = Number(player.maxmana) || 0;
+    if (maxMana <= 0) return false;
+    const regen = typeof getManaRegenPerSecond === "function"
+        ? getManaRegenPerSecond()
+        : 0;
+    if ((Number(player.mana) || 0) + regen < maxMana) return false;
+    if (typeof getFocusSkipManaCost === "function"
+        && (Number(player.mana) || 0) < getFocusSkipManaCost()) {
+        return false;
+    }
+
+    autoFocusManaRunning = true;
+    let uses = 0;
+    try {
+        while (uses < 50 && isFocusAvailable()) {
+            const current = Number(player.mana) || 0;
+            const currentRegen = typeof getManaRegenPerSecond === "function"
+                ? getManaRegenPerSecond()
+                : 0;
+            if (current + currentRegen < maxMana) break;
+            if (typeof getFocusSkipManaCost === "function"
+                && current < getFocusSkipManaCost()) {
+                break;
+            }
+
+            const manaBefore = current;
+            if (!performFocus()) break;
+            uses += 1;
+            if ((Number(player.mana) || 0) >= manaBefore) break;
+        }
+    } finally {
+        autoFocusManaRunning = false;
+    }
+    return uses > 0;
+}
+
 function canMove() {
     return currentTile.revealed >= EXPLORATION_COMPLETE;
 }
