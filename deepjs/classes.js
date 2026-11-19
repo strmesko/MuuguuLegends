@@ -1,4 +1,6 @@
 const BASE_EXP = 100;
+const EXPERIENCE_LEVEL_STEP = 10;
+const EXPERIENCE_LEVEL_MULTIPLIER = 1.1;
 const CHARACTER_EXP_LEVEL_STEP = 10;
 const CHARACTER_EXP_LEVEL_MULTIPLIER = 1.01;
 // 100% is the baseline potential scale used by experience calculations. It is
@@ -2354,9 +2356,14 @@ function getStatPropertyKey(stat) {
     return null;
 }
 
+// Stats and skills gain another 1.1 multiplier to the required experience at
+// every 10th level: 10-19, 20-29, 30-39 and so on.
 function getExperienceRequiredForLevel(level) {
     const value = Number(level);
-    return (Number.isFinite(value) && value > 0 ? value : 1) * BASE_EXP;
+    const current = Number.isFinite(value) && value > 0 ? value : 1;
+    const tiers = Math.floor(current / EXPERIENCE_LEVEL_STEP);
+    return current * BASE_EXP
+        * Math.pow(EXPERIENCE_LEVEL_MULTIPLIER, tiers);
 }
 
 // Character levels use their own requirement curve: every 10th level applies
