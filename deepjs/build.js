@@ -496,6 +496,7 @@ const BUILDING_DEFS = Object.freeze({
         roomSpaceReward: 8,
         roomSpaceBonusFromQuality: true,
         skill: "digging",
+        requiredDiggingLevel: 5,
         effects: Object.freeze([]),
         iconClass: "fa-home",
         effectText: "Provides 8 RoomSpace plus a bonus equal to sqrt(BuildingQuality).",
@@ -1276,6 +1277,10 @@ function canBuildBuilding(def) {
     }
     if ((Number(def.requiredCarpentryLevel) || 0) > 0
         && getEffectiveLevel("carpentry") < def.requiredCarpentryLevel) {
+        return false;
+    }
+    if ((Number(def.requiredDiggingLevel) || 0) > 0
+        && getEffectiveLevel("digging") < def.requiredDiggingLevel) {
         return false;
     }
 
@@ -2919,6 +2924,19 @@ function renderHousesResources() {
 
     const container = document.createElement("div");
     container.className = "craftresources";
+
+    if ((Number(def.requiredDiggingLevel) || 0) > 0) {
+        const diggingLevel = getEffectiveLevel("digging");
+        const levelRow = createBuildValueRow(
+            "Digging",
+            round2(diggingLevel) + " / " + def.requiredDiggingLevel,
+            "digging"
+        );
+        levelRow.classList.add(
+            diggingLevel >= def.requiredDiggingLevel ? "enough" : "missing"
+        );
+        container.appendChild(levelRow);
+    }
 
     def.resources.forEach(function (requirement) {
         const row = createBuildResourceRow(def, requirement);
