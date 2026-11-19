@@ -2134,6 +2134,7 @@ class Character {
         this.stamina = maxstamina;
         this.hunger = 0;
         this.maxHunger = 1000;
+        this.hasExperiencedHunger = false;
         this.autoEatActive = false;
         this.exp = 0;
         this.lvl = 1;

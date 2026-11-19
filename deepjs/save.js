@@ -381,6 +381,8 @@
         restoredPlayer.hunger = Number.isFinite(savedHunger)
             ? Math.max(-100, savedHunger)
             : 0;
+        restoredPlayer.hasExperiencedHunger = savedPlayer
+            && savedPlayer.hasExperiencedHunger === true;
         restoredPlayer.autoEatActive = savedPlayer
             && savedPlayer.autoEatActive === true;
         // Character exp uses its own level curve; recalculate the threshold so

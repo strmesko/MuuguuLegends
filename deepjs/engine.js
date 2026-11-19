@@ -251,10 +251,25 @@ function getActiveHungerTier() {
         const active = tier.aboveOnly
             ? hunger > max * tier.threshold
             : hunger >= max * tier.threshold;
-        if (active) return tier;
+        if (active) {
+            markHungerDebuffExperienced();
+            return tier;
+        }
     }
 
     return null;
+}
+
+function markHungerDebuffExperienced() {
+    if (!player || player.hasExperiencedHunger === true) return;
+    player.hasExperiencedHunger = true;
+    if (typeof updateActionButton === "function") {
+        updateActionButton("treesharvest");
+    }
+}
+
+function hasExperiencedHunger() {
+    return !!(player && player.hasExperiencedHunger === true);
 }
 
 function getHungerActionMultiplier() {

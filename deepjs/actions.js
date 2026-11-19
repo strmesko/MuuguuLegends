@@ -234,12 +234,13 @@ const ACTIONS = [
                 + round2(2 + 0.01 * level) + "."
                 + "<br>Each food consumption costs 30 mana."
                 + "<br>If mana is insufficient, the action switches itself off."
+                + "<br>Requires Digestomancy level 5."
                 + "<br>Toggleable actions do not spend action points.";
         },
         kind: ACTION_KIND.Toggle,
         initialState: Activity.Idle,
         isVisible: function () {
-            return getEffectiveLevel("digestomancy") >= 1;
+            return getEffectiveLevel("digestomancy") >= 5;
         },
         isEnabled: function () {
             return typeof isCombatActive !== "function" || !isCombatActive();
@@ -368,17 +369,23 @@ const ACTIONS = [
         id: "treesharvest",
         label: "Trees Harvest",
         tags: ["harvest"],
-        description: "Harvest a random fruit or nut tree for its resource every second. After 60 seconds the tree gains the Harvested property until the next in-game month.<br>Amount per second: sqrt((AGI + PER) / 2 * (Gardening + Foraging / 2)) / 100.",
+        description: "Harvest a random fruit or nut tree for its resource every second. After 60 seconds the tree gains the Harvested property until the next in-game month.<br>Amount per second: sqrt((AGI + PER) / 2 * (Gardening + Foraging / 2)) / 100.<br>Unlocked after experiencing hunger for the first time.",
         kind: ACTION_KIND.Timed,
         initialState: Activity.Idle,
         startMessage: "You start harvesting trees",
         stopMessage: "You stop harvesting trees",
         completeMessage: "There are no more fruit or nut trees to harvest here",
         isVisible: function () {
-            return typeof hasHarvestableTrees === "function" && hasHarvestableTrees();
+            return typeof hasExperiencedHunger === "function"
+                && hasExperiencedHunger()
+                && typeof hasHarvestableTrees === "function"
+                && hasHarvestableTrees();
         },
         isComplete: function () {
-            return typeof hasHarvestableTrees === "function" && !hasHarvestableTrees();
+            return typeof hasExperiencedHunger !== "function"
+                || !hasExperiencedHunger()
+                || (typeof hasHarvestableTrees === "function"
+                    && !hasHarvestableTrees());
         },
         run: runTreesHarvestProduction,
     },
@@ -1878,7 +1885,7 @@ function isCaloriesBoosterActive() {
 function isVitaminsRushActive() {
     return actionStates.vitaminsrush === Activity.Active
         && typeof getEffectiveLevel === "function"
-        && getEffectiveLevel("digestomancy") >= 1;
+        && getEffectiveLevel("digestomancy") >= 5;
 }
 
 // Returns the potential-bonus multiplier for one food consumption. The 30 mana
