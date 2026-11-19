@@ -468,6 +468,41 @@ function updateHungerStarvationTick(diff) {
     }
 }
 
+// Base hunger restored by one unit of an edible resource before quality and
+// feast multipliers. Category bases intentionally dominate the old flat 1.
+const RESOURCE_BASE_HUNGER_RESTORE = Object.freeze({
+    meat: 100,
+    nut: 100,
+    grain: 50,
+    vegetable: 30,
+    fruit: 30,
+    other: 10,
+});
+
+function getResourceBaseHungerRestore(resourceId) {
+    const id = Number(resourceId);
+    const definition = RESOURCE_DEFS[id];
+    if (definition && definition.meat === true) {
+        return RESOURCE_BASE_HUNGER_RESTORE.meat;
+    }
+    if (typeof NUT_RESOURCE_IDS !== "undefined"
+        && NUT_RESOURCE_IDS.indexOf(id) !== -1) {
+        return RESOURCE_BASE_HUNGER_RESTORE.nut;
+    }
+    if (typeof isCropResource === "function" && isCropResource(id)) {
+        return RESOURCE_BASE_HUNGER_RESTORE.grain;
+    }
+    if (typeof VEGETABLE_RESOURCE_IDS !== "undefined"
+        && VEGETABLE_RESOURCE_IDS.indexOf(id) !== -1) {
+        return RESOURCE_BASE_HUNGER_RESTORE.vegetable;
+    }
+    if (typeof FRUIT_RESOURCE_IDS !== "undefined"
+        && FRUIT_RESOURCE_IDS.indexOf(id) !== -1) {
+        return RESOURCE_BASE_HUNGER_RESTORE.fruit;
+    }
+    return RESOURCE_BASE_HUNGER_RESTORE.other;
+}
+
 // Automatic eating uses the canonical resource tag, not a hardcoded list of
 // edible categories. Everything tagged "Edible" can be eaten raw.
 function getEdibleResourceIds(excludedId) {
@@ -626,7 +661,9 @@ function updateAutoHungerEating() {
         const feastHungerMultiplier = typeof getEquippedFeastEfficiencyMultiplier === "function"
             ? getEquippedFeastEfficiencyMultiplier()
             : 1;
-        const restorePerUnit = (1 + Math.pow(quality, 1.2)) * feastHungerMultiplier;
+        const restorePerUnit = getResourceBaseHungerRestore(resourceId)
+            * (1 + Math.pow(quality, 1.2))
+            * feastHungerMultiplier;
         const needed = hunger / restorePerUnit;
         const consumed = Math.min(needed, available);
 
