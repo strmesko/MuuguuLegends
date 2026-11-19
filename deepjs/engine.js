@@ -503,20 +503,28 @@ function getResourceBaseHungerRestore(resourceId) {
     return RESOURCE_BASE_HUNGER_RESTORE.other;
 }
 
+function getResourceHungerRestoreForQuality(resourceId, quality, includeFeast) {
+    const numericQuality = Number(quality);
+    const safeQuality = Number.isFinite(numericQuality) && numericQuality > 0
+        ? numericQuality
+        : RESOURCE_DEFAULT_QUALITY;
+    const feastMultiplier = includeFeast === false
+        ? 1
+        : (typeof getEquippedFeastEfficiencyMultiplier === "function"
+            ? getEquippedFeastEfficiencyMultiplier()
+            : 1);
+    return getResourceBaseHungerRestore(resourceId)
+        * (1 + Math.pow(safeQuality, 1.2))
+        * feastMultiplier;
+}
+
 function getResourceHungerRestorePerUnit(resourceId) {
     const stack = resources[resourceId];
     if (!stack) return 0;
     const quality = Number.isFinite(stack.quality) && stack.quality > 0
         ? stack.quality
         : RESOURCE_DEFAULT_QUALITY;
-    const feastMultiplier = typeof getEquippedFeastEfficiencyMultiplier === "function"
-        ? getEquippedFeastEfficiencyMultiplier()
-        : 1;
-    return round2(
-        getResourceBaseHungerRestore(resourceId)
-        * (1 + Math.pow(quality, 1.2))
-        * feastMultiplier
-    );
+    return round2(getResourceHungerRestoreForQuality(resourceId, quality, true));
 }
 
 // Automatic eating uses the canonical resource tag, not a hardcoded list of

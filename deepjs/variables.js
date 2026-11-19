@@ -78,13 +78,14 @@ const FAUNA_BULLY_TECHNOLOGY = new Technology(
             && player.autism.lvl >= 10 + 5 * technology.level;
     },
     null,
-    4,
+    5,
     function (technology) {
         const levels = [
             "Unlocks the Bully local fauna habit. While enabled and at full HP, combat starts automatically if you are not resting, sleeping or travelling.",
             "The habit will not attack mobs whose level is higher than the character's level.",
             "Automatically uses Spirit Speak during combat when HP is below half and enough mana is available.",
             "Automatically uses Spirit Speak whenever current HP plus its heal is below maximum HP, keeping the character topped up.",
+            "The combat window closes immediately after defeating an enemy instead of waiting for the auto-close delay.",
         ];
         return levels.map(function (description, index) {
             const level = index + 1;

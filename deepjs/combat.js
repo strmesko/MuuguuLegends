@@ -1113,6 +1113,15 @@ function finishCombat(victory) {
 
     const combatSnapshot = activeCombat;
     if (combatSnapshot.autoCloseTimer) clearTimeout(combatSnapshot.autoCloseTimer);
+
+    const instantVictoryClose = victory
+        && typeof FAUNA_BULLY_TECHNOLOGY !== "undefined"
+        && FAUNA_BULLY_TECHNOLOGY.level >= 5;
+    if (instantVictoryClose) {
+        exitCombat();
+        return;
+    }
+
     combatSnapshot.autoCloseTimer = setTimeout(function () {
         if (activeCombat === combatSnapshot) exitCombat();
     }, COMBAT_AUTO_CLOSE_DELAY_MS);

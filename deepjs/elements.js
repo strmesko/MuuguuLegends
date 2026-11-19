@@ -617,6 +617,16 @@ if (typeof updateAscensionMultiplierDisplay === 'function') {
             foodLines.push('Hunger restore: ' + round2(hungerRestore) + ' per unit');
           }
         }
+        if (typeof getResourceHungerRestoreForQuality === 'function') {
+          foodLines.push(
+            'Base hunger per unit (Q1/Q10/Q100): '
+            + round2(getResourceHungerRestoreForQuality(resource.id, 1, false))
+            + ' / '
+            + round2(getResourceHungerRestoreForQuality(resource.id, 10, false))
+            + ' / '
+            + round2(getResourceHungerRestoreForQuality(resource.id, 100, false))
+          );
+        }
         const tastymeter = Number(definition.Tastymeter);
         if (Number.isFinite(tastymeter)) {
           foodLines.push('Tastymeter: ' + round2(tastymeter) + '/10');
