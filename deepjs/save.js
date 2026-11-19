@@ -383,6 +383,8 @@
             : 0;
         restoredPlayer.hasExperiencedHunger = savedPlayer
             && savedPlayer.hasExperiencedHunger === true;
+        restoredPlayer.hasDayDreamed = savedPlayer
+            && savedPlayer.hasDayDreamed === true;
         restoredPlayer.autoEatActive = savedPlayer
             && savedPlayer.autoEatActive === true;
         // Character exp uses its own level curve; recalculate the threshold so

@@ -81,6 +81,7 @@ function updateGUI() {
     renderStatusIcons();
     removeStaleTooltips();
     updateLearnedSkillsGUI();
+    if (typeof refreshTabVisibility === "function") refreshTabVisibility();
 }
 
 function updateBar(barId, textId, current, maximum, label) {

@@ -1639,3 +1639,135 @@ function renderStatusIcons() {
     renderHabitCategories();
 
     // subtabs for building
+
+// --- primary tab and child category visibility ------------------------------
+// Tabs that lead to nothing useful are hidden until their unlock condition or
+// at least one currently craftable/buildable entry exists.
+function setTabElementHidden(elementId, hidden) {
+    const element = document.getElementById(elementId);
+    if (element) element.hidden = hidden === true;
+}
+
+function isPrimaryTabActive(elementId) {
+    const element = document.getElementById(elementId);
+    return !!element && element.classList.contains("active");
+}
+
+function getAvailableCraftCategoryIds() {
+    if (typeof CRAFT_CATEGORIES === "undefined"
+        || typeof getCraftRecipesByCategory !== "function"
+        || typeof canCraftRecipe !== "function") {
+        return [];
+    }
+
+    return CRAFT_CATEGORIES.filter(function (category) {
+        const hasRecipe = getCraftRecipesByCategory(category.id).some(function (recipe) {
+            return canCraftRecipe(recipe);
+        });
+        if (hasRecipe) return true;
+        return category.id === "food"
+            && typeof SPICE_CRAFT_RECIPES !== "undefined"
+            && typeof canCraftSpice === "function"
+            && SPICE_CRAFT_RECIPES.some(canCraftSpice);
+    }).map(function (category) {
+        return category.id;
+    });
+}
+
+function getAvailableBuildCategoryIds() {
+    if (typeof BUILDING_DEFS === "undefined"
+        || typeof BUILDING_CATEGORIES === "undefined"
+        || typeof canBuildBuilding !== "function") {
+        return [];
+    }
+
+    const defs = Object.keys(BUILDING_DEFS).map(getBuildingDefinition).filter(Boolean);
+    return BUILDING_CATEGORIES.filter(function (category) {
+        if (category.id === BUILDING_IMPROVE_CATEGORY.id) {
+            return typeof canImproveBuilding === "function"
+                && Array.isArray(buildings)
+                && buildings.some(canImproveBuilding);
+        }
+        return defs.some(function (def) {
+            return def.category === category.id && canBuildBuilding(def);
+        });
+    }).map(function (category) {
+        return category.id;
+    });
+}
+
+function refreshTabVisibility() {
+    if (typeof player === "undefined" || !player) return;
+
+    // Research is hidden until DayDream has actually been used at least once.
+    const researchVisible = player.hasDayDreamed === true;
+    setTabElementHidden("researchtab", !researchVisible);
+    if (!researchVisible && isPrimaryTabActive("researchtab")) {
+        const actionButton = document.getElementById("actiontab");
+        if (actionButton) actionButton.click();
+    }
+
+    // Knowledge is the advanced research sub-tab.
+    const knowledgeVisible = Number(player.autism && player.autism.lvl) >= 10
+        && Number(player.science && player.science.lvl) >= 5;
+    setTabElementHidden("researchknowledge", !knowledgeVisible);
+    if (!knowledgeVisible && isPrimaryTabActive("researchknowledge")) {
+        const habitsResearch = document.getElementById("researchhabits");
+        if (habitsResearch) habitsResearch.click();
+    }
+
+    // The standalone Habits tab appears after Lazy basics is researched.
+    const habitsVisible = typeof LAZY_BASICS_TECHNOLOGY !== "undefined"
+        && LAZY_BASICS_TECHNOLOGY.level >= 1;
+    setTabElementHidden("habitstab", !habitsVisible);
+    if (!habitsVisible && isPrimaryTabActive("habitstab")) {
+        const actionButton = document.getElementById("actiontab");
+        if (actionButton) actionButton.click();
+    }
+
+    // Craft and its category tabs only appear while at least one recipe in
+    // that category is currently craftable.
+    const availableCraftCategories = getAvailableCraftCategoryIds();
+    const craftVisible = availableCraftCategories.length > 0;
+    setTabElementHidden("crafttab", !craftVisible);
+
+    if (typeof CRAFT_CATEGORIES !== "undefined") {
+        CRAFT_CATEGORIES.forEach(function (category) {
+            const available = availableCraftCategories.indexOf(category.id) !== -1;
+            setTabElementHidden(category.buttonId, !available);
+            if (!available && isPrimaryTabActive(category.buttonId)
+                && craftVisible
+                && typeof setActiveCraftCategory === "function") {
+                setActiveCraftCategory(availableCraftCategories[0]);
+            }
+        });
+    }
+
+    if (!craftVisible && isPrimaryTabActive("crafttab")) {
+        const actionButton = document.getElementById("actiontab");
+        if (actionButton) actionButton.click();
+    }
+
+    // Build and its category tabs follow the same rule using current
+    // resources, room space and construction requirements.
+    const availableBuildCategories = getAvailableBuildCategoryIds();
+    const buildVisible = availableBuildCategories.length > 0;
+    setTabElementHidden("buildtab", !buildVisible);
+
+    if (typeof BUILDING_CATEGORIES !== "undefined") {
+        BUILDING_CATEGORIES.forEach(function (category) {
+            const available = availableBuildCategories.indexOf(category.id) !== -1;
+            setTabElementHidden(category.buttonId, !available);
+            if (!available && isPrimaryTabActive(category.buttonId)
+                && buildVisible
+                && typeof setActiveBuildCategory === "function") {
+                setActiveBuildCategory(availableBuildCategories[0]);
+            }
+        });
+    }
+
+    if (!buildVisible && isPrimaryTabActive("buildtab")) {
+        const actionButton = document.getElementById("actiontab");
+        if (actionButton) actionButton.click();
+    }
+}

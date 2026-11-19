@@ -1215,6 +1215,9 @@ function startTimedAction(action) {
     }
 
     logMessage(action.startMessage);
+    if (action.id === "daydream" && player) {
+        player.hasDayDreamed = true;
+    }
     if (action.id === "sleep" && typeof resetSleepTileDiscovery === "function") {
         resetSleepTileDiscovery();
     }

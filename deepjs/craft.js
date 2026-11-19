@@ -3300,6 +3300,32 @@ function renderCraftList(category) {
     });
 
     if (category.id === "food") renderSpiceCraftGroup(list);
+    updateCraftGroupVisibility(category);
+}
+
+function isCraftGroupAvailable(category, groupId) {
+    if (!category || !groupId) return false;
+    if (category.id === "food" && groupId === "spices") {
+        return typeof SPICE_CRAFT_RECIPES !== "undefined"
+            && typeof canCraftSpice === "function"
+            && SPICE_CRAFT_RECIPES.some(canCraftSpice);
+    }
+    return getCraftRecipesByCategory(category.id).some(function (recipe) {
+        return getCraftRecipeGroupId(recipe) === groupId
+            && canCraftRecipe(recipe);
+    });
+}
+
+function updateCraftGroupVisibility(category) {
+    if (!category) return;
+    const list = document.getElementById(category.id + "craftlist");
+    if (!list) return;
+    const groups = list.querySelectorAll(".craftcategory");
+    Array.prototype.forEach.call(groups, function (group) {
+        const groupId = group.dataset.craftGroup;
+        if (!groupId) return;
+        group.hidden = !isCraftGroupAvailable(category, groupId);
+    });
 }
 
 // Spice crafting works on resources, not items, so it gets its own compact
@@ -4263,6 +4289,7 @@ function refreshCraftAvailability() {
     CRAFT_CATEGORIES.forEach(function (category) {
         if (category.id === "food" && getSelectedSpiceRecipe()) {
             refreshSpiceCraftSelection();
+            updateCraftGroupVisibility(category);
             return;
         }
 
@@ -4420,6 +4447,8 @@ function refreshCraftAvailability() {
         if (detailsPanel && detailsPanel.dataset.craftQuality !== quality) {
             renderCraftDetails(category);
         }
+
+        updateCraftGroupVisibility(category);
     });
 
     refreshSpiceCraftRows();
