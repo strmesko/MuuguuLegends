@@ -570,7 +570,6 @@ var currentTile = {
     x: 0,
     y: 0,
     revealed: 0,
-    scouted: 0,
     investigated: 0,
     hiddenstuff: 0,
     maxSearchUnits: 0,

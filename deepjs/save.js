@@ -110,12 +110,6 @@
             currentTile: {
                 x: currentTile.x,
                 y: currentTile.y,
-                revealed: currentTile.revealed,
-                scouted: currentTile.scouted ?? currentTile.revealed,
-                investigated: currentTile.investigated,
-                hiddenstuff: currentTile.hiddenstuff,
-        maxSearchUnits: currentTile.maxSearchUnits || 0,
-                discovered: currentTile.discovered === true,
                 land: Object.assign({}, currentTile.land),
                 resourceMultipliers: Object.assign({}, currentTile.resourceMultipliers),
                 space: Object.assign({}, currentTile.space),
@@ -342,6 +336,7 @@
             assPoisonStacks: saveData.assPoisonStacks ?? 0,
             assPoisonRemaining: saveData.assPoisonRemaining ?? 0,
             mapSeed: saveData.mapSeed ?? null,
+            tileStates: saveData.tileStates ?? {},
             landTotals: saveData.landTotals ?? {
                 trees: saveData.trees ?? 0,
                 grass: saveData.grass ?? 0,
@@ -586,17 +581,25 @@
             currentTile = { x: tileX, y: tileY, land: {}, resourceMultipliers: {} };
         }
 
-        currentTile.revealed = tileState.revealed ?? tileState.scouted ?? 0;
-        currentTile.scouted = tileState.scouted ?? currentTile.revealed;
-        currentTile.investigated = tileState.investigated ?? 0;
-        currentTile.hiddenstuff = tileState.hiddenstuff ?? 0;
-    currentTile.maxSearchUnits = Math.max(
-        currentTile.hiddenstuff,
-        tileState.maxSearchUnits ?? currentTile.hiddenstuff
-    );
-    currentTile.discovered = typeof tileState.discovered === "boolean"
-        ? tileState.discovered
-        : currentTile.revealed > 0;
+        // Research state now lives only on the tile. CurrentTile carries the
+        // rest of the tile payload for compatibility; old saves that only have
+        // research values here are migrated into the tile on first load.
+        const hasLoadedResearchState = Number(currentTile.revealed) > 0
+            || Number(currentTile.investigated) > 0
+            || Number(currentTile.hiddenstuff) > 0
+            || currentTile.discovered === true;
+        if (!hasLoadedResearchState) {
+            currentTile.revealed = tileState.revealed ?? tileState.scouted ?? 0;
+            currentTile.investigated = tileState.investigated ?? 0;
+            currentTile.hiddenstuff = tileState.hiddenstuff ?? 0;
+            currentTile.maxSearchUnits = Math.max(
+                currentTile.hiddenstuff,
+                tileState.maxSearchUnits ?? currentTile.hiddenstuff
+            );
+            currentTile.discovered = typeof tileState.discovered === "boolean"
+                ? tileState.discovered
+                : currentTile.revealed > 0;
+        }
         currentTile.land = Object.assign({ trees: 0, grass: 0, rocks: 0, water: 0 }, tileState.land || {});
         currentTile.resourceMultipliers = Object.assign({}, tileState.resourceMultipliers || {});
         currentTile.space = Object.assign(

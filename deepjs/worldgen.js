@@ -1677,6 +1677,7 @@ class WorldGen {
     setSeed(seed) {
         this.seed = seed;
         this.noise = new PerlinNoise(seed);
+        this.generationBounds = null;
         this.resetRivers();
         this.chunks.clear();
     }

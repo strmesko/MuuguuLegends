@@ -1300,7 +1300,6 @@ function runExploreProduction(diff) {
 
     const distanceDivisor = 1 + Math.abs(currentTile.x + currentTile.y) / 10;
     currentTile.revealed = Math.min(EXPLORATION_COMPLETE, currentTile.revealed + EXPLORATION_PROGRESS_RATE * (Math.sqrt(getEffectiveLevel("per") * getEffectiveLevel("exploration")) * (getEffectiveLevel("speed") / PERCENT)) * diff / distanceDivisor * getActionEffectivenessMultiplier("explore"));
-    currentTile.scouted = currentTile.revealed;
     if (window.mapView && typeof window.mapView.refresh === "function") {
         window.mapView.refresh();
     }

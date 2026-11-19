@@ -262,7 +262,6 @@
                 return;
             }
             currentTile.revealed = EXPLORATION_COMPLETE;
-            currentTile.scouted = EXPLORATION_COMPLETE;
             setCheatStatus("Current tile fully revealed.");
             refreshGameUI();
         },

@@ -6,7 +6,7 @@ function ensureGameplayTileState(tile, x, y) {
     if (typeof tile.revealed !== "number") {
         tile.revealed = typeof tile.scouted === "number" ? tile.scouted : 0;
     }
-    if (typeof tile.scouted !== "number") tile.scouted = tile.revealed;
+    delete tile.scouted;
     if (typeof tile.investigated !== "number") tile.investigated = 0;
     if (typeof tile.hiddenstuff !== "number") tile.hiddenstuff = 0;
     if (typeof tile.maxSearchUnits !== "number") {
@@ -49,11 +49,9 @@ class MapView {
         this.cameraStartY = 0;
         this.hover = null;
         this.focalTile = { x: 0, y: 0 };
-        // Per-tile exploration/search state restored from a save. Tiles keep
-        // their live values while the session is running; this cache is only
-        // applied once per tile after loading.
-        this.savedTileStates = {};
-        this.tileStateGeneration = 0;
+        // Exploration and search state lives directly on each generated tile.
+        // No second cache is kept: the world chunks are the single source of
+        // truth, and saves merely serialize those fields.
         this.discoveryBounds = null;
         this.generationMargin = 12;
         this.tileTypeById = new Map(this.world.tileTypes.map((type) => [type.id, type]));
@@ -148,26 +146,33 @@ class MapView {
     }
 
     setTileStates(states) {
-        this.savedTileStates = states && typeof states === 'object'
-            ? states
-            : {};
-        Object.keys(this.savedTileStates).forEach((key) => {
-            const state = this.savedTileStates[key];
+        const source = states && typeof states === 'object' ? states : {};
+        this.discoveryBounds = null;
+        if (this.world && typeof this.world.setGenerationBounds === "function") {
+            this.world.setGenerationBounds(null);
+        }
+
+        Object.keys(source).forEach((key) => {
+            const state = source[key];
             if (!state || typeof state !== "object") return;
-            if (state.discovered !== true && !(Number(state.revealed) > 0)) {
-                return;
-            }
+
             const coordinates = String(key).split(",");
             const x = Number(coordinates[0]);
             const y = Number(coordinates[1]);
-            if (Number.isFinite(x) && Number.isFinite(y)) {
-                this.noteDiscoveredTile(x, y);
-            }
+            if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+
+            const tile = ensureGameplayTileState(
+                this.world.getTileData(x, y),
+                x,
+                y
+            );
+            if (!tile) return;
+
+            this.applyTileStateData(tile, state);
+            if (tile.discovered) this.noteDiscoveredTile(x, y);
         });
+
         this.updateGenerationBounds();
-        // Invalidate the "already restored" marker on any tile object that
-        // survived a reload in the same page.
-        this.tileStateGeneration += 1;
     }
 
     noteDiscoveredTile(x, y) {
@@ -201,35 +206,27 @@ class MapView {
         });
     }
 
-    applySavedTileState(tile, x, y) {
-        if (!tile) return null;
-
-        if (tile.__tileStateGeneration === this.tileStateGeneration) {
-            return tile;
-        }
-        tile.__tileStateGeneration = this.tileStateGeneration;
-
-        const state = this.savedTileStates[this.getTileStateKey(x, y)];
-        if (!state || typeof state !== 'object') return tile;
+    applyTileStateData(tile, state) {
+        if (!tile || !state || typeof state !== "object") return tile;
 
         const revealed = Number(state.revealed);
-        const scouted = Number(state.scouted);
+        const legacyScouted = Number(state.scouted);
         const investigated = Number(state.investigated);
         const hiddenstuff = Number(state.hiddenstuff);
         const maxSearchUnits = Number(state.maxSearchUnits);
 
         if (Number.isFinite(revealed)) {
             tile.revealed = Math.max(0, revealed);
-        } else if (Number.isFinite(scouted)) {
-            tile.revealed = Math.max(0, scouted);
+        } else if (Number.isFinite(legacyScouted)) {
+            // Old saves stored the same value under `scouted`.
+            tile.revealed = Math.max(0, legacyScouted);
         }
-        if (Number.isFinite(scouted)) {
-            tile.scouted = Math.max(0, scouted);
-        } else {
-            tile.scouted = tile.revealed;
+        if (Number.isFinite(investigated)) {
+            tile.investigated = Math.max(0, investigated);
         }
-        if (Number.isFinite(investigated)) tile.investigated = Math.max(0, investigated);
-        if (Number.isFinite(hiddenstuff)) tile.hiddenstuff = Math.max(0, hiddenstuff);
+        if (Number.isFinite(hiddenstuff)) {
+            tile.hiddenstuff = Math.max(0, hiddenstuff);
+        }
         if (typeof state.discovered === "boolean") {
             tile.discovered = state.discovered;
         } else if ((Number.isFinite(revealed) && revealed > 0)
@@ -242,16 +239,15 @@ class MapView {
         tile.maxSearchUnits = Number.isFinite(maxSearchUnits)
             ? Math.max(tile.hiddenstuff, maxSearchUnits)
             : Math.max(tile.maxSearchUnits || 0, tile.hiddenstuff);
-        if (tile.discovered) {
-            this.noteDiscoveredTile(x, y);
-            this.updateGenerationBounds();
-        }
         return tile;
     }
 
     getGameplayTile(x, y) {
-        const tile = ensureGameplayTileState(this.world.getTileData(x, y), x, y);
-        return this.applySavedTileState(tile, x, y);
+        return ensureGameplayTileState(
+            this.world.getTileData(x, y),
+            x,
+            y
+        );
     }
 
     getTilePassability(x, y) {
@@ -261,13 +257,28 @@ class MapView {
         return Number.isFinite(passability) && passability > 0 ? passability : 1;
     }
 
-    getTileStateSource(tile, x, y) {
+    serializeTileState(tile) {
         if (!tile) return null;
-        const saved = this.savedTileStates[this.getTileStateKey(x, y)];
-        const applied = tile.__tileStateGeneration === this.tileStateGeneration;
-        return !applied && saved && typeof saved === "object"
-            ? saved
-            : tile;
+        const revealed = Math.max(0, Number(tile.revealed) || 0);
+        const investigated = Math.max(0, Number(tile.investigated) || 0);
+        const hiddenstuff = Math.max(0, Number(tile.hiddenstuff) || 0);
+        const maxSearchUnits = Math.max(
+            hiddenstuff,
+            Number(tile.maxSearchUnits) || 0
+        );
+        const discovered = tile.discovered === true
+            || revealed > 0
+            || investigated > 0;
+        if (!discovered && revealed <= 0 && investigated <= 0 && hiddenstuff <= 0) {
+            return null;
+        }
+        return {
+            revealed: revealed,
+            investigated: investigated,
+            hiddenstuff: hiddenstuff,
+            maxSearchUnits: maxSearchUnits,
+            discovered: discovered,
+        };
     }
 
     collectTileStates() {
@@ -283,34 +294,11 @@ class MapView {
             chunk.forEach((row, localY) => {
                 row.forEach((tile, localX) => {
                     if (!tile) return;
-
                     const worldX = chunkX * size + localX;
                     const worldY = chunkY * size + localY;
-                    const source = this.getTileStateSource(tile, worldX, worldY) || tile;
-                    const revealed = Math.max(0, Number(source.revealed) || 0);
-                    const scouted = Math.max(
-                        Math.max(0, Number(source.scouted) || 0),
-                        revealed
-                    );
-                    const investigated = Math.max(0, Number(source.investigated) || 0);
-                    const hiddenstuff = Math.max(0, Number(source.hiddenstuff) || 0);
-                    const maxSearchUnits = Math.max(
-                        hiddenstuff,
-                        Number(source.maxSearchUnits) || 0
-                    );
-                    const discovered = source.discovered === true
-                        || revealed > 0
-                        || investigated > 0;
-                    if (!discovered && revealed <= 0 && investigated <= 0 && hiddenstuff <= 0) return;
-
-                    states[this.getTileStateKey(worldX, worldY)] = {
-                        revealed: revealed,
-                        scouted: scouted,
-                        investigated: investigated,
-                        hiddenstuff: hiddenstuff,
-                        maxSearchUnits: maxSearchUnits,
-                        discovered: discovered,
-                    };
+                    const state = this.serializeTileState(tile);
+                    if (!state) return;
+                    states[this.getTileStateKey(worldX, worldY)] = state;
                 });
             });
         });
@@ -318,34 +306,9 @@ class MapView {
         // The current tile normally belongs to a generated chunk, but keep a
         // fallback for the initial plain tile before the map has been built.
         if (typeof currentTile !== 'undefined' && currentTile) {
-            const source = this.getTileStateSource(
-                currentTile,
-                currentTile.x,
-                currentTile.y
-            ) || currentTile;
-            const revealed = Math.max(0, Number(source.revealed) || 0);
-            const scouted = Math.max(
-                Math.max(0, Number(source.scouted) || 0),
-                revealed
-            );
-            const investigated = Math.max(0, Number(source.investigated) || 0);
-            const hiddenstuff = Math.max(0, Number(source.hiddenstuff) || 0);
-            const maxSearchUnits = Math.max(
-                hiddenstuff,
-                Number(source.maxSearchUnits) || 0
-            );
-            const discovered = source.discovered === true
-                || revealed > 0
-                || investigated > 0;
-            if (discovered || revealed > 0 || investigated > 0 || hiddenstuff > 0) {
-                states[this.getTileStateKey(currentTile.x, currentTile.y)] = {
-                    revealed: revealed,
-                    scouted: scouted,
-                    investigated: investigated,
-                    hiddenstuff: hiddenstuff,
-                    maxSearchUnits: maxSearchUnits,
-                    discovered: discovered,
-                };
+            const state = this.serializeTileState(currentTile);
+            if (state) {
+                states[this.getTileStateKey(currentTile.x, currentTile.y)] = state;
             }
         }
 
@@ -460,6 +423,7 @@ class MapView {
 
     setSeed(seed) {
         this.world.setSeed(seed);
+        this.discoveryBounds = null;
         this.hover = null;
         this.hideTooltip();
         this.jumpToStart(false);
