@@ -3190,7 +3190,9 @@ function renderCraftList(category) {
 
     list.innerHTML = "";
 
-    const recipes = getCraftRecipesByCategory(category.id).filter(isCraftRecipeUnlocked);
+    const recipes = getCraftRecipesByCategory(category.id).filter(function (recipe) {
+        return showSpoilers === true || isCraftRecipeUnlocked(recipe);
+    });
 
     if (!recipes.length) {
         const group = document.createElement("div");
@@ -3304,6 +3306,7 @@ function renderCraftList(category) {
 }
 
 function isCraftGroupAvailable(category, groupId) {
+    if (showSpoilers === true) return true;
     if (!category || !groupId) return false;
     if (category.id === "food" && groupId === "spices") {
         return typeof SPICE_CRAFT_RECIPES !== "undefined"

@@ -319,6 +319,9 @@ var dietPriorityStat = "";
 var dietAutoCookCategory = "";
 var harvestTreePriorityStat = "";
 var numberFormat = "standard";
+// Cheat-menu display toggle: reveal tabs, technologies and locked recipes,
+// but never the action buttons.
+var showSpoilers = false;
 const NUMBER_FORMAT_OPTIONS = Object.freeze([
     Object.freeze({ value: "standard", label: "Standard" }),
     Object.freeze({ value: "suffix", label: "Suffix (1.23K)" }),

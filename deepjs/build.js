@@ -1937,7 +1937,7 @@ function renderBuildList() {
     group.appendChild(groupTitle);
 
     const defs = Object.keys(BUILDING_DEFS).map(getBuildingDefinition).filter(function (def) {
-        return def && def.category === BUILDING_CATEGORY.id && isBuildingUnlocked(def);
+        return def && def.category === BUILDING_CATEGORY.id && (showSpoilers === true || isBuildingUnlocked(def));
     });
 
     if (!defs.length) {
@@ -2407,7 +2407,7 @@ function renderBuildingsList() {
     group.appendChild(groupTitle);
 
     const defs = Object.keys(BUILDING_DEFS).map(getBuildingDefinition).filter(function (def) {
-        return def && def.category === BUILDINGS_CATEGORY.id && isBuildingUnlocked(def);
+        return def && def.category === BUILDINGS_CATEGORY.id && (showSpoilers === true || isBuildingUnlocked(def));
     });
 
     if (!defs.length) {
@@ -2850,7 +2850,7 @@ function renderHousesList() {
     group.appendChild(groupTitle);
 
     const defs = Object.keys(BUILDING_DEFS).map(getBuildingDefinition).filter(function (def) {
-        return def && def.category === HOUSES_CATEGORY.id && isBuildingUnlocked(def);
+        return def && def.category === HOUSES_CATEGORY.id && (showSpoilers === true || isBuildingUnlocked(def));
     });
 
     if (!defs.length) {
@@ -3306,7 +3306,7 @@ function renderFurnitureList() {
     group.appendChild(groupTitle);
 
     const defs = Object.keys(BUILDING_DEFS).map(getBuildingDefinition).filter(function (def) {
-        return def && def.category === FURNITURE_CATEGORY.id && isBuildingUnlocked(def);
+        return def && def.category === FURNITURE_CATEGORY.id && (showSpoilers === true || isBuildingUnlocked(def));
     });
 
     if (!defs.length) {
@@ -4341,3 +4341,4 @@ if (document.readyState === "loading") {
 } else {
     initBuildInterface();
 }
+

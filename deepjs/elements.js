@@ -611,6 +611,12 @@ if (typeof updateAscensionMultiplierDisplay === 'function') {
       }
       if (definition && definition.RestoresHunger) {
         foodLines.push('RestoresHunger: Yes');
+        if (typeof getResourceHungerRestorePerUnit === 'function') {
+          const hungerRestore = getResourceHungerRestorePerUnit(resource.id);
+          if (hungerRestore > 0) {
+            foodLines.push('Hunger restore: ' + round2(hungerRestore) + ' per unit');
+          }
+        }
         const tastymeter = Number(definition.Tastymeter);
         if (Number.isFinite(tastymeter)) {
           foodLines.push('Tastymeter: ' + round2(tastymeter) + '/10');
@@ -1697,6 +1703,13 @@ function getAvailableBuildCategoryIds() {
 }
 
 function updateTechnologyVisibility() {
+    if (showSpoilers === true) {
+        const nodes = document.querySelectorAll(".habit-node");
+        Array.prototype.forEach.call(nodes, function (node) {
+            node.hidden = false;
+        });
+        return;
+    }
     const buttons = document.querySelectorAll(".habit-node > .habit-skill");
     Array.prototype.forEach.call(buttons, function (button) {
         const node = button.parentElement;
@@ -1730,6 +1743,27 @@ function updateTechnologyVisibility() {
 
 function refreshTabVisibility() {
     if (typeof player === "undefined" || !player) return;
+
+    if (showSpoilers === true) {
+        [
+            "researchtab", "maptab", "habitstab", "crafttab", "buildtab",
+            "researchknowledge",
+        ].forEach(function (id) {
+            setTabElementHidden(id, false);
+        });
+        if (typeof CRAFT_CATEGORIES !== "undefined") {
+            CRAFT_CATEGORIES.forEach(function (category) {
+                setTabElementHidden(category.buttonId, false);
+            });
+        }
+        if (typeof BUILDING_CATEGORIES !== "undefined") {
+            BUILDING_CATEGORIES.forEach(function (category) {
+                setTabElementHidden(category.buttonId, false);
+            });
+        }
+        updateTechnologyVisibility();
+        return;
+    }
 
     // Research is hidden until DayDream has actually been used at least once.
     const researchVisible = player.hasDayDreamed === true;

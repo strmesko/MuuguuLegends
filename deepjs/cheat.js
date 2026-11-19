@@ -42,6 +42,14 @@
         }
     }
 
+    function updateSpoilerButton() {
+        if (!cheatMenuElement) return;
+        const button = cheatMenuElement.querySelector("#cheat-spoilers");
+        if (!button) return;
+        button.innerText = "Show spoilers: "
+            + (showSpoilers === true ? "On" : "Off");
+    }
+
     function getCheatNumber(inputId, fallback) {
         if (!cheatMenuElement) return fallback;
         const input = cheatMenuElement.querySelector("#" + inputId);
@@ -279,8 +287,27 @@
             refreshGameUI();
         },
 
-        "travel-immediately": function () {
-            if (typeof activeTravel !== "undefined" && activeTravel) {
+        "toggle-spoilers": function () {
+            showSpoilers = showSpoilers !== true;
+            updateSpoilerButton();
+
+            if (typeof renderCraftPanels === "function") renderCraftPanels();
+            if (typeof renderBuildPanels === "function") renderBuildPanels();
+            if (typeof renderBuildingsPanels === "function") renderBuildingsPanels();
+            if (typeof renderHousesPanels === "function") renderHousesPanels();
+            if (typeof renderFurniturePanels === "function") renderFurniturePanels();
+            if (typeof updateTechnologyButtons === "function") {
+                updateTechnologyButtons();
+            } else if (typeof updateTechnologyVisibility === "function") {
+                updateTechnologyVisibility();
+            }
+            if (typeof refreshTabVisibility === "function") {
+                refreshTabVisibility();
+            }
+            setCheatStatus("Spoilers "
+                + (showSpoilers === true ? "enabled." : "disabled."));
+        },
+        "travel-immediately": function () {            if (typeof activeTravel !== "undefined" && activeTravel) {
                 activeTravel.remaining = 0;
                 runTravelProduction(0);
                 setCheatStatus("Travel completed immediately.");
@@ -389,6 +416,13 @@
             + '      <button type="button" data-cheat="advance-day">+1 day</button>'
             + '    </div>'
             + '  </section>'
+            + '  <section class="cheatmenu-section">'
+            + '    <h3>Interface</h3>'
+            + '    <div class="cheatrow">'
+            + '      <button type="button" id="cheat-spoilers" data-cheat="toggle-spoilers">Show spoilers: Off</button>'
+            + '      <span class="cheatmenu-note">Reveals tabs, technologies and locked recipes. Actions stay hidden.</span>'
+            + '    </div>'
+            + '  </section>'
             + '  <div id="cheatmenu-status" class="cheatmenu-status"></div>'
             + '</div>';
 
@@ -420,6 +454,7 @@
         if (!isDebugEnabled()) return;
         const menu = buildCheatMenu();
         menu.hidden = false;
+        updateSpoilerButton();
         menu.focus();
     }
 

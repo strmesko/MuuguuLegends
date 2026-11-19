@@ -503,6 +503,22 @@ function getResourceBaseHungerRestore(resourceId) {
     return RESOURCE_BASE_HUNGER_RESTORE.other;
 }
 
+function getResourceHungerRestorePerUnit(resourceId) {
+    const stack = resources[resourceId];
+    if (!stack) return 0;
+    const quality = Number.isFinite(stack.quality) && stack.quality > 0
+        ? stack.quality
+        : RESOURCE_DEFAULT_QUALITY;
+    const feastMultiplier = typeof getEquippedFeastEfficiencyMultiplier === "function"
+        ? getEquippedFeastEfficiencyMultiplier()
+        : 1;
+    return round2(
+        getResourceBaseHungerRestore(resourceId)
+        * (1 + Math.pow(quality, 1.2))
+        * feastMultiplier
+    );
+}
+
 // Automatic eating uses the canonical resource tag, not a hardcoded list of
 // edible categories. Everything tagged "Edible" can be eaten raw.
 function getEdibleResourceIds(excludedId) {
@@ -655,15 +671,7 @@ function updateAutoHungerEating() {
             continue;
         }
 
-        const quality = Number.isFinite(stack.quality) && stack.quality > 0
-            ? stack.quality
-            : RESOURCE_DEFAULT_QUALITY;
-        const feastHungerMultiplier = typeof getEquippedFeastEfficiencyMultiplier === "function"
-            ? getEquippedFeastEfficiencyMultiplier()
-            : 1;
-        const restorePerUnit = getResourceBaseHungerRestore(resourceId)
-            * (1 + Math.pow(quality, 1.2))
-            * feastHungerMultiplier;
+        const restorePerUnit = getResourceHungerRestorePerUnit(resourceId);
         const needed = hunger / restorePerUnit;
         const consumed = Math.min(needed, available);
 
