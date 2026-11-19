@@ -79,12 +79,22 @@ const FAUNA_BULLY_TECHNOLOGY = new Technology(
     },
     null,
     4,
-    [
-        "Unlocks the Bully local fauna habit. When enabled, combat starts automatically at full HP if you are not resting or travelling.",
-        "Will not attack monsters with a higher level than the character.",
-        "Automatically uses Spirit Speak during combat when HP is below half and there is enough mana.",
-        "Automatically uses Spirit Speak when current HP plus the heal amount is below Max HP.",
-    ],
+    function (technology) {
+        const levels = [
+            "Unlocks the Bully local fauna habit. While enabled and at full HP, combat starts automatically if you are not resting, sleeping or travelling.",
+            "The habit will not attack mobs whose level is higher than the character's level.",
+            "Automatically uses Spirit Speak during combat when HP is below half and enough mana is available.",
+            "Automatically uses Spirit Speak whenever current HP plus its heal is below maximum HP, keeping the character topped up.",
+        ];
+        return levels.map(function (description, index) {
+            const level = index + 1;
+            const cost = typeof technology.requiredResearch === "function"
+                ? technology.requiredResearch(level - 1)
+                : technology.requiredResearch;
+            return "Lv" + level + ": " + description
+                + "<br><b>Cost: " + cost + " research points.</b>";
+        }).join("<br>");
+    },
     function () {
         if (typeof updateHabitVisibility === "function") updateHabitVisibility();
         if (typeof updateHabitSettings === "function") updateHabitSettings();
