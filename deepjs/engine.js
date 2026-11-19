@@ -469,14 +469,14 @@ function updateHungerStarvationTick(diff) {
 }
 
 // Base hunger restored by one unit of an edible resource before quality and
-// feast multipliers. Category bases intentionally dominate the old flat 1.
+// feast multipliers.
 const RESOURCE_BASE_HUNGER_RESTORE = Object.freeze({
-    meat: 100,
-    nut: 100,
-    grain: 50,
-    vegetable: 30,
-    fruit: 30,
-    other: 10,
+    meat: 10,
+    nut: 10,
+    grain: 5,
+    vegetable: 3,
+    fruit: 3,
+    other: 1,
 });
 
 function getResourceBaseHungerRestore(resourceId) {
