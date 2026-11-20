@@ -3164,10 +3164,22 @@ function runTreesHarvestProduction(diff) {
 // Called by the game clock exactly when the calendar month changes.
 const FARM_HARVEST_SECONDS = 30;
 const FARM_HARVEST_AMOUNT = 100;
+const FARM_HARVEST_QUALITY_BONUS = 10;
 const farmHarvestState = {
     uid: null,
     progress: 0,
 };
+
+// A farm yields its base amount plus 10 units for every full quality level of
+// that particular farm. Planted trees keep their flat base yield.
+function getFarmHarvestAmount(building) {
+    if (!building || building.defId !== BUILDING_IDS.FARM_CROP) {
+        return FARM_HARVEST_AMOUNT;
+    }
+
+    const qualityLevel = Math.floor(Math.max(0, getBuildingQualityValue(building)));
+    return FARM_HARVEST_AMOUNT + qualityLevel * FARM_HARVEST_QUALITY_BONUS;
+}
 
 function resetFarmHarvestState() {
     farmHarvestState.uid = null;
@@ -3235,8 +3247,9 @@ function runFarmHarvestProduction(diff) {
         : "the " + (targetDef ? targetDef.name.toLowerCase() : "tree");
 
     target.farmRipe = false;
-    addResource(harvestResourceId, FARM_HARVEST_AMOUNT, quality);
-    logMessage("You harvest " + FARM_HARVEST_AMOUNT + " "
+    const harvestAmount = getFarmHarvestAmount(target);
+    addResource(harvestResourceId, harvestAmount, quality);
+    logMessage("You harvest " + harvestAmount + " "
         + cropDefinition.name + " from " + sourceName + ".");
 
     if (player.farming) player.farming.addexp(1 + quality * 0.2);

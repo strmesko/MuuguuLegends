@@ -480,7 +480,7 @@ const ACTIONS = [
         id: "harvestcrops",
         label: "Harvest crops",
         tags: ["harvest", "harvesting"],
-        description: "Harvest ripe Farm crop fields and planted trees on the current tile.<br>Each harvest takes 30 seconds and then the field or tree turns back into a growing state until the next month. Harvest quality is the sum of the building's quality and the current action quality. Action quality is based on Vitality and Farming. Trains Farming and Vitality.",
+        description: "Harvest ripe Farm crop fields and planted trees on the current tile.<br>Each harvest takes 30 seconds and then the field or tree turns back into a growing state until the next month. A farm yields 100 units plus 10 more for every full quality level of that farm; planted trees yield 100 units. Harvest quality is the sum of the building's quality and the current action quality. Action quality is based on Vitality and Farming. Trains Farming and Vitality.",
         kind: ACTION_KIND.Timed,
         initialState: Activity.Idle,
         startMessage: "You start harvesting crops",
