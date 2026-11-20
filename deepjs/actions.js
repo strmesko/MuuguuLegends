@@ -1463,6 +1463,41 @@ function resumePreviousTimedActions() {    if (LAZY_BASICS_TECHNOLOGY.level < 2)
     return resumed;
 }
 
+// Actions that were interrupted by combat. They are resumed when combat ends
+// unless the character died.
+let combatResumeActionIds = [];
+
+function captureCombatResumeActions() {
+    combatResumeActionIds = ACTIONS.filter(function (action) {
+        return action.kind === ACTION_KIND.Timed
+            && action.id !== "sleep"
+            && isActionActive(action.id);
+    }).map(function (action) {
+        return action.id;
+    });
+    return combatResumeActionIds.slice();
+}
+
+function resumeCombatPreviousActions() {
+    const ids = combatResumeActionIds.slice();
+    combatResumeActionIds = [];
+    if (typeof playerDeathInProgress !== "undefined" && playerDeathInProgress) {
+        return 0;
+    }
+
+    let resumed = 0;
+    ids.forEach(function (actionId) {
+        if (actionsCount <= 0) return;
+        const action = getAction(actionId);
+        if (!action || action.kind !== ACTION_KIND.Timed) return;
+        if (isActionActive(action.id)) return;
+        if (!isActionVisible(action)) return;
+        if (action.isComplete && action.isComplete()) return;
+        if (startTimedAction(action)) resumed += 1;
+    });
+    return resumed;
+}
+
 function stopActiveTimedActions() {
     ACTIONS.forEach(function (activeAction) {
         if (activeAction.kind === ACTION_KIND.Timed && isActionActive(activeAction.id)) {

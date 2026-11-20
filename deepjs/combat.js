@@ -1444,6 +1444,9 @@ function enterCombat(mobId, options) {
         return false;
     }
 
+    if (typeof captureCombatResumeActions === "function") {
+        captureCombatResumeActions();
+    }
     if (typeof stopActiveTimedActions === "function") stopActiveTimedActions();
     if (typeof closeMapTravelDialog === "function") closeMapTravelDialog();
 
@@ -1488,6 +1491,11 @@ function exitCombat() {
         if (typeof logMessage === "function") {
             logMessage("You barely survive the fight.");
         }
+    }
+
+    if (typeof resumeCombatPreviousActions === "function"
+        && !(typeof playerDeathInProgress !== "undefined" && playerDeathInProgress)) {
+        resumeCombatPreviousActions();
     }
 
     if (typeof refreshActionButtons === "function") refreshActionButtons();
