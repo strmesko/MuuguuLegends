@@ -151,6 +151,7 @@
             resources: resources,
             foodStatBindings: Object.assign({}, foodStatBindings),
             buildings: typeof serializeBuildings === "function" ? serializeBuildings() : [],
+            npcs: typeof serializeNpcs === "function" ? serializeNpcs() : [],
             hearthfireFuelElapsed: round2(hearthfireFuelElapsed),
             DramaMeter: typeof DramaMeter !== "undefined" ? DramaMeter : 0,
             dramaEventTimer: typeof dramaEventTimer !== "undefined" ? dramaEventTimer : 0,
@@ -329,6 +330,7 @@
             resources: saveData.resources ?? saveData.stocks,
             foodStatBindings: saveData.foodStatBindings ?? null,
             buildings: Array.isArray(saveData.buildings) ? saveData.buildings : [],
+            npcs: Array.isArray(saveData.npcs) ? saveData.npcs : [],
             hearthfireFuelElapsed: saveData.hearthfireFuelElapsed ?? 0,
             DramaMeter: saveData.DramaMeter ?? 0,
             dramaEventTimer: saveData.dramaEventTimer ?? 0,
@@ -534,6 +536,9 @@
         // states are applied.
         if (typeof restoreBuildings === "function") {
             restoreBuildings(saved.buildings);
+        }
+        if (typeof restoreNpcs === "function") {
+            restoreNpcs(saved.npcs);
         }
         resetActionStates();
         Object.keys(saved.actionStates || {}).forEach(function (savedActionId) {

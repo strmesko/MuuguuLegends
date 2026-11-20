@@ -236,6 +236,50 @@ function clearNpcs() {
     nextNpcUid = 1;
 }
 
+function serializeNpcs() {
+    return npcs.map(function (npc) {
+        return {
+            uid: npc.uid,
+            type: npc.type,
+            level: npc.lvl,
+            x: npc.x,
+            y: npc.y,
+            mood: npc.mood,
+            favor: npc.favor,
+        };
+    });
+}
+
+function restoreNpcs(savedNpcs) {
+    clearNpcs();
+
+    (Array.isArray(savedNpcs) ? savedNpcs : []).forEach(function (saved) {
+        if (!saved) return;
+
+        const preset = getNpcPreset(saved.type);
+        if (!preset) return;
+
+        const level = Math.max(1, Math.floor(Number(saved.level) || 1));
+        const npc = new Npc(
+            preset,
+            level,
+            Number(saved.x) || 0,
+            Number(saved.y) || 0
+        );
+
+        const savedUid = Number(saved.uid);
+        if (Number.isInteger(savedUid) && savedUid > 0) {
+            npc.uid = savedUid;
+            nextNpcUid = Math.max(nextNpcUid, savedUid + 1);
+        }
+
+        if (saved.mood != null) npc.mood = clampNpcMood(saved.mood);
+        if (saved.favor != null) npc.favor = clampNpcFavor(saved.favor);
+
+        npcs.push(npc);
+    });
+}
+
 function getNpcDisplayName(npc) {
     if (!npc) return "NPC";
     return npc.name + " Lv " + npc.lvl;
