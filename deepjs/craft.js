@@ -1891,6 +1891,196 @@ const FISHING_RECIPES = Object.freeze([
     });
 })));
 
+const COOKING_FISH_IDS = Object.freeze(
+    (typeof FISH_RESOURCE_IDS !== "undefined" ? FISH_RESOURCE_IDS : [])
+        .filter(function (resourceId) {
+            const definition = RESOURCE_DEFS[resourceId];
+            return definition && definition.fishCategory !== "beasts";
+        })
+);
+
+function createFishDishRecipe(id, itemId, resources, options) {
+    const settings = options || {};
+    const recipe = {
+        id: "fish-dish-" + id,
+        category: "food",
+        itemId: itemId,
+        skill: "cooking",
+        stat: "sou",
+        group: settings.group || "meals",
+        resultNameSuffix: "",
+        resources: Object.freeze(resources.map(function (resource) {
+            return Object.freeze({
+                resourceId: resource[0],
+                amount: resource[1],
+            });
+        })),
+    };
+
+    const slots = [Object.freeze({
+        id: "fish",
+        resourceIds: settings.fishIds || COOKING_FISH_IDS,
+        amount: settings.fishAmount || 1,
+        label: "Choose fish:",
+    })];
+    if (settings.oil === true) {
+        slots.push(Object.freeze({
+            id: "oil",
+            resourceIds: OIL_RESOURCE_IDS,
+            amount: 1,
+            label: "Choose oil:",
+        }));
+    }
+    recipe.choiceSlots = Object.freeze(slots);
+
+    if (settings.itemChoiceId != null) {
+        recipe.itemChoice = Object.freeze({
+            itemId: settings.itemChoiceId,
+            label: settings.itemLabel || "Choose ingredient:",
+        });
+    }
+    if (settings.station === "pot") {
+        recipe.requiresEquippedSlot = "pot";
+        recipe.requiresWater = true;
+        recipe.requiresCampfire = true;
+    } else if (settings.station === "pan") {
+        recipe.requiresEquippedSlot = "pan";
+        recipe.requiresCampfire = true;
+    } else if (settings.station === "campfire") {
+        recipe.requiresCampfire = true;
+    }
+
+    return Object.freeze(recipe);
+}
+
+const FISH_DISH_RECIPES = Object.freeze([
+    createFishDishRecipe("fish-soup", ITEM_IDS.FISH_SOUP, [
+        [SOVIET_POTATO_ID, 2], [SOVIET_CARROT_ID, 1], [SAUCE_ONION_ID, 1],
+    ], { group: "meals", station: "pot" }),
+    createFishDishRecipe("grilled-fish", ITEM_IDS.GRILLED_FISH, [], {
+        group: "meals", oil: true, station: "campfire",
+    }),
+    createFishDishRecipe("fish-stew", ITEM_IDS.FISH_STEW, [
+        [SAUCE_TOMATO_ID, 2], [SOVIET_POTATO_ID, 2], [SAUCE_ONION_ID, 1],
+    ], { group: "meals", station: "pot" }),
+    createFishDishRecipe("fish-kebab", ITEM_IDS.FISH_KEBAB, [
+        [RESOURCE_IDS.STICKS, 1], [SAUCE_ONION_ID, 1],
+    ], { group: "meals", station: "campfire" }),
+    createFishDishRecipe("fish-salad", ITEM_IDS.FISH_SALAD, [
+        [SOVIET_CUCUMBER_ID, 1], [SAUCE_TOMATO_ID, 1], [SAUCE_OREGANO_ID, 1],
+    ], { group: "meals" }),
+    createFishDishRecipe("fish-pie", ITEM_IDS.FISH_PIE, [
+        [SOVIET_WHEAT_FLOUR_ID, 2], [RESOURCE_IDS.EGG, 1],
+    ], { group: "meals", station: "campfire" }),
+
+    createFishDishRecipe("spaghetti-vongole", ITEM_IDS.SPAGHETTI_VONGOLE, [
+        [SAUCE_GARLIC_ID, 2],
+    ], { group: "italian", oil: true, station: "pot", itemChoiceId: ITEM_IDS.RAW_SPAGHETTI, itemLabel: "Choose spaghetti:" }),
+    createFishDishRecipe("seafood-linguine", ITEM_IDS.SEAFOOD_LINGUINE, [
+        [SAUCE_TOMATO_ID, 2], [SAUCE_GARLIC_ID, 1],
+    ], { group: "italian", oil: true, station: "pot", itemChoiceId: ITEM_IDS.LINGUINE, itemLabel: "Choose linguine:" }),
+    createFishDishRecipe("fish-risotto", ITEM_IDS.FISH_RISOTTO, [
+        [ITALIAN_RICE_ID, 3], [SAUCE_ONION_ID, 1],
+    ], { group: "italian", oil: true, station: "pot" }),
+    createFishDishRecipe("italian-fried-fish", ITEM_IDS.ITALIAN_FRIED_FISH, [
+        [SOVIET_WHEAT_FLOUR_ID, 1], [RESOURCE_IDS.EGG, 1],
+    ], { group: "italian", oil: true, station: "pan" }),
+    createFishDishRecipe("sicilian-fish-stew", ITEM_IDS.SICILIAN_FISH_STEW, [
+        [SAUCE_TOMATO_ID, 3], [SAUCE_ONION_ID, 1], [RESOURCE_IDS.OLIVES, 1],
+    ], { group: "italian", oil: true, station: "pot", fishAmount: 2 }),
+    createFishDishRecipe("tuna-pasta", ITEM_IDS.TUNA_PASTA, [
+        [SAUCE_TOMATO_ID, 2], [SAUCE_GARLIC_ID, 1],
+    ], { group: "italian", oil: true, station: "pot", itemChoiceId: ITEM_IDS.PENNE, itemLabel: "Choose penne:" }),
+    createFishDishRecipe("seafood-lasagne", ITEM_IDS.SEAFOOD_LASAGNE, [
+        [SAUCE_TOMATO_ID, 2], [SAUCE_ONION_ID, 1],
+    ], { group: "italian", oil: true, station: "pot", itemChoiceId: ITEM_IDS.LASAGNE_SHEETS, itemLabel: "Choose lasagne sheets:" }),
+
+    createFishDishRecipe("ukha", ITEM_IDS.UKHA, [
+        [SOVIET_POTATO_ID, 2], [SOVIET_CARROT_ID, 1], [SAUCE_ONION_ID, 1], [SAUCE_OREGANO_ID, 1],
+    ], { group: "soviet", station: "pot", fishAmount: 2 }),
+    createFishDishRecipe("soviet-fried-fish", ITEM_IDS.SOVIET_FRIED_FISH, [
+        [SOVIET_WHEAT_FLOUR_ID, 1],
+    ], { group: "soviet", oil: true, station: "pan" }),
+    createFishDishRecipe("fish-kotleta", ITEM_IDS.FISH_KOTLETA, [
+        [RESOURCE_IDS.EGG, 1], [SOVIET_WHEAT_FLOUR_ID, 1], [SAUCE_ONION_ID, 1],
+    ], { group: "soviet", oil: true, station: "pan", fishAmount: 2 }),
+    createFishDishRecipe("soviet-fish-pie", ITEM_IDS.SOVIET_FISH_PIE, [
+        [SOVIET_WHEAT_FLOUR_ID, 2], [RESOURCE_IDS.EGG, 1], [SAUCE_ONION_ID, 1],
+    ], { group: "soviet", station: "campfire" }),
+    createFishDishRecipe("fish-potatoes", ITEM_IDS.FISH_POTATOES, [
+        [SOVIET_POTATO_ID, 3], [SAUCE_ONION_ID, 1],
+    ], { group: "soviet", oil: true, station: "pan" }),
+    createFishDishRecipe("fur-coat-fish", ITEM_IDS.FUR_COAT_FISH, [
+        [SOVIET_BEETROOT_ID, 2], [SOVIET_POTATO_ID, 2], [SOVIET_CARROT_ID, 1], [RESOURCE_IDS.EGG, 1],
+    ], { group: "soviet", itemChoiceId: ITEM_IDS.MAYONNAISE, itemLabel: "Choose mayonnaise:" }),
+    createFishDishRecipe("fish-cutlets", ITEM_IDS.FISH_CUTLETS, [
+        [RESOURCE_IDS.EGG, 1], [SOVIET_WHEAT_FLOUR_ID, 1],
+    ], { group: "soviet", oil: true, station: "pan", fishAmount: 2 }),
+
+    createFishDishRecipe("fish-sushi", ITEM_IDS.FISH_SUSHI, [
+        [ITALIAN_RICE_ID, 2], [4064, 1], [RESOURCE_IDS.LEMONS, 1],
+    ], { group: "asian", fishAmount: 2 }),
+    createFishDishRecipe("salmon-nigiri", ITEM_IDS.SALMON_NIGIRI, [
+        [ITALIAN_RICE_ID, 1], [4064, 1], [RESOURCE_IDS.LEMONS, 1],
+    ], { group: "asian" }),
+    createFishDishRecipe("fish-ramen", ITEM_IDS.FISH_RAMEN, [
+        [SAUCE_ONION_ID, 1], [RESOURCE_IDS.EGG, 1],
+    ], { group: "asian", station: "pot", itemChoiceId: ITEM_IDS.NOODLES, itemLabel: "Choose noodles:" }),
+    createFishDishRecipe("thai-fish-curry", ITEM_IDS.THAI_FISH_CURRY, [
+        [RESOURCE_IDS.COCONUTS, 1], [SAUCE_CHILI_ID, 2], [SAUCE_GINGER_ID, 1],
+    ], { group: "asian", oil: true, station: "pot" }),
+    createFishDishRecipe("teriyaki-fish", ITEM_IDS.TERIYAKI_FISH, [
+        [RESOURCE_IDS.SUGAR, 1], [SAUCE_GINGER_ID, 1],
+    ], { group: "asian", station: "pan", itemChoiceId: ITEM_IDS.SOY_SAUCE, itemLabel: "Choose soy sauce:" }),
+    createFishDishRecipe("fish-fried-rice", ITEM_IDS.FISH_FRIED_RICE, [
+        [ITALIAN_RICE_ID, 2], [RESOURCE_IDS.EGG, 1], [SOVIET_GREEN_PEAS_ID, 1],
+    ], { group: "asian", oil: true, station: "pan" }),
+    createFishDishRecipe("tom-yum-fish", ITEM_IDS.TOM_YUM_FISH, [
+        [RESOURCE_IDS.BUTTON_MUSHROOM, 2], [SAUCE_CHILI_ID, 2], [RESOURCE_IDS.LEMONS, 1],
+    ], { group: "asian", station: "pot" }),
+    createFishDishRecipe("steamed-fish", ITEM_IDS.STEAMED_FISH, [
+        [SAUCE_GINGER_ID, 1],
+    ], { group: "asian", station: "pot", itemChoiceId: ITEM_IDS.SOY_SAUCE, itemLabel: "Choose soy sauce:" }),
+    createFishDishRecipe("fish-gyoza", ITEM_IDS.FISH_GYOZA, [
+        [SOVIET_WHEAT_FLOUR_ID, 2], [SOVIET_CABBAGE_ID, 1], [SAUCE_ONION_ID, 1],
+    ], { group: "asian", oil: true, station: "pan" }),
+    createFishDishRecipe("fish-pho", ITEM_IDS.FISH_PHO, [
+        [SAUCE_ONION_ID, 1], [SAUCE_CORIANDER_ID, 1],
+    ], { group: "asian", station: "pot", itemChoiceId: ITEM_IDS.NOODLES, itemLabel: "Choose noodles:" }),
+
+    createFishDishRecipe("fish-tagine", ITEM_IDS.FISH_TAGINE, [
+        [SAUCE_TOMATO_ID, 2], [SAUCE_ONION_ID, 1], [SAUCE_CUMIN_ID, 1], [SAUCE_CORIANDER_ID, 1],
+    ], { group: "arabic", oil: true, station: "pot", fishAmount: 2 }),
+    createFishDishRecipe("arabic-grilled-fish", ITEM_IDS.ARABIC_GRILLED_FISH, [
+        [RESOURCE_IDS.LEMONS, 1], [SAUCE_CUMIN_ID, 1], [SAUCE_CORIANDER_ID, 1],
+    ], { group: "arabic", oil: true, station: "campfire" }),
+    createFishDishRecipe("fish-kofta", ITEM_IDS.FISH_KOFTA, [
+        [RESOURCE_IDS.EGG, 1], [SAUCE_ONION_ID, 1], [SAUCE_CUMIN_ID, 1],
+    ], { group: "arabic", oil: true, station: "pan", fishAmount: 2 }),
+    createFishDishRecipe("sayadieh", ITEM_IDS.SAYADIEH, [
+        [ITALIAN_RICE_ID, 3], [SAUCE_ONION_ID, 1], [SAUCE_CUMIN_ID, 1],
+    ], { group: "arabic", oil: true, station: "pot" }),
+    createFishDishRecipe("fish-shawarma", ITEM_IDS.FISH_SHAWARMA, [
+        [SOVIET_CUCUMBER_ID, 1], [SAUCE_TOMATO_ID, 1], [SAUCE_GARLIC_ID, 1],
+    ], { group: "arabic", station: "campfire", itemChoiceId: ITEM_IDS.FLAT_BREAD, itemLabel: "Choose flat bread:" }),
+    createFishDishRecipe("fish-couscous", ITEM_IDS.FISH_COUSCOUS, [
+        [SOVIET_WHEAT_FLOUR_ID, 2], [SAUCE_TOMATO_ID, 1], [SAUCE_ONION_ID, 1],
+    ], { group: "arabic", oil: true, station: "pot" }),
+
+    createFishDishRecipe("seafood-pizza", ITEM_IDS.SEAFOOD_PIZZA, [
+        [SAUCE_TOMATO_ID, 2], [SAUCE_OREGANO_ID, 1],
+    ], { group: "pizza", oil: true, station: "campfire", itemChoiceId: ITEM_IDS.FLAT_BREAD, itemLabel: "Choose flat bread:" }),
+    createFishDishRecipe("tuna-pizza", ITEM_IDS.TUNA_PIZZA, [
+        [SAUCE_TOMATO_ID, 2], [SAUCE_ONION_ID, 1],
+    ], { group: "pizza", station: "campfire", itemChoiceId: ITEM_IDS.FLAT_BREAD, itemLabel: "Choose flat bread:" }),
+    createFishDishRecipe("anchovy-pizza", ITEM_IDS.ANCHOVY_PIZZA, [
+        [SAUCE_TOMATO_ID, 2], [SAUCE_GARLIC_ID, 1], [SAUCE_CHILI_ID, 1],
+    ], { group: "pizza", station: "campfire", itemChoiceId: ITEM_IDS.FLAT_BREAD, itemLabel: "Choose flat bread:" }),
+    createFishDishRecipe("fish-pizza", ITEM_IDS.FISH_PIZZA, [
+        [SAUCE_TOMATO_ID, 2], [SAUCE_OREGANO_ID, 1],
+    ], { group: "pizza", oil: true, station: "campfire", itemChoiceId: ITEM_IDS.FLAT_BREAD, itemLabel: "Choose flat bread:" }),
+]);
+
 const BASE_CRAFT_RECIPES = Object.freeze([
     Object.freeze({
         id: "kebob-on-stick",
@@ -2217,6 +2407,7 @@ const BASE_CRAFT_RECIPES = Object.freeze([
     ...ASIAN_DISH_RECIPES,
     ...ARABIC_DISH_RECIPES,
     ...FISHING_RECIPES,
+    ...FISH_DISH_RECIPES,
     ...METAL_VARIANT_RECIPES,
 ]);
 
