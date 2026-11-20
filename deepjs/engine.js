@@ -3250,6 +3250,188 @@ function runFarmHarvestProduction(diff) {
     }
 }
 
+// Improving planted crops and trees spends Fertile Soil every 10 seconds and
+// pulls the building quality halfway towards the action's target quality.
+const PLANT_IMPROVE_SECONDS = 10;
+const PLANT_IMPROVE_SOIL_AMOUNT = 10;
+const PLANT_IMPROVE_REQUIRED_FARMING = 10;
+
+const improveCropsState = { progress: 0 };
+const improveTreesState = { progress: 0 };
+
+function resetImproveCropsState() {
+    improveCropsState.progress = 0;
+}
+
+function resetImproveTreesState() {
+    improveTreesState.progress = 0;
+}
+
+function getFertileSoilStack() {
+    return typeof resources !== "undefined" && resources
+        ? resources[RESOURCE_IDS.FERTILE_SOIL]
+        : null;
+}
+
+function getFertileSoilQuality() {
+    const stack = getFertileSoilStack();
+    const quality = stack ? Number(stack.quality) : RESOURCE_DEFAULT_QUALITY;
+    return Number.isFinite(quality) && quality > 0
+        ? quality
+        : RESOURCE_DEFAULT_QUALITY;
+}
+
+function getFertileSoilAmount() {
+    const stack = getFertileSoilStack();
+    return stack ? Math.max(0, Number(stack.amount) || 0) : 0;
+}
+
+function isFarmingLevelEnoughForImprove() {
+    return typeof getEffectiveLevel === "function"
+        && getEffectiveLevel("farming") >= PLANT_IMPROVE_REQUIRED_FARMING;
+}
+
+function getCompletedFarmCrops(tile) {
+    const target = tile || (typeof currentTile !== "undefined" ? currentTile : null);
+    if (!target || !Array.isArray(target.buildings)) return [];
+    return target.buildings.filter(function (building) {
+        return !!building
+            && building.completed === true
+            && building.defId === BUILDING_IDS.FARM_CROP;
+    });
+}
+
+function getCompletedPlantedTrees(tile) {
+    const target = tile || (typeof currentTile !== "undefined" ? currentTile : null);
+    if (!target || !Array.isArray(target.buildings)) return [];
+    return target.buildings.filter(function (building) {
+        if (!building || building.completed !== true) return false;
+        const def = typeof getBuildingDefinition === "function"
+            ? getBuildingDefinition(building.defId)
+            : null;
+        return !!(def && def.plantedTree);
+    });
+}
+
+function hasCompletedFarmCrops(tile) {
+    return getCompletedFarmCrops(tile).length > 0;
+}
+
+function hasCompletedPlantedTrees(tile) {
+    return getCompletedPlantedTrees(tile).length > 0;
+}
+
+function getPlantImproveActionQuality(skillKey) {
+    const vitality = Math.max(1, getEffectiveLevel("vit") || 0);
+    const skill = Math.max(1, getEffectiveLevel(skillKey) || 0);
+    return applyWellFedActionQuality(Math.sqrt(vitality * skill));
+}
+
+function getPlantImproveTargetQuality(actionQuality) {
+    return round2(getFertileSoilQuality() + (Number(actionQuality) || 0));
+}
+
+function getImprovedPlantQuality(building, actionQuality) {
+    const current = Math.max(0, Number(getBuildingQualityValue(building)) || 0);
+    const target = getPlantImproveTargetQuality(actionQuality);
+    if (target <= current) return current;
+    return round2((current + target) / 2);
+}
+
+function getPlantImproveCandidates(kind, actionQuality, tile) {
+    const pool = kind === "crops"
+        ? getCompletedFarmCrops(tile)
+        : getCompletedPlantedTrees(tile);
+    const target = getPlantImproveTargetQuality(actionQuality);
+    return pool.filter(function (building) {
+        return getBuildingQualityValue(building) < target;
+    });
+}
+
+function canImproveFarmCrops(tile) {
+    if (!isFarmingLevelEnoughForImprove()) return false;
+    if (getFertileSoilAmount() < PLANT_IMPROVE_SOIL_AMOUNT) return false;
+    return getPlantImproveCandidates(
+        "crops",
+        getPlantImproveActionQuality("farming"),
+        tile
+    ).length > 0;
+}
+
+function canImprovePlantedTrees(tile) {
+    if (!isFarmingLevelEnoughForImprove()) return false;
+    if (getFertileSoilAmount() < PLANT_IMPROVE_SOIL_AMOUNT) return false;
+    return getPlantImproveCandidates(
+        "trees",
+        getPlantImproveActionQuality("gardening"),
+        tile
+    ).length > 0;
+}
+
+function runPlantImproveProduction(kind, state, skillKey, diff) {
+    const actionQuality = getPlantImproveActionQuality(skillKey);
+    const candidates = getPlantImproveCandidates(kind, actionQuality);
+    if (!candidates.length) return;
+    if (getFertileSoilAmount() < PLANT_IMPROVE_SOIL_AMOUNT) return;
+
+    const seconds = Math.max(0, Number(diff) || 0);
+    if (seconds <= 0) return;
+
+    state.progress += seconds;
+    if (state.progress < PLANT_IMPROVE_SECONDS) return;
+    state.progress -= PLANT_IMPROVE_SECONDS;
+
+    // Another action or a manual change may have emptied the stack in between.
+    if (getFertileSoilAmount() < PLANT_IMPROVE_SOIL_AMOUNT) return;
+
+    const target = candidates[Math.floor(Math.random() * candidates.length)];
+    const oldQuality = getBuildingQualityValue(target);
+    const newQuality = getImprovedPlantQuality(target, actionQuality);
+
+    const soilStack = getFertileSoilStack();
+    if (soilStack) {
+        soilStack.amount = round2(Math.max(
+            0,
+            (Number(soilStack.amount) || 0) - PLANT_IMPROVE_SOIL_AMOUNT
+        ));
+    }
+
+    target.quality = newQuality;
+
+    const def = getBuildingDefinition(target.defId);
+    const name = def ? def.name : "plant";
+    logMessage("You improve " + name + " from Q" + round2(oldQuality)
+        + " to Q" + round2(newQuality) + " using "
+        + PLANT_IMPROVE_SOIL_AMOUNT + " Fertile Soil.");
+
+    if (player && player[skillKey] && typeof player[skillKey].addexp === "function") {
+        player[skillKey].addexp(1 + Math.max(0, newQuality - oldQuality) * 0.5);
+    }
+    if (player && player.vit && typeof player.vit.addexp === "function") {
+        player.vit.addexp(0.25);
+    }
+
+    if (typeof renderBuildingsPanels === "function") {
+        renderBuildingsPanels();
+    }
+    if (typeof renderImprovePanels === "function") {
+        renderImprovePanels();
+    }
+    if (typeof refreshMapCoordinates === "function") {
+        refreshMapCoordinates(true);
+    }
+}
+
+function runImproveCropsProduction(diff) {
+    if (actionStates.improvecrops !== Activity.Active) return;
+    runPlantImproveProduction("crops", improveCropsState, "farming", diff);
+}
+
+function runImproveTreesProduction(diff) {
+    if (actionStates.improvetrees !== Activity.Active) return;
+    runPlantImproveProduction("trees", improveTreesState, "gardening", diff);
+}
+
 function resetHarvestedTreesForNewMonth() {
     if (typeof window !== "undefined"
         && window.mapView

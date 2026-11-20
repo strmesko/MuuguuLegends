@@ -1402,6 +1402,10 @@ function getImprovementCandidates(tile) {
     return targetTile.buildings.filter(function (building) {
         if (!building || !building.completed) return false;
 
+        // Crops and planted trees are improved by their own farming actions,
+        // never by the building improvement system.
+        if (isHarvestBuilding(building)) return false;
+
         const def = getBuildingDefinition(building.defId);
         if (!def || !getBuildingImproveCost(def)) return false;
 
@@ -1411,6 +1415,7 @@ function getImprovementCandidates(tile) {
 
 function canImproveBuilding(building) {
     if (!building || !building.completed || !isBuildingOnCurrentTile(building)) return false;
+    if (isHarvestBuilding(building)) return false;
 
     const def = getBuildingDefinition(building.defId);
     const cost = getBuildingImproveCost(def);

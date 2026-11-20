@@ -499,6 +499,54 @@ const ACTIONS = [
         run: runFarmHarvestProduction,
     },
     {
+        id: "improvecrops",
+        label: "Improve crops",
+        tags: ["improve", "farming"],
+        description: "Improve a random completed Farm crop on the current tile every 10 seconds, spending 10 Fertile Soil each time.<br>Action quality: sqrt(VIT * Farming).<br>Target quality: Fertile Soil quality + action quality. The field's quality becomes the average between the target quality and its current quality.<br>Requires Farming level 10. Trains Farming and Vitality.",
+        kind: ACTION_KIND.Timed,
+        initialState: Activity.Idle,
+        startMessage: "You start improving crops",
+        stopMessage: "You stop improving crops",
+        completeMessage: "There are no crops left to improve here",
+        isVisible: function () {
+            return typeof getEffectiveLevel === "function"
+                && getEffectiveLevel("farming") >= 10
+                && typeof hasCompletedFarmCrops === "function"
+                && hasCompletedFarmCrops();
+        },
+        isComplete: function () {
+            return typeof canImproveFarmCrops !== "function"
+                || !canImproveFarmCrops();
+        },
+        staminaPerSecond: function () { return 1; },
+        onStart: resetImproveCropsState,
+        run: runImproveCropsProduction,
+    },
+    {
+        id: "improvetrees",
+        label: "Improve trees",
+        tags: ["improve", "gardening"],
+        description: "Improve a random completed planted tree on the current tile every 10 seconds, spending 10 Fertile Soil each time.<br>Action quality: sqrt(VIT * Gardening).<br>Target quality: Fertile Soil quality + action quality. The tree's quality becomes the average between the target quality and its current quality.<br>Requires Farming level 10. Trains Gardening and Vitality.",
+        kind: ACTION_KIND.Timed,
+        initialState: Activity.Idle,
+        startMessage: "You start improving trees",
+        stopMessage: "You stop improving trees",
+        completeMessage: "There are no trees left to improve here",
+        isVisible: function () {
+            return typeof getEffectiveLevel === "function"
+                && getEffectiveLevel("farming") >= 10
+                && typeof hasCompletedPlantedTrees === "function"
+                && hasCompletedPlantedTrees();
+        },
+        isComplete: function () {
+            return typeof canImprovePlantedTrees !== "function"
+                || !canImprovePlantedTrees();
+        },
+        staminaPerSecond: function () { return 1; },
+        onStart: resetImproveTreesState,
+        run: runImproveTreesProduction,
+    },
+    {
         id: "cuttree",
         label: "Cut Tree",
         tags: ["harvest"],
