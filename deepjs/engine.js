@@ -2326,7 +2326,8 @@ function getFishingCandidates(tile) {
     });
 }
 
-const FISHING_BASE_CHANCE_PER_SECOND = 0.02;
+const FISHING_BASE_CHANCE_PER_TICK = 0.02;
+const FISHING_TICK_SECONDS = 10;
 const FISHING_MAX_CATCHES_PER_TICK = 10;
 const fishingState = { progress: 0, emptyLogged: false };
 
@@ -2347,8 +2348,8 @@ function runFishingProduction(diff) {
     if (seconds <= 0) return;
 
     fishingState.progress += seconds;
-    let ticks = Math.floor(fishingState.progress);
-    fishingState.progress -= ticks;
+    let ticks = Math.floor(fishingState.progress / FISHING_TICK_SECONDS);
+    fishingState.progress -= ticks * FISHING_TICK_SECONDS;
     if (ticks <= 0) return;
     ticks = Math.min(ticks, FISHING_MAX_CATCHES_PER_TICK);
 
@@ -2372,10 +2373,10 @@ function runFishingProduction(diff) {
             const resourceId = candidates[index];
             const definition = RESOURCE_DEFS[resourceId];
             const difficulty = Math.max(1, Number(definition.fishDifficulty) || 1);
-            const chancePerSecond = FISHING_BASE_CHANCE_PER_SECOND
+            const chancePerTick = FISHING_BASE_CHANCE_PER_TICK
                 * (power / (power + difficulty))
                 * waterMultiplier;
-            if (Math.random() >= chancePerSecond) continue;
+            if (Math.random() >= chancePerTick) continue;
 
             const amount = Math.max(0.01, Number(definition.fishSize) || 1);
             addResource(resourceId, round2(amount), quality);
