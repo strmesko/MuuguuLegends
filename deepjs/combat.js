@@ -189,6 +189,29 @@ const MOBS = Object.freeze({
         fleeMultiplier: 5,
         hungerOnAttack: 1,
     }),
+    trunk: Object.freeze({
+        id: "trunk",
+        name: "Trunk",
+        description: "A rotten tree stump with arms and legs, still very much alive.",
+        image: "images/combat/mobs/trunk.png",
+        stats: Object.freeze({
+            str: 1,
+            agi: 2,
+            vit: 1,
+            per: 1,
+            int: 1,
+            ins: 1,
+            sou: 1,
+            luck: 1,
+            speed: 100,
+        }),
+        hp: 48,
+        mana: 0,
+        sp: 4,
+        attack: 0.2,
+        armor: 1,
+        attackSpeedMs: COMBAT_ATTACK_SPEED_BASE_MS,
+    }),
 });
 
 function getMobYearLevelBonus() {
@@ -246,6 +269,10 @@ const MOB_LOOT = Object.freeze({
     ]),
     hungryghost: Object.freeze([
         Object.freeze({ resourceId: RESOURCE_IDS.SPIRIT_ASPIC, amount: 1 }),
+    ]),
+    trunk: Object.freeze([
+        Object.freeze({ resourceId: RESOURCE_IDS.STICKS, amount: 5 }),
+        Object.freeze({ resourceId: RESOURCE_IDS.WOODEN_LOGS, amount: 1 }),
     ]),
 });
 

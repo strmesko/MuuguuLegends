@@ -627,7 +627,7 @@ function getDramaCombatMobLevel(levelOffset) {
     ));
 }
 
-function createDramaCombatEvent(id, name, cost, chance, levelOffset, prefixes, message) {
+function createDramaCombatEvent(id, name, cost, chance, levelOffset, prefixes, message, mobId, chanceMultiplier) {
     return Object.freeze({
         id: id,
         name: name,
@@ -637,6 +637,9 @@ function createDramaCombatEvent(id, name, cost, chance, levelOffset, prefixes, m
         getChance: function () {
             return chance;
         },
+        getChanceMultiplier: typeof chanceMultiplier === "function"
+            ? chanceMultiplier
+            : undefined,
         isAvailable: function () {
             return canStartDramaCombat();
         },
@@ -647,7 +650,7 @@ function createDramaCombatEvent(id, name, cost, chance, levelOffset, prefixes, m
             logMessage(message);
             if (!canStartDramaCombat()) return;
 
-            enterCombat(null, {
+            enterCombat(mobId || null, {
                 level: getDramaCombatMobLevel(levelOffset),
                 prefixes: prefixes,
                 forced: true,
@@ -725,6 +728,17 @@ const DRAMA_COMBAT_EVENTS = Object.freeze([
         "Nightmare_ambush", "Nightmare ambush", 5000, 0.004, 3,
         ["fat", "fierce", "brute"],
         "A nightmare mob bears down on you. Fat, fierce and brutal."
+    ),
+    createDramaCombatEvent(
+        "Trunk_encounter", "Trunk encounter", 1200, 0.01, 0, [],
+        "A rotting stump with arms and legs blocks your way. It smells of old wood and bad intentions.",
+        "trunk",
+        function () {
+            const trees = typeof getCurrentTileSpaceElementAmount === "function"
+                ? Math.max(0, Number(getCurrentTileSpaceElementAmount("Tree")) || 0)
+                : 0;
+            return 1 + trees * 0.35;
+        }
     ),
 ]);
 
