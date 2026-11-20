@@ -543,8 +543,8 @@ function greetActiveNpc() {
     }
 
     const firstGreeting = activeNpcDialogue.greeted !== true;
-    adjustNpcFavor(npc, NPC_GREET_FAVOR_GAIN);
     if (firstGreeting) {
+        adjustNpcFavor(npc, NPC_GREET_FAVOR_GAIN);
         adjustNpcMood(npc, NPC_GREET_MOOD_GAIN);
         activeNpcDialogue.greeted = true;
         if (typeof logMessage === "function") {
