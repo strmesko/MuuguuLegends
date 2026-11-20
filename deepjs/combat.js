@@ -235,6 +235,29 @@ const MOBS = Object.freeze({
         armor: 0.5,
         attackSpeedMs: COMBAT_ATTACK_SPEED_BASE_MS,
     }),
+    cowass: Object.freeze({
+        id: "cowass",
+        name: "CowAss",
+        description: "A cow's rear end balanced on two hind legs. No head, no torso, only beef and bad intentions.",
+        image: "images/combat/mobs/cowass.png",
+        stats: Object.freeze({
+            str: 1,
+            agi: 2,
+            vit: 1,
+            per: 1,
+            int: 1,
+            ins: 1,
+            sou: 1,
+            luck: 1,
+            speed: 100,
+        }),
+        hp: 72,
+        mana: 0,
+        sp: 4,
+        attack: 0.3,
+        armor: 0.5,
+        attackSpeedMs: COMBAT_ATTACK_SPEED_BASE_MS / 2,
+    }),
 });
 
 function getMobYearLevelBonus() {
@@ -299,6 +322,9 @@ const MOB_LOOT = Object.freeze({
     ]),
     meatstump: Object.freeze([
         Object.freeze({ resourceId: RESOURCE_IDS.MYSTERY_MEAT, amount: 3 }),
+    ]),
+    cowass: Object.freeze([
+        Object.freeze({ resourceId: RESOURCE_IDS.BEEF, amount: 4 }),
     ]),
 });
 
