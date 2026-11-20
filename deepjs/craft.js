@@ -1848,7 +1848,7 @@ function createCutleryRecipe(id, itemId, cuttingPower) {
     return Object.freeze(recipe);
 }
 
-const CRAFT_RECIPES = Object.freeze([
+const BASE_CRAFT_RECIPES = Object.freeze([
     Object.freeze({
         id: "kebob-on-stick",
         category: "food",
@@ -2175,6 +2175,68 @@ const CRAFT_RECIPES = Object.freeze([
     ...ARABIC_DISH_RECIPES,
     ...METAL_VARIANT_RECIPES,
 ]);
+
+// Specific meats can be swapped for any other unlocked meat. Arabic recipes
+// exclude pork; the check also covers a future pork resource marked with
+// `pork: true` or named Pork.
+function isPorkMeatResource(resourceId) {
+    const id = Number(resourceId);
+    if (typeof RESOURCE_IDS.PORK !== "undefined" && id === RESOURCE_IDS.PORK) {
+        return true;
+    }
+    const definition = RESOURCE_DEFS[id];
+    return !!definition && (definition.pork === true
+        || normalizeItemImageName(definition.name) === "pork");
+}
+
+function getCraftMeatChoiceIds(recipe) {
+    const ids = MEAT_RESOURCE_IDS.slice();
+    if (getCraftRecipeGroupId(recipe) === "arabic") {
+        return ids.filter(function (resourceId) {
+            return !isPorkMeatResource(resourceId);
+        });
+    }
+    return ids;
+}
+
+function addCraftMeatChoices(recipe) {
+    if (!recipe || recipe.category !== "food"
+        || !Array.isArray(recipe.resources)) {
+        return recipe;
+    }
+
+    const resources = [];
+    const slots = Array.isArray(recipe.choiceSlots)
+        ? recipe.choiceSlots.slice()
+        : [];
+    let meatIndex = 0;
+
+    recipe.resources.forEach(function (requirement) {
+        const definition = RESOURCE_DEFS[requirement.resourceId];
+        if (definition && definition.meat === true) {
+            slots.push(Object.freeze({
+                id: "meat-choice-" + meatIndex,
+                resourceIds: Object.freeze(getCraftMeatChoiceIds(recipe)),
+                amount: requirement.amount,
+                label: "Choose meat:",
+            }));
+            meatIndex += 1;
+            return;
+        }
+        resources.push(requirement);
+    });
+
+    if (!meatIndex) return recipe;
+
+    return Object.freeze(Object.assign({}, recipe, {
+        resources: Object.freeze(resources),
+        choiceSlots: Object.freeze(slots),
+    }));
+}
+
+const CRAFT_RECIPES = Object.freeze(
+    BASE_CRAFT_RECIPES.map(addCraftMeatChoices)
+);
 
 // Crafting rules.
 // Quality of the result starts as the weighted average quality of the used
