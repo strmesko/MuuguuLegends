@@ -255,6 +255,41 @@ const CRAFT_RECIPE_TAGS = Object.freeze({
     "arabic-halva": ["dessert", "sweet"],
 });
 
+// Recipes that involve heat even though their definition does not carry an
+// explicit fire flag. Soups are covered dynamically through their SoupType tag.
+const CRAFT_CAMPFIRE_RECIPE_IDS = Object.freeze({
+    "kebob-on-stick": true,
+    "flat-bread": true,
+    shawerma: true,
+    bread: true,
+    "toast-bread": true,
+    "italian-bruschetta": true,
+    "arabic-muhammara": true,
+    "sauce-ketchup": true,
+    "sauce-marinara": true,
+    "sauce-bolognese": true,
+    "sauce-arrabbiata": true,
+    "sauce-alfredo": true,
+    "sauce-romesco": true,
+    "sauce-satay": true,
+    "sauce-teriyaki": true,
+    "sauce-sweet-chili": true,
+    "sauce-bbq": true,
+    "sauce-curry": true,
+    "sauce-mushroom": true,
+    "sauce-pepper": true,
+    "sauce-pomegranate": true,
+    "sauce-apple": true,
+    "sauce-harissa-sauce": true,
+});
+
+function craftRequiresCampfire(recipe) {
+    if (!recipe) return false;
+    if (recipe.requiresCampfire === true) return true;
+    if (CRAFT_CAMPFIRE_RECIPE_IDS[recipe.id] === true) return true;
+    return getCraftRecipeTags(recipe).indexOf("soup") !== -1;
+}
+
 function getCraftRecipeTags(recipe) {
     if (!recipe) return [];
     if (Array.isArray(recipe.tags)) return recipe.tags;
@@ -511,6 +546,9 @@ function createSauceRecipe(id, itemId, resources, options) {
     }
     if (settings.requiresWater === true) {
         recipe.requiresWater = true;
+    }
+    if (settings.campfire === true) {
+        recipe.requiresCampfire = true;
     }
     if (settings.station === "pot") {
         recipe.requiresEquippedSlot = "pot";
@@ -2864,7 +2902,7 @@ function getCraftStationRequirements(recipe) {
         });
     }
 
-    if (recipe.requiresCampfire === true) {
+    if (craftRequiresCampfire(recipe)) {
         const hasCampfire = hasCampfireOnCurrentTile();
         requirements.push({
             id: "campfire",
