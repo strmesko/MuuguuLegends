@@ -4106,6 +4106,13 @@ function setLogSuppressed(suppressed){
     logSuppressed = suppressed;
 }
 
+function clearLogMessages() {
+    if (typeof logScroll !== "undefined" && logScroll) {
+        logScroll.innerHTML = "";
+    }
+    logMessageCount = 0;
+}
+
 function updateDebugFilterButton() {
     const button = document.getElementById("debugfilterbutton");
     if (!button) return;
@@ -4177,11 +4184,13 @@ function getLogTypeClass(logText) {
     const text = String(logText);
     if (/click$/i.test(text)
         || /foragerolls|berrydice|derpp|actionbtnid|ZERO IN VOLUME|Unknown resource id/i.test(text)
+        || /whoa berry/i.test(text)
+        || /%\s*<\s*.*%/i.test(text)
         || /^\d+(?:[.,]\d+)?>\d+(?:[.,]\d+)?$/.test(text)) {
         return "log-debug";
     }
     if (/are now level/i.test(text)) return "log-levelup";
-    if (/has been researched|Game saved|Game loaded|Research complete|gained a little|whoa berry|are rested enough/i.test(text)) {
+    if (/has been researched|Game saved|Game loaded|Research complete|gained a little|are rested enough/i.test(text)) {
         return "log-success";
     }
     if (/No action points|No free actions|too tired|cannot|do not meet|turn off all your actions|already researching/i.test(text)) {

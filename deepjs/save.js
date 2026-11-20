@@ -957,6 +957,7 @@
         }
 
         lastUpdate = Date.now();
+        if (typeof clearLogMessages === "function") clearLogMessages();
         if (offlineSeconds >= 1) {
             startOfflineSimulation(offlineSeconds, function () {
                 logMessage('Game loaded from slot ' + targetSlot);
