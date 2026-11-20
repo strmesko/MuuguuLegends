@@ -20,6 +20,7 @@ const LEARNED_SKILLS = [
     { barId: 'skillsplacesurvival', key: 'survival', label: 'Survival', descriptionKey: 'survival' },
     { barId: 'skillsplaceropemaking', key: 'ropemaking', label: 'Ropemaking', descriptionKey: 'ropemaking' },
     { barId: 'skillsplacetailoring', key: 'tailoring', label: 'Tailoring', descriptionKey: 'tailoring' },
+    { barId: 'skillsplacefishing', key: 'fishing', label: 'Fishing', descriptionKey: 'fishing' },
     { barId: 'skillsplacecarpentry', key: 'carpentry', label: 'Carpentry', descriptionKey: 'carpentry' },
     { barId: 'skillsplacearchitecture', key: 'architecture', label: 'Architecture', descriptionKey: 'architecture' },
     { barId: 'skillsplacegardening', key: 'gardening', label: 'Gardening', descriptionKey: 'gardening' },
@@ -2229,6 +2230,139 @@ function hasWaterOnCurrentTile() {
     if (currentTile.river === true) return true;
 
     return WATER_TILE_TYPE_IDS.includes(Number(currentTile.type));
+}
+
+// Fishing distinguishes salt water from fresh water. River fish only appear
+// where a river crosses the tile; lake fish can appear in any fresh water.
+function getFishingWaterKind(tile) {
+    const target = tile || (typeof currentTile !== "undefined" ? currentTile : null);
+    if (!target) return null;
+
+    const space = target.space || {};
+    if ((Number(space.SaltWater) || 0) > 0) return "sea";
+
+    const typeName = typeof getMovementTileTypeName === "function"
+        ? getMovementTileTypeName(target)
+        : "";
+    if (/ocean|sea/i.test(typeName)) return "sea";
+
+    const hasRiver = target.river === true
+        || (Array.isArray(target.riverLinks) && target.riverLinks.length > 0);
+    const hasFreshWater = (Number(space.Water) || 0) > 0
+        || (target.land && (Number(target.land.water) || 0) > 0)
+        || typeName === "Lake"
+        || hasRiver;
+
+    if (!hasFreshWater) return null;
+    return hasRiver ? "river" : "lake";
+}
+
+function getFishingCatchInterval(power) {
+    const value = Math.max(0, Number(power) || 0);
+    return Math.max(2, 8 / (1 + value * 0.1));
+}
+
+function getFishingQuality(power) {
+    return applyWellFedActionQuality(
+        getEffectiveLevel("fishing") + Math.max(0, Number(power) || 0) * 0.1
+    );
+}
+
+function getFishingCandidates(tile) {
+    const target = tile || (typeof currentTile !== "undefined" ? currentTile : null);
+    const waterKind = getFishingWaterKind(target);
+    if (!waterKind || typeof FISH_RESOURCE_IDS === "undefined") return [];
+
+    const temperature = Number(target && target.temperature);
+    const currentTemperature = Number.isFinite(temperature) ? temperature : 0;
+
+    return FISH_RESOURCE_IDS.filter(function (resourceId) {
+        const definition = RESOURCE_DEFS[resourceId];
+        if (!definition || !definition.fish) return false;
+
+        const biome = definition.fishBiome;
+        if (waterKind === "sea") {
+            if (biome !== "sea" && biome !== "any") return false;
+        } else if (waterKind === "river") {
+            if (biome !== "river" && biome !== "lake" && biome !== "any") {
+                return false;
+            }
+        } else if (biome !== "lake" && biome !== "any") {
+            return false;
+        }
+
+        const min = Number(definition.fishTempMin);
+        const max = Number(definition.fishTempMax);
+        if (Number.isFinite(min) && currentTemperature < min) return false;
+        if (Number.isFinite(max) && currentTemperature > max) return false;
+        return true;
+    });
+}
+
+function pickFishingCatch(candidates) {
+    if (!candidates || !candidates.length) return null;
+    const totalWeight = candidates.reduce(function (sum, resourceId) {
+        const definition = RESOURCE_DEFS[resourceId];
+        return sum + Math.max(1, Number(definition && definition.fishWeight) || 1);
+    }, 0);
+
+    let roll = Math.random() * totalWeight;
+    for (let index = 0; index < candidates.length; index++) {
+        const resourceId = candidates[index];
+        const definition = RESOURCE_DEFS[resourceId];
+        roll -= Math.max(1, Number(definition && definition.fishWeight) || 1);
+        if (roll <= 0) return resourceId;
+    }
+    return candidates[candidates.length - 1];
+}
+
+const fishingState = { progress: 0, emptyLogged: false };
+
+function resetFishingState() {
+    fishingState.progress = 0;
+    fishingState.emptyLogged = false;
+}
+
+function runFishingProduction(diff) {
+    if (actionStates.fish !== Activity.Active) return;
+    const waterKind = getFishingWaterKind(currentTile);
+    if (!waterKind) return;
+
+    const power = typeof getCharacterToolPower === "function"
+        ? getCharacterToolPower("fishing")
+        : 0;
+    if (power < 1) return;
+
+    const seconds = Math.max(0, Number(diff) || 0);
+    if (seconds <= 0) return;
+
+    fishingState.progress += seconds;
+    const interval = getFishingCatchInterval(power);
+    let catches = Math.floor(fishingState.progress / interval);
+    fishingState.progress -= catches * interval;
+    if (catches <= 0) return;
+
+    const candidates = getFishingCandidates(currentTile);
+    if (!candidates.length) {
+        if (!fishingState.emptyLogged) {
+            logMessage("Nothing is biting here.");
+            fishingState.emptyLogged = true;
+        }
+        return;
+    }
+    fishingState.emptyLogged = false;
+
+    catches = Math.min(catches, 10);
+    const quality = getFishingQuality(power);
+    for (let index = 0; index < catches; index++) {
+        const resourceId = pickFishingCatch(candidates);
+        if (!resourceId) break;
+        const definition = RESOURCE_DEFS[resourceId];
+        addResource(resourceId, 1, quality);
+        logMessage("You catch " + (definition ? definition.name : "a fish") + ".");
+        if (player.fishing) player.fishing.addexp(1 + power * 0.1);
+        if (player.agi) player.agi.addexp(0.25);
+    }
 }
 
 // "Make mortar": each effectiveness unit consumes 20 Sand and 20 Clay and

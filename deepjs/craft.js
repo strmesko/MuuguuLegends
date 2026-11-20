@@ -60,6 +60,7 @@ const CRAFT_GROUP_NAMES = Object.freeze({
     pizza: "Pizza",
     asian: "Asian",
     arabic: "Arabic",
+    fishing: "Fishing",
     other: "Other",
 });
 
@@ -1848,6 +1849,48 @@ function createCutleryRecipe(id, itemId, cuttingPower) {
     return Object.freeze(recipe);
 }
 
+// Fishing tools. Spears have fishing power 1, simple poles and nets 2, and
+// fine poles start at 4 plus a bonus from their reinforcing metal.
+const FISHING_RECIPES = Object.freeze([
+    Object.freeze({
+        id: "simple-fishing-pole",
+        category: "tools",
+        itemId: ITEM_IDS.SIMPLE_FISHING_POLE,
+        skill: "survival",
+        group: "fishing",
+        resources: Object.freeze([
+            Object.freeze({ resourceId: RESOURCE_IDS.FIBERS, amount: 1 }),
+            Object.freeze({ resourceId: RESOURCE_IDS.STICKS, amount: 5 }),
+        ]),
+    }),
+    Object.freeze({
+        id: "fishing-net",
+        category: "tools",
+        itemId: ITEM_IDS.FISHING_NET,
+        skill: "tailoring",
+        group: "fishing",
+        resources: Object.freeze([
+            Object.freeze({ resourceId: RESOURCE_IDS.FIBERS, amount: 100 }),
+        ]),
+    }),
+].concat(FISHING_TOOL_METALS.map(function (metal) {
+    return Object.freeze({
+        id: "fine-fishing-pole-" + metal.key,
+        category: "tools",
+        itemId: ITEM_IDS["FINE_FISHING_POLE_" + metal.key.toUpperCase()],
+        skill: "carpentry",
+        group: "fishing",
+        choiceResourceIds: OIL_RESOURCE_IDS,
+        choiceAmount: 1,
+        choiceLabel: "Choose oil:",
+        resources: Object.freeze([
+            Object.freeze({ resourceId: RESOURCE_IDS.FIBERS, amount: 10 }),
+            Object.freeze({ resourceId: RESOURCE_IDS.SHAFTS, amount: 5 }),
+            Object.freeze({ resourceId: metal.rivetId, amount: 1 }),
+        ]),
+    });
+})));
+
 const BASE_CRAFT_RECIPES = Object.freeze([
     Object.freeze({
         id: "kebob-on-stick",
@@ -2173,6 +2216,7 @@ const BASE_CRAFT_RECIPES = Object.freeze([
     ...PIZZA_RECIPES,
     ...ASIAN_DISH_RECIPES,
     ...ARABIC_DISH_RECIPES,
+    ...FISHING_RECIPES,
     ...METAL_VARIANT_RECIPES,
 ]);
 

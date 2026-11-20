@@ -440,6 +440,12 @@ if (typeof updateAscensionMultiplierDisplay === 'function') {
       ensureResourceBranch('raw-food-items', 'meat', 'Meat', 'Fresh meat from creatures');
       ensureResourceBranch('raw-food-items', 'eggs', 'Eggs', 'Eggs gathered from bird nests');
       ensureResourceBranch('raw-food-items', 'jelly', 'Jelly', 'Wobbly edible jelly');
+      ensureResourceBranch('raw-food-items', 'fish', 'Fish', 'Fresh catches from seas, rivers and lakes');
+      ensureResourceBranch('fish-items', 'fish-sea', 'Sea Fish', 'Salt-water fish and marine life');
+      ensureResourceBranch('fish-items', 'fish-river', 'River Fish', 'Fish that live in flowing rivers');
+      ensureResourceBranch('fish-items', 'fish-lake', 'Lake Fish', 'Fresh-water fish found outside the sea');
+      ensureResourceBranch('fish-items', 'fish-shellfish', 'Shellfish', 'Crabs, molluscs and other invertebrates');
+      ensureResourceBranch('fish-items', 'fish-beasts', 'Sea Beasts', 'Whales, sharks and other giants of the sea');
       ensureResourceBranch('raw-food-items', 'food-herbs', 'herbs', 'Edible wild herbs gathered with Forage');
 
       if (isMushroomResource(resource)) return document.getElementById('mushrooms-items');
@@ -447,6 +453,10 @@ if (typeof updateAscensionMultiplierDisplay === 'function') {
       if (isFruitResource(resource)) return document.getElementById('fruits-items');
       if (resource && RESOURCE_DEFS[resource.id] && RESOURCE_DEFS[resource.id].meat) {
         return document.getElementById('meat-items');
+      }
+      if (resource && RESOURCE_DEFS[resource.id] && RESOURCE_DEFS[resource.id].fish) {
+        const fishCategory = RESOURCE_DEFS[resource.id].fishCategory;
+        return document.getElementById('fish-' + fishCategory + '-items');
       }
       if (resource && resource.id === RESOURCE_IDS.JELLY) return document.getElementById('jelly-items');
       if (resource && resource.id === RESOURCE_IDS.EGG) return document.getElementById('eggs-items');
@@ -795,6 +805,7 @@ const SKILL_DISPLAY_NAMES = Object.freeze({
     critomancy: "Critomancy",
     spiritspeak: "Spirit speak",
     digestomancy: "Digestomancy",
+    fishing: "Fishing",
     wizardy: "Wizardy",
     alchemy: "Alchemy",
     masonry: "Masonry",

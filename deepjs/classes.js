@@ -1465,6 +1465,46 @@ function getSpiceResourceId(key) {
     return SPICE_RESOURCE_IDS_BY_KEY[String(key)] || null;
 }
 
+// Fish and underwater life are generated from deepjs/fishdefs.js. They are
+// edible Food resources but remain grouped separately under raw food -> Fish.
+const FISH_RESOURCE_ID_BASE = 7001;
+const FISH_RESOURCE_IDS = [];
+const FISH_RESOURCE_IDS_BY_NAME = {};
+
+if (typeof FISH_DEFINITIONS !== "undefined") {
+    FISH_DEFINITIONS.forEach(function (entry, index) {
+        const fishId = FISH_RESOURCE_ID_BASE + index;
+        RESOURCE_DEFS[fishId] = {
+            name: entry.name,
+            weight: entry.weight,
+            unitType: "kg",
+            description: entry.description,
+            category: RESOURCE_CATEGORIES.Food,
+            fish: true,
+            fishCategory: entry.category,
+            fishBiome: entry.biome,
+            fishTempMin: entry.tempMin,
+            fishTempMax: entry.tempMax,
+            fishWeight: entry.fishWeight,
+            Tastymeter: entry.tastymeter,
+        };
+        FISH_RESOURCE_IDS.push(fishId);
+        FISH_RESOURCE_IDS_BY_NAME[entry.name] = fishId;
+    });
+}
+
+Object.freeze(FISH_RESOURCE_IDS);
+Object.freeze(FISH_RESOURCE_IDS_BY_NAME);
+
+function isFishResource(resourceId) {
+    return FISH_RESOURCE_IDS.indexOf(Number(resourceId)) !== -1;
+}
+
+function getFishResourceIdByName(name) {
+    return FISH_RESOURCE_IDS_BY_NAME[String(name)] || null;
+}
+
+
 
 Object.freeze(VEGETABLE_RESOURCE_IDS);
 Object.freeze(CROP_RESOURCE_IDS);
@@ -1836,7 +1876,7 @@ function getResourceMultiplier(tile, resourceId) {
 const PERCENT = 100;
 const CORE_STAT_COUNT = 9;
 const CORE_STAT_NAMES = ["str", "agi", "vit", "per", "int", "ins", "sou", "luck", "speed"];
-const LEARNABLE_SKILL_KEYS = ["exploration", "forage", "rest", "focus", "meditation", "wizardy", "alchemy", "masonry", "pottery", "regeneration", "autism", "science", "traveling", "dreammastery", "survival", "ropemaking", "tailoring", "carpentry", "architecture", "gardening", "digging", "lumberjack", "mining", "smithing", "cooking", "milling", "tactics", "anatomy", "dodging", "bullseye", "axechopping", "swordsswingin", "knifesstabbing", "spearsspooning", "brawlbaps", "hammerscrushworks", "dodgedancing", "critomancy", "spiritspeak", "digestomancy"];
+const LEARNABLE_SKILL_KEYS = ["exploration", "forage", "rest", "focus", "meditation", "wizardy", "alchemy", "masonry", "pottery", "regeneration", "autism", "science", "traveling", "dreammastery", "survival", "ropemaking", "tailoring", "fishing", "carpentry", "architecture", "gardening", "digging", "lumberjack", "mining", "smithing", "cooking", "milling", "tactics", "anatomy", "dodging", "bullseye", "axechopping", "swordsswingin", "knifesstabbing", "spearsspooning", "brawlbaps", "hammerscrushworks", "dodgedancing", "critomancy", "spiritspeak", "digestomancy"];
 
 // Every edible resource is bound to one core stat for the whole playthrough.
 // The binding is rolled once when a new game starts and is stored in saves.
@@ -2178,6 +2218,7 @@ class Character {
         this.dreammastery = new Skill("DreamMastery", "The art of sleeping with purpose. Each level lowers the sleepyness needed for Sleep and deepens your rest.");
         this.survival = new Skill("Survival", "The art of turning garbage into something slightly less garbage. Required for crafting, and every craft trains it.");
         this.ropemaking = new Skill("Ropemaking", "Twisting plant fibers into ropes, strings and other useful knots.");
+        this.fishing = new Skill("Fishing", "The art of convincing water to give up its secrets.");
         this.tailoring = new Skill("Tailoring", "The art of turning fibers into cloth and other soft things.");
         this.carpentry = new Skill("Carpentry", "The art of turning sticks into straight shafts and useful wooden parts.");
         this.architecture = new Skill("Architecture", "The art of planning and raising durable buildings.");

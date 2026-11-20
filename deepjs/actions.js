@@ -424,6 +424,35 @@ const ACTIONS = [
         run: runForageProduction,
     },
     {
+        id: "fish",
+        label: "Fish",
+        tags: ["harvest"],
+        description: "Cast a line, spear or net into the water.<br>Catches fish and other underwater life. What bites depends on the water type, temperature and your Fishing power. Trains Fishing and Agility.",
+        kind: ACTION_KIND.Timed,
+        initialState: Activity.Idle,
+        startMessage: "You start fishing",
+        stopMessage: "You stop fishing",
+        completeMessage: "There is no water left to fish here",
+        isVisible: function () {
+            return typeof getFishingWaterKind === "function"
+                && !!getFishingWaterKind(currentTile)
+                && typeof getCharacterToolPower === "function"
+                && getCharacterToolPower("fishing") >= 1
+                && player.stamina >= 1;
+        },
+        isComplete: function () {
+            return typeof getFishingWaterKind !== "function"
+                || !getFishingWaterKind(currentTile)
+                || typeof getCharacterToolPower !== "function"
+                || getCharacterToolPower("fishing") < 1;
+        },
+        staminaPerSecond: function () {
+            return 1;
+        },
+        onStart: resetFishingState,
+        run: runFishingProduction,
+    },
+    {
         id: "treesharvest",
         label: "Trees Harvest",
         tags: ["harvest"],

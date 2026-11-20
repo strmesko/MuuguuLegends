@@ -85,6 +85,9 @@ function getResourceImageFolder(itemName) {
         if (definition.spice) {
             return "spices";
         }
+        if (definition.fish) {
+            return "fish";
+        }
         if (definition.sweets) {
             return "cooking";
         }

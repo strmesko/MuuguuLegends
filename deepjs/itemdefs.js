@@ -298,6 +298,14 @@ const ITEM_IDS = Object.freeze({
     LINEN_LEGGINGS: ITEM_ID_BASE + 413,
     LINEN_BOOTS: ITEM_ID_BASE + 414,
     LINEN_ANKLET_I: ITEM_ID_BASE + 415,
+    SIMPLE_FISHING_POLE: ITEM_ID_BASE + 416,
+    FISHING_NET: ITEM_ID_BASE + 417,
+    FINE_FISHING_POLE_COPPER: ITEM_ID_BASE + 418,
+    FINE_FISHING_POLE_TIN: ITEM_ID_BASE + 419,
+    FINE_FISHING_POLE_IRON: ITEM_ID_BASE + 420,
+    FINE_FISHING_POLE_BRONZE: ITEM_ID_BASE + 421,
+    FINE_FISHING_POLE_STEEL: ITEM_ID_BASE + 422,
+    FINE_FISHING_POLE_GOLD: ITEM_ID_BASE + 423,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -599,6 +607,7 @@ const ITEM_TOOL_POWER_TYPES = Object.freeze({
     mining: Object.freeze({ id: "mining", label: "Mining power" }),
     digging: Object.freeze({ id: "digging", label: "Digging power" }),
     smash: Object.freeze({ id: "smash", label: "Smash power" }),
+    fishing: Object.freeze({ id: "fishing", label: "Fishing power" }),
 });
 
 function normalizeToolPowerConfig(config) {
@@ -697,10 +706,13 @@ const RING_SLOT_IDS = Object.freeze(Array.from({ length: 10 }, function (_, inde
     return "ring" + (index + 1);
 }));
 
-function createCombatGearDefinition(id, name, slot, icon, stats, equipSlots, description, weaponSkill) {
+function createCombatGearDefinition(id, name, slot, icon, stats, equipSlots, description, weaponSkill, toolPowers) {
     const allowedSlots = Array.isArray(equipSlots) && equipSlots.length
         ? equipSlots.slice()
         : [slot];
+    const powers = typeof normalizeToolPowerConfigs === "function"
+        ? normalizeToolPowerConfigs(toolPowers)
+        : Object.freeze([]);
 
     return Object.freeze({
         id: id,
@@ -715,6 +727,8 @@ function createCombatGearDefinition(id, name, slot, icon, stats, equipSlots, des
         durability: 80,
         icon: icon,
         stats: Object.freeze(stats),
+        toolPower: powers[0] || null,
+        toolPowers: powers,
         weaponSkill: WEAPON_SKILL_LABELS[weaponSkill] ? weaponSkill : null,
         description: description,
     });
@@ -1197,7 +1211,9 @@ const METAL_VARIANT_TOOL_BASES = Object.freeze([
     Object.freeze({
         key: "spear", name: "Spear", category: "tools", icon: "flintspear",
         weight: 0.5, durability: 40, handleResourceId: RESOURCE_IDS.HANDLES,
-        toolPowers: Object.freeze([]),
+        toolPowers: Object.freeze([
+            { type: "fishing", power: 1 },
+        ]),
         weaponSkill: "spearsspooning",
     }),
 ]);
@@ -1240,7 +1256,11 @@ METAL_VARIANT_METALS.forEach(function (metal) {
         const toolPowers = normalizeToolPowerConfigs(base.toolPowers.map(function (power) {
             return {
                 type: power.type,
-                power: roundItemNumber(power.power * metal.multiplier),
+                // Fishing power is a utility value; metal variants keep its base
+                // value so spears do not outclass dedicated fishing poles.
+                power: power.type === "fishing"
+                    ? power.power
+                    : roundItemNumber(power.power * metal.multiplier),
             };
         }));
 
@@ -1470,12 +1490,53 @@ METAL_PAN_METALS.forEach(function (metal) {
     }));
 });
 
+// Fishing tools. Spears use base fishing power 1; the simple pole and net are
+// twice that; fine poles double the simple pole again and gain a metal bonus.
+const FISHING_TOOL_METALS = Object.freeze([
+    Object.freeze({ key: "copper", name: "Copper", rivetId: RESOURCE_IDS.COPPER_RIVETS, multiplier: 3 }),
+    Object.freeze({ key: "tin", name: "Tin", rivetId: RESOURCE_IDS.TIN_RIVETS, multiplier: 5 }),
+    Object.freeze({ key: "iron", name: "Iron", rivetId: RESOURCE_IDS.IRON_RIVETS, multiplier: 12 }),
+    Object.freeze({ key: "bronze", name: "Bronze", rivetId: RESOURCE_IDS.BRONZE_RIVETS, multiplier: 17 }),
+    Object.freeze({ key: "steel", name: "Steel", rivetId: RESOURCE_IDS.STEEL_RIVETS, multiplier: STEEL_POT_MULTIPLIER }),
+    Object.freeze({ key: "gold", name: "Gold", rivetId: RESOURCE_IDS.GOLD_RIVETS, multiplier: 30 }),
+]);
+
+const FISHING_TOOL_DEFS = {
+    [ITEM_IDS.SIMPLE_FISHING_POLE]: createToolDefinition(
+        ITEM_IDS.SIMPLE_FISHING_POLE, "Simple fishing pole", "simplefishingpole",
+        { type: "fishing", power: 2 },
+        "A humble pole, a line and a hook. Twice the fishing power of a spear.",
+        null, null
+    ),
+    [ITEM_IDS.FISHING_NET]: createToolDefinition(
+        ITEM_IDS.FISHING_NET, "Fishing net", "fishingnet",
+        { type: "fishing", power: 2 },
+        "A wide net woven from plant fibers. Catches fish and fingers.",
+        null, null
+    ),
+};
+
+FISHING_TOOL_METALS.forEach(function (metal) {
+    const itemId = ITEM_IDS["FINE_FISHING_POLE_" + metal.key.toUpperCase()];
+    const power = roundItemNumber(4 + metal.multiplier * 0.1);
+    FISHING_TOOL_DEFS[itemId] = createToolDefinition(
+        itemId,
+        metal.name + " Fine Fishing Pole",
+        "finefishingpole",
+        { type: "fishing", power: power },
+        "A fine fishing pole reinforced with " + metal.name.toLowerCase()
+            + " rivets. Base fishing power grows with the metal used.",
+        null, null
+    );
+});
+
 const ITEM_DEFS = Object.freeze({
     ...PASTA_ITEM_DEFS,
     ...SAUCE_ITEM_DEFS,
     ...ITALIAN_DISH_ITEM_DEFS,
     ...SOVIET_DISH_ITEM_DEFS,
     ...PIZZA_ITEM_DEFS,
+    ...FISHING_TOOL_DEFS,
     ...ASIAN_SAUCE_ITEM_DEFS,
     ...ASIAN_DISH_ITEM_DEFS,
     ...ARABIC_SAUCE_ITEM_DEFS,
@@ -1721,7 +1782,7 @@ const ITEM_DEFS = Object.freeze({
         ITEM_IDS.HUNTING_SPEAR, "Hunting spear", "arm1", "huntingspear",
         { attack: 7, hit: 3, flee: 3 }, FORAGING_TOOL_SLOTS,
         "A long spear with a barbed head. Keeps the argument at a distance.",
-        "spearsspooning"
+        "spearsspooning", { type: "fishing", power: 1 }
     ),
     [ITEM_IDS.POISONED_DAGGER]: createCombatGearDefinition(
         ITEM_IDS.POISONED_DAGGER, "Poisoned dagger", "arm1", "poisoneddagger",
@@ -1861,8 +1922,8 @@ const ITEM_DEFS = Object.freeze({
     ),
     [ITEM_IDS.FLINT_SPEAR]: createToolDefinition(
         ITEM_IDS.FLINT_SPEAR, "Flint Spear", "flintspear",
-        null,
-        "A flint-tipped spear for hunting and fighting.",
+        { type: "fishing", power: 1 },
+        "A flint-tipped spear for hunting, fighting and spearing fish.",
         null, "spearsspooning"
     ),
     [ITEM_IDS.LEAF_OF_NATURE]: createLeafClothingDefinition(
