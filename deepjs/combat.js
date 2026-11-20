@@ -212,6 +212,29 @@ const MOBS = Object.freeze({
         armor: 1,
         attackSpeedMs: COMBAT_ATTACK_SPEED_BASE_MS,
     }),
+    meatstump: Object.freeze({
+        id: "meatstump",
+        name: "MeatStump",
+        description: "A huge cube of raw meat balanced on two legs. A hungry maw splits its front.",
+        image: "images/combat/mobs/meatstump.png",
+        stats: Object.freeze({
+            str: 1,
+            agi: 2,
+            vit: 1,
+            per: 1,
+            int: 1,
+            ins: 1,
+            sou: 1,
+            luck: 1,
+            speed: 100,
+        }),
+        hp: 96,
+        mana: 0,
+        sp: 4,
+        attack: 0.2,
+        armor: 0.5,
+        attackSpeedMs: COMBAT_ATTACK_SPEED_BASE_MS,
+    }),
 });
 
 function getMobYearLevelBonus() {
@@ -273,6 +296,9 @@ const MOB_LOOT = Object.freeze({
     trunk: Object.freeze([
         Object.freeze({ resourceId: RESOURCE_IDS.STICKS, amount: 5 }),
         Object.freeze({ resourceId: RESOURCE_IDS.WOODEN_LOGS, amount: 1 }),
+    ]),
+    meatstump: Object.freeze([
+        Object.freeze({ resourceId: RESOURCE_IDS.MYSTERY_MEAT, amount: 3 }),
     ]),
 });
 

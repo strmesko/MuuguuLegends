@@ -558,6 +558,7 @@ const RESOURCE_IDS = Object.freeze({
     SUGAR: 6113,
     EGG: 6115,
     LINEN_CLOTH: 6116,
+    MYSTERY_MEAT: 6117,
 });
 
 const RESOURCE_DEFS = {
@@ -633,6 +634,7 @@ const RESOURCE_DEFS = {
     [RESOURCE_IDS.JELLY]: { name: "Jelly", weight: 0.5, unitType: "kg", description: "A wobbly blue jelly. It jiggles when you look at it.", category: RESOURCE_CATEGORIES.Food, Tastymeter: 5, jelly: true },
     [RESOURCE_IDS.EGG]: { name: "Egg", weight: 0.05, unitType: "kg", description: "A fresh egg, still warm from the nest. Handle it gently.", category: RESOURCE_CATEGORIES.Food, Tastymeter: 6, egg: true },
     [RESOURCE_IDS.LINEN_CLOTH]: { name: "Linen cloth", weight: 0.2, unitType: "kg", description: "Woven flax cloth, soft and sturdy. The first real textile of a settled tailor.", category: RESOURCE_CATEGORIES.Intermediate, tailoring: true },
+    [RESOURCE_IDS.MYSTERY_MEAT]: { name: "Mystery meat", weight: 0.4, unitType: "kg", description: "A dense cube of unidentified meat. It is still warm and faintly twitching.", category: RESOURCE_CATEGORIES.Food, Tastymeter: 3, meat: true },
     [RESOURCE_IDS.SPIRIT_ASPIC]: { name: "Spirit aspic", weight: 0.1, unitType: "kg", description: "A cold, ghostly gel that refuses to stop wobbling.", category: RESOURCE_CATEGORIES.Intermediate, alchemy: true },
     [RESOURCE_IDS.MOB_SPIRIT_DROPS]: { name: "Mob spirit drops", weight: 0.1, unitType: "kg", description: "A single drop of condensed mob spirit.", category: RESOURCE_CATEGORIES.Intermediate, wizardy: true, mobSpirit: true },
     [RESOURCE_IDS.MOB_SPIRIT_TEARS]: { name: "Mob spirit tears", weight: 0.1, unitType: "kg", description: "A frozen tear shed by a slain mob spirit.", category: RESOURCE_CATEGORIES.Intermediate, wizardy: true, mobSpirit: true },
