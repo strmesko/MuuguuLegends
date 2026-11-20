@@ -95,6 +95,25 @@ const CRAFT_TAG_LABELS = Object.freeze({
     streetfood: "Street food",
     holiday: "Holiday",
     vegetarian: "Vegetarian",
+    sour: "Sour",
+    verySpicy: "Very spicy",
+    salty: "Salty",
+    bitter: "Bitter",
+    umami: "Umami",
+    savory: "Savory",
+    smoky: "Smoky",
+    creamy: "Creamy",
+    fresh: "Fresh",
+    herby: "Herby",
+    garlicky: "Garlicky",
+    fruity: "Fruity",
+    nutty: "Nutty",
+    earthy: "Earthy",
+    hearty: "Hearty",
+    light: "Light",
+    fishy: "Fishy",
+    meaty: "Meaty",
+    numbing: "Numbing",
 });
 
 const CRAFT_RECIPE_TAGS = Object.freeze({
@@ -291,14 +310,263 @@ function craftRequiresCampfire(recipe) {
     return getCraftRecipeTags(recipe).indexOf("soup") !== -1;
 }
 
+const CRAFT_TASTE_TAGS = Object.freeze({
+    "kebob-on-stick": ["smoky", "garlicky"],
+    porridge: ["creamy", "hearty"],
+    salad: ["fresh", "light", "sour"],
+    "fruits-salad": ["fruity", "sweet", "fresh"],
+    shawerma: ["meaty", "garlicky", "smoky"],
+    soup: ["umami", "herby"],
+
+    "italian-spaghetti-aglio-e-olio": ["garlicky", "spicy", "herby"],
+    "italian-spaghetti-carbonara": ["creamy", "garlicky", "meaty"],
+    "italian-spaghetti-bolognese": ["meaty", "umami", "hearty"],
+    "italian-penne-arrabbiata": ["spicy", "garlicky", "sour"],
+    "italian-linguine-pesto": ["herby", "nutty", "garlicky"],
+    "italian-rigatoni-marinara": ["garlicky", "herby", "umami"],
+    "italian-fettuccine-alfredo": ["creamy", "garlicky"],
+    "italian-lasagne": ["meaty", "hearty", "umami"],
+    "italian-ravioli": ["earthy", "herby"],
+    "italian-tortellini": ["meaty", "savory"],
+    "italian-macaroni-bake": ["meaty", "hearty", "umami"],
+    "italian-gnocchi": ["hearty", "creamy"],
+    "italian-risotto": ["creamy", "earthy"],
+    "italian-polenta": ["creamy", "hearty"],
+    "italian-bruschetta": ["fresh", "garlicky", "herby"],
+    "italian-caprese": ["fresh", "herby", "light", "sour"],
+    "italian-panzanella": ["fresh", "sour", "herby"],
+    "italian-arancini": ["hearty", "savory"],
+    "italian-frittata": ["herby", "savory"],
+
+    "soviet-borscht": ["sour", "earthy", "hearty"],
+    "soviet-shchi": ["sour", "herby"],
+    "soviet-rassolnik": ["sour", "salty"],
+    "soviet-solyanka": ["sour", "salty", "smoky"],
+    "soviet-olivier": ["creamy", "hearty"],
+    "soviet-vinaigrette": ["sour", "earthy", "fresh"],
+    "soviet-pelmeni": ["meaty", "hearty"],
+    "soviet-varenyky": ["creamy", "hearty"],
+    "soviet-stroganoff": ["creamy", "meaty", "umami"],
+    "soviet-chicken-kiev": ["meaty", "hearty"],
+    "soviet-golubtsy": ["meaty", "sour", "hearty"],
+    "soviet-plov": ["meaty", "earthy", "hearty"],
+    "soviet-buckwheat-mushrooms": ["earthy", "nutty", "umami"],
+    "soviet-mashed-potatoes": ["creamy", "hearty"],
+    "soviet-fried-potatoes": ["salty", "savory"],
+    "soviet-draniki": ["salty", "hearty"],
+    "soviet-millet-kasha": ["earthy", "creamy"],
+    "soviet-oatmeal": ["creamy", "light"],
+    "soviet-blini": ["creamy", "hearty"],
+    "soviet-pirozhki": ["meaty", "hearty"],
+    "soviet-belyash": ["meaty", "hearty"],
+    "soviet-chebureki": ["meaty", "hearty"],
+    "soviet-mushroom-soup": ["earthy", "umami", "creamy"],
+    "soviet-pea-soup": ["earthy", "hearty"],
+    "soviet-makarony-flotski": ["meaty", "salty", "hearty"],
+    "soviet-tushonka": ["meaty", "umami", "hearty"],
+    "soviet-kotleta": ["meaty", "hearty"],
+    "soviet-beet-salad": ["earthy", "sour", "garlicky"],
+    "soviet-carrot-salad": ["sweet", "fresh", "garlicky"],
+    "soviet-cabbage-salad": ["sour", "fresh", "light"],
+    "soviet-kompot": ["fruity", "sweet", "sour"],
+    "soviet-kissel": ["fruity", "sweet"],
+    "soviet-baked-apples": ["fruity", "sweet"],
+    "soviet-apple-charlotte": ["fruity", "sweet"],
+    "soviet-napoleon-cake": ["sweet", "creamy"],
+    "soviet-honey-cake": ["sweet", "creamy"],
+
+    "pizza-margherita": ["herby", "umami"],
+    "pizza-diavola": ["spicy", "meaty"],
+    "pizza-capricciosa": ["meaty", "earthy"],
+    "pizza-quattro-stagioni": ["meaty", "earthy", "herby"],
+    "pizza-funghi": ["earthy", "umami"],
+    "pizza-pollo": ["meaty", "garlicky"],
+    "pizza-bbq-chicken": ["smoky", "sweet", "meaty"],
+    "pizza-pesto": ["herby", "nutty", "garlicky"],
+    "pizza-marinara": ["garlicky", "herby", "sour"],
+    "pizza-napoletana": ["garlicky", "herby"],
+    "pizza-mediterranean": ["salty", "herby", "fresh"],
+    "pizza-vegetariana": ["fresh", "herby"],
+    "pizza-spinaci": ["earthy", "garlicky"],
+    "pizza-patate": ["earthy", "salty"],
+    "pizza-cipolla": ["spicy", "sweet"],
+    "pizza-uovo": ["creamy", "hearty"],
+    "pizza-rustica": ["earthy", "herby"],
+    "pizza-zucca": ["sweet", "earthy"],
+    "pizza-barbabietola": ["earthy", "sour", "garlicky"],
+    "pizza-cavolo": ["earthy", "light"],
+    "pizza-piselli": ["sweet", "fresh"],
+    "pizza-mais": ["sweet", "savory"],
+    "pizza-aglio-erbe": ["garlicky", "herby"],
+    "pizza-dolce": ["sweet", "fruity"],
+    "pizza-frutti-bosco": ["sweet", "fruity", "sour"],
+
+    "asian-ramen": ["umami", "salty", "hearty"],
+    "asian-pad-thai": ["sour", "sweet", "nutty"],
+    "asian-fried-rice": ["savory", "salty", "umami"],
+    "asian-chicken-teriyaki": ["sweet", "salty", "umami", "meaty"],
+    "asian-bulgogi": ["sweet", "meaty", "garlicky"],
+    "asian-bibimbap": ["spicy", "herby"],
+    "asian-gyoza": ["garlicky", "meaty"],
+    "asian-spring-rolls": ["light", "savory"],
+    "asian-tempura": ["light", "savory"],
+    "asian-chicken-katsu": ["meaty", "hearty"],
+    "asian-japanese-curry": ["spicy", "hearty", "earthy"],
+    "asian-kung-pao-chicken": ["spicy", "nutty", "meaty"],
+    "asian-sweet-and-sour-chicken": ["sweet", "sour", "meaty"],
+    "asian-chow-mein": ["salty", "hearty"],
+    "asian-nasi-goreng": ["spicy", "smoky"],
+    "asian-okonomiyaki": ["savory", "umami", "hearty"],
+    "asian-yakitori": ["salty", "sweet", "smoky", "meaty"],
+    "asian-mapo-chicken": ["verySpicy", "meaty", "numbing"],
+    "asian-char-siu-chicken": ["sweet", "smoky", "meaty"],
+    "asian-wonton-soup": ["umami", "light"],
+    "asian-hot-and-sour-soup": ["sour", "spicy", "umami"],
+    "asian-egg-drop-soup": ["creamy", "light"],
+    "asian-sichuan-noodles": ["verySpicy", "savory"],
+    "asian-steamed-dumplings": ["meaty", "light"],
+    "asian-tom-yum-soup": ["sour", "spicy", "herby", "fishy"],
+    "asian-thai-green-curry": ["spicy", "creamy", "herby"],
+    "asian-thai-red-curry": ["spicy", "creamy"],
+    "asian-massaman-curry": ["sweet", "nutty", "spicy", "creamy"],
+    "asian-thai-basil-chicken": ["spicy", "herby", "meaty"],
+    "asian-coconut-rice": ["sweet", "creamy", "nutty"],
+    "asian-mango-sticky-rice": ["sweet", "fruity", "creamy"],
+    "asian-pho": ["herby", "umami", "light"],
+    "asian-banh-mi": ["sour", "meaty", "fresh"],
+    "asian-vietnamese-spring-rolls": ["fresh", "herby", "light"],
+    "asian-bun-cha": ["smoky", "meaty", "sour"],
+    "asian-vietnamese-curry": ["spicy", "creamy"],
+    "asian-sushi-rolls": ["fishy", "fresh", "umami"],
+    "asian-nigiri-sushi": ["fishy", "fresh", "umami"],
+
+    "arabic-falafel": ["earthy", "nutty", "savory"],
+    "arabic-hummus-plate": ["creamy", "nutty", "garlicky"],
+    "arabic-baba-ganoush": ["smoky", "creamy", "earthy"],
+    "arabic-tabbouleh": ["fresh", "herby", "sour"],
+    "arabic-fattoush": ["fresh", "sour", "herby"],
+    "arabic-shish-tawook": ["meaty", "garlicky", "smoky"],
+    "arabic-chicken-shawarma": ["meaty", "garlicky", "smoky"],
+    "arabic-kofta": ["meaty", "spicy"],
+    "arabic-kebab": ["meaty", "smoky"],
+    "arabic-shawarma-plate": ["meaty", "garlicky"],
+    "arabic-mujadara": ["earthy", "hearty"],
+    "arabic-lentil-soup": ["earthy", "hearty", "creamy"],
+    "arabic-chickpea-stew": ["earthy", "hearty"],
+    "arabic-chickpea-tagine": ["spicy", "earthy", "hearty"],
+    "arabic-chicken-tagine": ["sweet", "sour", "meaty", "spicy"],
+    "arabic-stuffed-eggplant": ["earthy", "meaty"],
+    "arabic-stuffed-peppers": ["sweet", "meaty"],
+    "arabic-maqluba": ["meaty", "hearty", "earthy"],
+    "arabic-kabsa": ["spicy", "meaty", "hearty"],
+    "arabic-mandi": ["smoky", "meaty", "hearty"],
+    "arabic-batata-harra": ["spicy", "garlicky", "earthy"],
+    "arabic-fried-cauliflower": ["salty", "earthy"],
+    "arabic-shakshuka": ["spicy", "sour", "herby"],
+    "arabic-pomegranate-chicken": ["sour", "sweet", "fruity", "meaty"],
+    "arabic-muhammara": ["nutty", "smoky", "sour", "spicy"],
+    "arabic-baklava": ["sweet", "nutty", "creamy"],
+    "arabic-basbousa": ["sweet", "creamy"],
+    "arabic-halva": ["sweet", "nutty", "creamy"],
+
+    "fish-dish-fish-soup": ["fishy", "umami", "herby"],
+    "fish-dish-grilled-fish": ["fishy", "smoky"],
+    "fish-dish-fish-stew": ["fishy", "hearty", "umami"],
+    "fish-dish-fish-kebab": ["fishy", "smoky"],
+    "fish-dish-fish-salad": ["fishy", "fresh", "light", "sour"],
+    "fish-dish-fish-pie": ["fishy", "hearty"],
+    "fish-dish-spaghetti-vongole": ["fishy", "garlicky", "umami"],
+    "fish-dish-seafood-linguine": ["fishy", "garlicky", "umami"],
+    "fish-dish-fish-risotto": ["fishy", "creamy", "umami"],
+    "fish-dish-italian-fried-fish": ["fishy", "savory"],
+    "fish-dish-sicilian-fish-stew": ["fishy", "sour", "hearty"],
+    "fish-dish-tuna-pasta": ["fishy", "garlicky", "umami"],
+    "fish-dish-seafood-lasagne": ["fishy", "hearty", "umami"],
+    "fish-dish-ukha": ["fishy", "umami", "herby"],
+    "fish-dish-soviet-fried-fish": ["fishy", "savory"],
+    "fish-dish-fish-kotleta": ["fishy", "meaty"],
+    "fish-dish-soviet-fish-pie": ["fishy", "hearty"],
+    "fish-dish-fish-potatoes": ["fishy", "salty"],
+    "fish-dish-fur-coat-fish": ["fishy", "creamy", "sour"],
+    "fish-dish-fish-cutlets": ["fishy", "savory"],
+    "fish-dish-fish-sushi": ["fishy", "fresh", "umami", "light"],
+    "fish-dish-salmon-nigiri": ["fishy", "fresh", "umami", "light"],
+    "fish-dish-fish-ramen": ["fishy", "umami", "salty"],
+    "fish-dish-thai-fish-curry": ["fishy", "spicy", "creamy"],
+    "fish-dish-teriyaki-fish": ["fishy", "sweet", "salty", "umami"],
+    "fish-dish-fish-fried-rice": ["fishy", "savory", "salty"],
+    "fish-dish-tom-yum-fish": ["fishy", "sour", "spicy", "herby"],
+    "fish-dish-steamed-fish": ["fishy", "light", "umami"],
+    "fish-dish-fish-gyoza": ["fishy", "garlicky", "meaty"],
+    "fish-dish-fish-pho": ["fishy", "herby", "umami"],
+    "fish-dish-fish-tagine": ["fishy", "spicy", "earthy"],
+    "fish-dish-arabic-grilled-fish": ["fishy", "smoky", "herby"],
+    "fish-dish-fish-kofta": ["fishy", "meaty", "spicy"],
+    "fish-dish-sayadieh": ["fishy", "earthy", "hearty"],
+    "fish-dish-fish-shawarma": ["fishy", "meaty", "garlicky"],
+    "fish-dish-fish-couscous": ["fishy", "hearty", "earthy"],
+    "fish-dish-seafood-pizza": ["fishy", "salty", "umami"],
+    "fish-dish-tuna-pizza": ["fishy", "salty", "savory"],
+    "fish-dish-anchovy-pizza": ["fishy", "salty", "spicy"],
+    "fish-dish-fish-pizza": ["fishy", "salty", "herby"],
+});
+
 function getCraftRecipeTags(recipe) {
     if (!recipe) return [];
-    if (Array.isArray(recipe.tags)) return recipe.tags;
-    if (CRAFT_RECIPE_TAGS[recipe.id]) return CRAFT_RECIPE_TAGS[recipe.id];
-    if (recipe.group === "pasta") return ["ingredient"];
-    if (recipe.group === "sauces") return ["ingredient"];
-    if (recipe.group === "pizza") return ["baking"];
-    return [];
+    const base = Array.isArray(recipe.tags)
+        ? recipe.tags.slice()
+        : (CRAFT_RECIPE_TAGS[recipe.id]
+            ? CRAFT_RECIPE_TAGS[recipe.id].slice()
+            : (recipe.group === "pasta"
+                ? ["ingredient"]
+                : (recipe.group === "sauces"
+                    ? ["ingredient"]
+                    : (recipe.group === "pizza" ? ["baking"] : []))));
+
+    const tags = base.slice();
+    const add = function (tagId) {
+        if (tags.indexOf(tagId) === -1) tags.push(tagId);
+    };
+
+    if (base.indexOf("ingredient") === -1) {
+        if (base.indexOf("dessert") !== -1) add("sweet");
+        if (base.indexOf("soup") !== -1) {
+            add("savory");
+            add("hearty");
+            add("umami");
+        }
+        if (base.indexOf("salad") !== -1) {
+            add("fresh");
+            add("light");
+        }
+        if (base.indexOf("dessert") === -1) {
+            const group = getCraftRecipeGroupId(recipe);
+            if (group === "pizza") {
+                add("savory");
+                add("salty");
+            } else if (group === "italian") {
+                add("savory");
+            } else if (group === "soviet") {
+                add("savory");
+                add("hearty");
+            } else if (group === "asian") {
+                add("savory");
+                add("umami");
+            } else if (group === "arabic") {
+                add("savory");
+                add("earthy");
+            } else if (group === "meals") {
+                add("savory");
+            }
+        }
+        if (recipe.id.indexOf("fish-dish-") === 0) {
+            add("fishy");
+            add("savory");
+        }
+        (CRAFT_TASTE_TAGS[recipe.id] || []).forEach(add);
+    }
+
+    return tags;
 }
 
 function getCraftTagLabel(tagId) {
