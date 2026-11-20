@@ -3179,10 +3179,12 @@ function getRipeFarmCrops(tile) {
     if (!target || !Array.isArray(target.buildings)) return [];
     return target.buildings.filter(function (building) {
         return !!building
-            && building.defId === BUILDING_IDS.FARM_CROP
+            && typeof isHarvestBuilding === "function"
+            && isHarvestBuilding(building)
             && building.completed === true
             && building.farmRipe === true
-            && building.cropResourceId != null;
+            && typeof getBuildingHarvestResourceId === "function"
+            && getBuildingHarvestResourceId(building) != null;
     });
 }
 
@@ -3220,17 +3222,22 @@ function runFarmHarvestProduction(diff) {
     farmHarvestState.progress -= FARM_HARVEST_SECONDS;
     farmHarvestState.uid = null;
 
-    const cropDefinition = RESOURCE_DEFS[target.cropResourceId];
+    const harvestResourceId = getBuildingHarvestResourceId(target);
+    const cropDefinition = RESOURCE_DEFS[harvestResourceId];
     if (!cropDefinition) return;
 
     const actionQuality = getFarmHarvestActionQuality();
     const farmQuality = Math.max(0, Number(target.quality) || 0);
     const quality = round2(farmQuality + actionQuality);
+    const targetDef = getBuildingDefinition(target.defId);
+    const sourceName = target.defId === BUILDING_IDS.FARM_CROP
+        ? "the farm"
+        : "the " + (targetDef ? targetDef.name.toLowerCase() : "tree");
 
     target.farmRipe = false;
-    addResource(target.cropResourceId, FARM_HARVEST_AMOUNT, quality);
+    addResource(harvestResourceId, FARM_HARVEST_AMOUNT, quality);
     logMessage("You harvest " + FARM_HARVEST_AMOUNT + " "
-        + cropDefinition.name + " from the farm.");
+        + cropDefinition.name + " from " + sourceName + ".");
 
     if (player.farming) player.farming.addexp(1 + quality * 0.2);
     if (player.vit) player.vit.addexp(0.25);
@@ -3243,7 +3250,8 @@ function runFarmHarvestProduction(diff) {
     }
 }
 
-function resetHarvestedTreesForNewMonth() {    if (typeof window !== "undefined"
+function resetHarvestedTreesForNewMonth() {
+    if (typeof window !== "undefined"
         && window.mapView
         && window.mapView.world
         && typeof window.mapView.world.resetHarvestedTrees === "function") {

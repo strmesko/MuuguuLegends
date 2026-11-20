@@ -238,6 +238,29 @@ function getBuildingBuildRequirements(def) {
     return requirements;
 }
 
+// Resource a finished harvest building yields. Farm crop stores the chosen
+// crop on the instance; planted trees always yield their species' harvest.
+function getBuildingBuildCropResourceId(def) {
+    if (!def) return null;
+    if (def.id === BUILDING_IDS.FARM_CROP) return getSelectedFarmCropId();
+    if (def.harvestResourceId != null) return def.harvestResourceId;
+    return null;
+}
+
+function isHarvestBuilding(building) {
+    if (!building) return false;
+    if (building.defId === BUILDING_IDS.FARM_CROP) return true;
+    const def = getBuildingDefinition(building.defId);
+    return !!(def && def.plantedTree);
+}
+
+function getBuildingHarvestResourceId(building) {
+    if (!building) return null;
+    if (building.cropResourceId != null) return building.cropResourceId;
+    const def = getBuildingDefinition(building.defId);
+    return def && def.harvestResourceId != null ? def.harvestResourceId : null;
+}
+
 function createMapleMetalChoiceBox() {    const box = document.createElement("div");
     box.className = "craftchoice";
 
@@ -400,6 +423,59 @@ function createFarmCropChoiceBox() {
     });
     box.appendChild(select);
     return box;
+}
+
+// Planted trees reuse the harvest building flow of Farm crop. Their
+// definitions are generated from the world's harvestable tree species so a new
+// species automatically becomes buildable.
+const TREE_BUILDING_ID_PREFIX = "tree-";
+
+function getTreeBuildingId(speciesName) {
+    return TREE_BUILDING_ID_PREFIX + String(speciesName)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+}
+
+function createTreeBuildingDefinitions() {
+    const defs = {};
+
+    if (typeof TREE_SPECIES === "undefined"
+        || typeof TREE_HARVEST_RESOURCES === "undefined") {
+        return defs;
+    }
+
+    TREE_SPECIES.forEach(function (species) {
+        const harvestResourceId = TREE_HARVEST_RESOURCES[species.name];
+        if (!species || !species.name || harvestResourceId == null) return;
+
+        const id = getTreeBuildingId(species.name);
+        defs[id] = Object.freeze({
+            id: id,
+            name: species.name,
+            category: BUILDINGS_CATEGORY.id,
+            description: "A planted " + species.name.toLowerCase()
+                + " tended on fertile land. It bears fruit with the turning of the in-game month.",
+            resources: Object.freeze([
+                Object.freeze({ resourceId: harvestResourceId, amount: 100 }),
+                Object.freeze({ resourceId: RESOURCE_IDS.FERTILE_SOIL, amount: 100 }),
+                Object.freeze({ resourceId: RESOURCE_IDS.WOODEN_PLANK, amount: 4 }),
+            ]),
+            workPoints: 4000,
+            spaceElementRequirements: Object.freeze([
+                Object.freeze({ element: "FertileLand", amount: 1 }),
+            ]),
+            consumeSpaceElements: true,
+            skill: "gardening",
+            plantedTree: true,
+            harvestResourceId: harvestResourceId,
+            effects: Object.freeze([]),
+            iconClass: "fa-tree",
+            effectText: "Grows " + species.name + ". After one in-game month it becomes ripe and can be harvested with Harvest crops.",
+        });
+    });
+
+    return defs;
 }
 
 const HOUSE_POWER_TYPES = Object.freeze({
@@ -661,6 +737,10 @@ const BUILDING_DEFS = Object.freeze({
             Object.freeze({ resourceId: RESOURCE_IDS.FERTILE_SOIL, amount: 1000 }),
         ]),
         workPoints: 10000,
+        spaceElementRequirements: Object.freeze([
+            Object.freeze({ element: "FertileLand", amount: 1 }),
+        ]),
+        consumeSpaceElements: true,
         skill: "digging",
         effects: Object.freeze([]),
         iconClass: "fa-pagelines",
@@ -880,6 +960,7 @@ const BUILDING_DEFS = Object.freeze({
         iconClass: "fa-tree",
         effectText: "Produces Maple sirup once per in-game day equal to BuildingQuality. Multiple Maple extractors on the tile each produce their own amount. Missed days are collected when you return.",
     }),
+    ...createTreeBuildingDefinitions(),
 });
 
 const BUILDING_SKILL_EXP_PER_WORKPOINT = 0.1;
@@ -1717,7 +1798,10 @@ function applyBuildingCompletion(building) {
     const def = building ? getBuildingDefinition(building.defId) : null;
     if (!def) return;
 
-    if (building.defId === BUILDING_IDS.FARM_CROP) {
+    if (isHarvestBuilding(building)) {
+        if (building.cropResourceId == null) {
+            building.cropResourceId = getBuildingHarvestResourceId(building);
+        }
         building.farmRipe = false;
     }
 
@@ -1817,7 +1901,7 @@ function ripenFarmCropsForNewMonth() {
     let changed = 0;
     buildings.forEach(function (building) {
         if (!building
-            || building.defId !== BUILDING_IDS.FARM_CROP
+            || !isHarvestBuilding(building)
             || !building.completed
             || building.farmRipe === true) {
             return;
@@ -2256,15 +2340,19 @@ function renderBuildingInstanceRows(container, def) {
 }
 
 function getFarmCropName(building) {
-    const definition = building && RESOURCE_DEFS[building.cropResourceId];
+    const cropId = building ? getBuildingHarvestResourceId(building) : null;
+    const definition = cropId != null ? RESOURCE_DEFS[cropId] : null;
     return definition ? definition.name : "crop";
 }
 
 function getBuildingDisplayName(building, def) {
-    if (building && building.defId === BUILDING_IDS.FARM_CROP
-        && building.completed) {
-        return (building.farmRipe ? "Ripe crop with " : "Growing crop with ")
-            + getFarmCropName(building);
+    if (building && building.completed && isHarvestBuilding(building)) {
+        if (building.defId === BUILDING_IDS.FARM_CROP) {
+            return (building.farmRipe ? "Ripe crop with " : "Growing crop with ")
+                + getFarmCropName(building);
+        }
+        return (building.farmRipe ? "Ripe " : "Growing ")
+            + (def ? def.name : "tree");
     }
     return def ? def.name : "Building";
 }
@@ -2276,7 +2364,7 @@ function getBuildingInstanceStatus(building, def) {
     const qualityText = "Q" + round2(quality);
 
     if (building.completed) {
-        if (building.defId === BUILDING_IDS.FARM_CROP) {
+        if (isHarvestBuilding(building)) {
             return qualityText + " | "
                 + (building.farmRipe ? "Ready to harvest" : "Growing");
         }
@@ -4463,9 +4551,7 @@ function performBuild(def) {
         completed: false,
         quality: quality,
         roomSpaceApplied: false,
-        cropResourceId: def.id === BUILDING_IDS.FARM_CROP
-            ? getSelectedFarmCropId()
-            : null,
+        cropResourceId: getBuildingBuildCropResourceId(def),
         farmRipe: false,
     };
 

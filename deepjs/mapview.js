@@ -534,7 +534,9 @@ class MapView {
             const def = typeof getBuildingDefinition === 'function'
                 ? getBuildingDefinition(building.defId)
                 : null;
-            const name = def ? def.name : String(building.defId || 'Building');
+            const name = (def && typeof getBuildingDisplayName === 'function')
+                ? getBuildingDisplayName(building, def)
+                : (def ? def.name : String(building.defId || 'Building'));
             const label = `${name} Q${this.formatBuildingQuality(building.quality)}`;
 
             if (building.completed) return label;
