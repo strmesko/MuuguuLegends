@@ -1601,7 +1601,7 @@ function renderStatusIcons() {
                                 input.checked = false;
                                 habitToggles[habit.id] = false;
                                 logMessage('Not enough focus points to enable ' + habit.name + ' ('
-                                    + focusCost + ' required).');
+                                    + focusCost + ' FP required).');
                                 return;
                             }
                             focusPoints -= focusCost;
@@ -1615,7 +1615,7 @@ function renderStatusIcons() {
                             }
                             updateFocusPointsDisplay();
                             logMessage(habit.name + ' habit enabled (-'
-                                + focusCost + ' focus points).');
+                                + focusCost + ' FP).');
                             if (habit.id === 'harvestTrees'
                                 && typeof startTreeHarvestIfEnabled === 'function') {
                                 startTreeHarvestIfEnabled();
@@ -1625,7 +1625,7 @@ function renderStatusIcons() {
                             focusPoints += focusCost;
                             updateFocusPointsDisplay();
                             logMessage(habit.name + ' habit disabled (+'
-                                + focusCost + ' focus points refunded).');
+                                + focusCost + ' FP refunded).');
                         }
                         return;
                     }
@@ -1644,6 +1644,15 @@ function renderStatusIcons() {
                 label.appendChild(input);
                 label.appendChild(slider);
                 label.appendChild(name);
+
+                const focusCost = Math.max(0, Number(habit.focusCost) || 0);
+                if (focusCost > 0) {
+                    const costLabel = document.createElement('span');
+                    costLabel.className = 'habitfocuscost';
+                    costLabel.innerText = focusCost + ' FP';
+                    label.appendChild(costLabel);
+                }
+
                 item.appendChild(label);
                 list.appendChild(item);
             });

@@ -689,7 +689,7 @@ var HABIT_CATEGORIES = [
             {
                 id: "autoFocusMana",
                 name: "Auto Focus at full mana",
-                description: "Lazy basics level 7: automatically use Focus when current mana plus one second of mana regeneration reaches maximum mana. Enabling costs 5 focus points; disabling refunds them.",
+                description: "Lazy basics level 7: automatically use Focus when current mana plus one second of mana regeneration reaches maximum mana. Enabling costs 5 FP; disabling refunds them.",
                 requiredLevel: 7,
                 defaultEnabled: false,
                 focusCost: 5,
@@ -781,7 +781,7 @@ var HABIT_CATEGORIES = [
             {
                 id: "harvestTrees",
                 name: "Harvest trees",
-                description: "Harvest the yummies: automatically start Trees Harvest when fruit or nut trees are available. Enabling costs 2 focus points; disabling refunds them.",
+                description: "Harvest the yummies: automatically start Trees Harvest when fruit or nut trees are available. Enabling costs 2 FP; disabling refunds them.",
                 requiredTechnology: "harvestTheYummies",
                 requiredLevel: 1,
                 defaultEnabled: false,
@@ -813,7 +813,7 @@ function isHabitEnabled(habitId) {
 
 function updateFocusPointsDisplay() {
     const display = document.getElementById('focuspoints');
-    if (display) display.innerText = 'Focus points: ' + focusPoints;
+    if (display) display.innerText = 'Focus points: ' + focusPoints + ' FP';
 }
 
 var landTotals = {

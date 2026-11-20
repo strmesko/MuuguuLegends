@@ -2691,3 +2691,11 @@ ul.resource-tree li a:before {
 .map-center-button:hover {
   background: rgba(44, 52, 86, 0.95);
 }
+
+/* Focus-point price shown on habit toggles. */
+.habitfocuscost {
+  margin-left: 6px;
+  color: #2468d8;
+  font-weight: bold;
+  white-space: nowrap;
+}
