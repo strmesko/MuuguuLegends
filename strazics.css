@@ -365,6 +365,29 @@ body{font-size:max(6px,1em);}
   .combatclosebutton:hover {
     filter: brightness(1.08);
   }
+  .npcdialogue-stats {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin-top: 10px;
+    padding: 8px;
+    border: 1px dashed #6d5c8a;
+    border-radius: 6px;
+    background: rgba(18, 14, 26, 0.55);
+    font-weight: bold;
+  }
+  .npcdialogue-stat span {
+    color: #ffd166;
+  }
+  .npcdialogue-actions {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 10px;
+  }
+  .npcdialogue-actions .combatclosebutton {
+    margin: 0;
+  }
   /* Reserved row for active combat skill buttons. */
   .combat-skills {
     display: flex;

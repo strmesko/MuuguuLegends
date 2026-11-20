@@ -308,3 +308,263 @@ function adjustNpcFavor(npc, delta) {
     npc.favor = clampNpcFavor(npc.favor + (Number(delta) || 0));
     return true;
 }
+
+// --- conversation ---------------------------------------------------------
+
+const NPC_GREET_FAVOR_GAIN = 10;
+const NPC_GREET_MOOD_GAIN = 10;
+const NPC_GREET_REPEAT_MOOD_LOSS = 5;
+
+let activeNpcDialogue = null;
+
+function isNpcDialogueActive() {
+    return !!activeNpcDialogue;
+}
+
+function getActiveNpcDialogueNpc() {
+    if (!activeNpcDialogue) return null;
+    return getNpcByUid(activeNpcDialogue.npcUid);
+}
+
+function createNpcDialogueFighter(side, nameId, imageId) {
+    const fighter = document.createElement("div");
+    fighter.className = "combat-fighter combat-" + side;
+
+    const name = document.createElement("div");
+    name.className = "combat-name";
+    name.id = nameId;
+    fighter.appendChild(name);
+
+    const portrait = document.createElement("div");
+    portrait.className = "combat-portrait";
+    const image = document.createElement("img");
+    image.id = imageId;
+    image.className = "combat-sprite";
+    image.alt = "";
+    portrait.appendChild(image);
+    fighter.appendChild(portrait);
+
+    return fighter;
+}
+
+function ensureNpcDialogueOverlay() {
+    let overlay = document.getElementById("npcdialogueoverlay");
+    if (overlay) return overlay;
+
+    const parent = document.getElementById("actionplace") || document.body;
+    overlay = document.createElement("div");
+    overlay.id = "npcdialogueoverlay";
+    overlay.className = "combatoverlay npcdialogueoverlay";
+    overlay.style.display = "flex";
+
+    const panel = document.createElement("div");
+    panel.className = "combat-panel npcdialogue-panel";
+
+    const title = document.createElement("div");
+    title.className = "combat-title";
+    title.innerText = "Conversation";
+    panel.appendChild(title);
+
+    const arena = document.createElement("div");
+    arena.className = "combat-arena";
+    arena.appendChild(createNpcDialogueFighter(
+        "player",
+        "npcdialogueplayername",
+        "npcdialogueplayerimage"
+    ));
+
+    const vs = document.createElement("div");
+    vs.className = "combat-vs";
+    vs.innerText = "TALK";
+    arena.appendChild(vs);
+
+    arena.appendChild(createNpcDialogueFighter(
+        "enemy",
+        "npcdialoguenpcname",
+        "npcdialoguenpcimage"
+    ));
+    panel.appendChild(arena);
+
+    const stats = document.createElement("div");
+    stats.className = "npcdialogue-stats";
+
+    const favor = document.createElement("div");
+    favor.className = "npcdialogue-stat";
+    favor.innerText = "Favor: ";
+    const favorValue = document.createElement("span");
+    favorValue.id = "npcdialoguefavor";
+    favor.appendChild(favorValue);
+    stats.appendChild(favor);
+
+    const mood = document.createElement("div");
+    mood.className = "npcdialogue-stat";
+    mood.innerText = "Mood: ";
+    const moodValue = document.createElement("span");
+    moodValue.id = "npcdialoguemood";
+    mood.appendChild(moodValue);
+    stats.appendChild(mood);
+
+    panel.appendChild(stats);
+
+    const actions = document.createElement("div");
+    actions.className = "npcdialogue-actions";
+
+    const greetButton = document.createElement("button");
+    greetButton.type = "button";
+    greetButton.id = "npcdialoguegreet";
+    greetButton.className = "combatclosebutton";
+    greetButton.innerText = "Greet";
+    greetButton.addEventListener("click", greetActiveNpc);
+    actions.appendChild(greetButton);
+
+    const goodbyeButton = document.createElement("button");
+    goodbyeButton.type = "button";
+    goodbyeButton.id = "npcdialoguesaygoodbye";
+    goodbyeButton.className = "combatclosebutton";
+    goodbyeButton.innerText = "Say goodbye";
+    goodbyeButton.addEventListener("click", endNpcDialogue);
+    actions.appendChild(goodbyeButton);
+
+    panel.appendChild(actions);
+    overlay.appendChild(panel);
+    parent.appendChild(overlay);
+
+    return overlay;
+}
+
+function renderNpcDialogue() {
+    const npc = getActiveNpcDialogueNpc();
+    if (!npc) {
+        endNpcDialogue();
+        return;
+    }
+
+    const overlay = ensureNpcDialogueOverlay();
+    overlay.style.display = "flex";
+
+    const playerName = document.getElementById("npcdialogueplayername");
+    const playerImage = document.getElementById("npcdialogueplayerimage");
+    const npcName = document.getElementById("npcdialoguenpcname");
+    const npcImage = document.getElementById("npcdialoguenpcimage");
+    const favor = document.getElementById("npcdialoguefavor");
+    const mood = document.getElementById("npcdialoguemood");
+
+    if (playerName) {
+        playerName.innerText = (typeof player !== "undefined" && player && player.name)
+            ? player.name
+            : "You";
+    }
+    if (playerImage) playerImage.src = "muguu.png";
+    if (npcName) npcName.innerText = getNpcDisplayName(npc);
+    if (npcImage) npcImage.src = npc.image;
+    if (favor) favor.innerText = round2(npc.favor) + " / " + NPC_FAVOR_MAX;
+    if (mood) mood.innerText = round2(npc.mood) + " / " + NPC_MOOD_MAX;
+}
+
+function captureNpcDialogueResumeActions() {
+    if (typeof captureCombatResumeActions === "function") {
+        captureCombatResumeActions();
+    }
+}
+
+function resumeNpcDialogueActions() {
+    if (typeof resumeCombatPreviousActions === "function") {
+        resumeCombatPreviousActions();
+    }
+}
+
+function startNpcDialogue(npc) {
+    if (activeNpcDialogue) return false;
+    if (typeof isCombatActive === "function" && isCombatActive()) return false;
+    if (typeof isTraveling === "function" && isTraveling()) {
+        if (typeof logMessage === "function") {
+            logMessage("You cannot talk while travelling.");
+        }
+        return false;
+    }
+    if (typeof currentTile === "undefined" || !currentTile) return false;
+
+    let target = npc || null;
+    if (target && !(target instanceof Npc)) {
+        target = getNpcByUid(target);
+    }
+    if (!target) {
+        target = getNpcsAtTile(currentTile.x, currentTile.y)[0] || null;
+    }
+    if (!target || target.x !== currentTile.x || target.y !== currentTile.y) {
+        return false;
+    }
+
+    captureNpcDialogueResumeActions();
+    if (typeof stopActiveTimedActions === "function") {
+        stopActiveTimedActions();
+    }
+    if (typeof closeMapTravelDialog === "function") closeMapTravelDialog();
+
+    activeNpcDialogue = {
+        npcUid: target.uid,
+        greeted: false,
+    };
+
+    renderNpcDialogue();
+    if (typeof logMessage === "function") {
+        logMessage("You start talking to " + getNpcDisplayName(target) + ".");
+    }
+    if (typeof refreshActionButtons === "function") refreshActionButtons();
+    return true;
+}
+
+function endNpcDialogue() {
+    if (!activeNpcDialogue) return false;
+
+    const npc = getActiveNpcDialogueNpc();
+    activeNpcDialogue = null;
+
+    const overlay = document.getElementById("npcdialogueoverlay");
+    if (overlay) overlay.remove();
+
+    if (npc && typeof logMessage === "function") {
+        logMessage("You say goodbye to " + npc.name + ".");
+    }
+
+    resumeNpcDialogueActions();
+    if (typeof refreshActionButtons === "function") refreshActionButtons();
+    if (typeof updateGUI === "function") updateGUI();
+    return true;
+}
+
+function greetActiveNpc() {
+    if (!activeNpcDialogue) return false;
+
+    const npc = getActiveNpcDialogueNpc();
+    if (!npc) {
+        endNpcDialogue();
+        return false;
+    }
+
+    const firstGreeting = activeNpcDialogue.greeted !== true;
+    adjustNpcFavor(npc, NPC_GREET_FAVOR_GAIN);
+    if (firstGreeting) {
+        adjustNpcMood(npc, NPC_GREET_MOOD_GAIN);
+        activeNpcDialogue.greeted = true;
+        if (typeof logMessage === "function") {
+            logMessage("You greet " + npc.name + ". Favor +"
+                + NPC_GREET_FAVOR_GAIN + ", mood +" + NPC_GREET_MOOD_GAIN + ".");
+        }
+    } else {
+        adjustNpcMood(npc, -NPC_GREET_REPEAT_MOOD_LOSS);
+        if (typeof logMessage === "function") {
+            logMessage(npc.name + " is tired of repeated greetings. Mood -"
+                + NPC_GREET_REPEAT_MOOD_LOSS + ".");
+        }
+    }
+
+    if (typeof player !== "undefined" && player && player.social
+        && typeof player.social.addexp === "function") {
+        player.social.addexp(firstGreeting ? 5 : 1);
+    }
+
+    renderNpcDialogue();
+    if (typeof updateGUI === "function") updateGUI();
+    return true;
+}

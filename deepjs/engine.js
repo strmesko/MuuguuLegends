@@ -22,6 +22,7 @@ const LEARNED_SKILLS = [
     { barId: 'skillsplacetailoring', key: 'tailoring', label: 'Tailoring', descriptionKey: 'tailoring' },
     { barId: 'skillsplacefishing', key: 'fishing', label: 'Fishing', descriptionKey: 'fishing' },
     { barId: 'skillsplacefarming', key: 'farming', label: 'Farming', descriptionKey: 'farming' },
+    { barId: 'skillsplacesocial', key: 'social', label: 'Social', descriptionKey: 'social' },
     { barId: 'skillsplacecarpentry', key: 'carpentry', label: 'Carpentry', descriptionKey: 'carpentry' },
     { barId: 'skillsplacearchitecture', key: 'architecture', label: 'Architecture', descriptionKey: 'architecture' },
     { barId: 'skillsplacegardening', key: 'gardening', label: 'Gardening', descriptionKey: 'gardening' },

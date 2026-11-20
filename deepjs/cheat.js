@@ -299,6 +299,9 @@
             setCheatStatus("Generated " + getNpcDisplayName(npc)
                 + " at X: " + npc.x + ", Y: " + npc.y
                 + ". Mood " + npc.mood + ", favor " + npc.favor + ".");
+            if (typeof refreshActionButtons === "function") {
+                refreshActionButtons();
+            }
             refreshGameUI();
         },
 

@@ -370,6 +370,43 @@ const ACTIONS = [
         },
     },
     {
+        id: "talktonpc",
+        label: "Talk to NPC",
+        tags: ["social"],
+        description: "Start a conversation with an NPC on the current tile. All other actions are paused until you say goodbye.",
+        kind: ACTION_KIND.Instant,
+        initialState: Activity.Idle,
+        isVisible: function () {
+            return typeof player !== "undefined"
+                && !!player
+                && typeof getNpcsAtTile === "function"
+                && typeof currentTile !== "undefined"
+                && !!currentTile
+                && getNpcsAtTile(currentTile.x, currentTile.y).length > 0
+                && !(typeof isTraveling === "function" && isTraveling())
+                && !(typeof isCombatActive === "function" && isCombatActive())
+                && !(typeof isNpcDialogueActive === "function"
+                    && isNpcDialogueActive());
+        },
+        isEnabled: function () {
+            return typeof getNpcsAtTile === "function"
+                && typeof currentTile !== "undefined"
+                && !!currentTile
+                && getNpcsAtTile(currentTile.x, currentTile.y).length > 0
+                && !(typeof isTraveling === "function" && isTraveling())
+                && !(typeof isCombatActive === "function" && isCombatActive())
+                && !(typeof isNpcDialogueActive === "function"
+                    && isNpcDialogueActive())
+                && Number(player && player.hp) > 0;
+        },
+        unavailableMessage: "There is no NPC to talk to here.",
+        run: function () {
+            return typeof startNpcDialogue === "function"
+                ? startNpcDialogue()
+                : false;
+        },
+    },
+    {
         id: "explore",
         label: "Explore",
         description: "Explore the entire tile for further investigate. <br>Full tile exploration reveals neighbour tiles",
@@ -1296,8 +1333,10 @@ function updateActionButton(actionId) {
         button.setAttribute("data-tooltip", getActionDescription(action));
         const label = button.querySelector(".actionbutton-label");
         if (label) label.innerText = getActionLabel(action);
-        const combatLocked = typeof isCombatActive === "function"
-            && isCombatActive();
+        const combatLocked = (typeof isCombatActive === "function"
+            && isCombatActive())
+            || (typeof isNpcDialogueActive === "function"
+                && isNpcDialogueActive());
         const enabled = !combatLocked
             && (typeof action.isEnabled !== "function"
                 || action.isEnabled() === true);
@@ -1364,6 +1403,10 @@ function shouldRememberPreviousTimedAction(action) {
 function startTimedAction(action) {
     if (typeof isCombatActive === "function" && isCombatActive()) {
         logMessage("You cannot start actions during combat.");
+        return false;
+    }
+    if (typeof isNpcDialogueActive === "function" && isNpcDialogueActive()) {
+        logMessage("You cannot start actions during a conversation.");
         return false;
     }
     if (actionsCount <= 0) {
@@ -1971,6 +2014,10 @@ function startMoveToXYTravel(travel) {
     if (!travel || !Array.isArray(travel.path) || travel.path.length === 0) {
         return false;
     }
+    if (typeof isNpcDialogueActive === "function" && isNpcDialogueActive()) {
+        logMessage("You cannot travel during a conversation.");
+        return false;
+    }
     if (!areMovementActionsAvailable()) {
         logMessage("Moverment between tiles is not available right now");
         return false;
@@ -2056,6 +2103,10 @@ function runTravelProduction(diff) {
 function performAction(action) {
     if (typeof isCombatActive === "function" && isCombatActive()) {
         logMessage("All actions are blocked during combat.");
+        return;
+    }
+    if (typeof isNpcDialogueActive === "function" && isNpcDialogueActive()) {
+        logMessage("All actions are blocked during a conversation.");
         return;
     }
     if (action.kind === ACTION_KIND.Timed) {
@@ -2409,6 +2460,7 @@ function updateDayDreamUnlock(diff) {
 
 function runActiveActions(diff) {
     if (typeof isCombatActive === "function" && isCombatActive()) return;
+    if (typeof isNpcDialogueActive === "function" && isNpcDialogueActive()) return;
     ACTIONS.forEach(function (action) {
         if (action.kind !== ACTION_KIND.Timed || !isActionActive(action.id)) return;
 
@@ -2448,6 +2500,7 @@ function getForcedSleepChance() {
 function tryFallAsleep(diff) {
     if (!player || isTraveling()) return;
     if (typeof isCombatActive === "function" && isCombatActive()) return;
+    if (typeof isNpcDialogueActive === "function" && isNpcDialogueActive()) return;
     if (isActionActive("sleep")) return;
 
     const seconds = Math.max(0, Number(diff) || 0);
