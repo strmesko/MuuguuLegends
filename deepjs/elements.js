@@ -641,6 +641,12 @@ if (typeof updateAscensionMultiplierDisplay === 'function') {
         if (Number.isFinite(tastymeter)) {
           foodLines.push('Tastymeter: ' + round2(tastymeter) + '/10');
         }
+        if (definition.fish) {
+          foodLines.push('Fishing difficulty: '
+            + round2(Number(definition.fishDifficulty) || 1));
+          foodLines.push('Size: '
+            + round2(Number(definition.fishSize) || 1) + ' kg');
+        }
         const statName = typeof getFoodStatBindingName === "function"
           ? getFoodStatBindingName(resource.id)
           : null;

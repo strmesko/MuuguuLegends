@@ -426,8 +426,8 @@ const ACTIONS = [
     {
         id: "fish",
         label: "Fish",
-        tags: ["harvest"],
-        description: "Cast a line, spear or net into the water.<br>Catches fish and other underwater life. What bites depends on the water type, temperature and your Fishing power. Trains Fishing and Agility.",
+        tags: ["harvest", "harvesting"],
+        description: "Harvest fish and other underwater life from the water.<br>Action power: sqrt(((PER + AGI) / 2) * Fishing), increased by Fishing power. Available fish depend on water type, temperature and the amount of water on the tile. Trains Fishing and Agility.",
         kind: ACTION_KIND.Timed,
         initialState: Activity.Idle,
         startMessage: "You start fishing",

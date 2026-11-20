@@ -1476,7 +1476,7 @@ if (typeof FISH_DEFINITIONS !== "undefined") {
         const fishId = FISH_RESOURCE_ID_BASE + index;
         RESOURCE_DEFS[fishId] = {
             name: entry.name,
-            weight: entry.weight,
+            weight: 1,
             unitType: "kg",
             description: entry.description,
             category: RESOURCE_CATEGORIES.Food,
@@ -1486,6 +1486,8 @@ if (typeof FISH_DEFINITIONS !== "undefined") {
             fishTempMin: entry.tempMin,
             fishTempMax: entry.tempMax,
             fishWeight: entry.fishWeight,
+            fishSize: entry.size,
+            fishDifficulty: entry.difficulty,
             Tastymeter: entry.tastymeter,
         };
         FISH_RESOURCE_IDS.push(fishId);

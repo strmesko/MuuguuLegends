@@ -152,12 +152,75 @@
         shellfish: 5,
         beasts: 4,
     };
-    const itemWeights = {
+    const defaultSizes = {
         sea: 1.5,
         river: 1,
         lake: 1,
-        shellfish: 0.3,
-        beasts: 30,
+        shellfish: 0.5,
+        beasts: 100,
+    };
+    const sizeOverrides = {
+        "Sardine": 0.1,
+        "Anchovy": 0.1,
+        "Capelin": 0.1,
+        "Sand Lance": 0.05,
+        "Krill": 0.01,
+        "Shrimp": 0.05,
+        "Prawn": 0.1,
+        "Mussel": 0.1,
+        "Oyster": 0.15,
+        "Clam": 0.15,
+        "Cockle": 0.1,
+        "Scallop": 0.2,
+        "Snail": 0.05,
+        "Cod": 5,
+        "Atlantic Cod": 8,
+        "Haddock": 3,
+        "Halibut": 30,
+        "Tuna": 40,
+        "Bluefin Tuna": 150,
+        "Yellowfin Tuna": 60,
+        "Swordfish": 80,
+        "Marlin": 70,
+        "Shark": 200,
+        "Great White Shark": 500,
+        "Hammerhead Shark": 200,
+        "Whale Shark": 800,
+        "Tiger Shark": 300,
+        "Orca": 500,
+        "Manta Ray": 200,
+        "Whale": 5000,
+        "Blue Whale": 10000,
+        "Sperm Whale": 4000,
+        "Humpback Whale": 3000,
+        "Sturgeon": 30,
+        "Lake Sturgeon": 30,
+        "Wels Catfish": 20,
+        "Catfish": 8,
+        "Carp": 5,
+        "Mirror Carp": 6,
+        "Grass Carp": 8,
+        "Pike": 5,
+        "Northern Pike": 5,
+        "Muskie": 10,
+        "Lobster": 3,
+        "King Crab": 4,
+        "Blue Crab": 1,
+        "Snow Crab": 2,
+        "Octopus": 3,
+        "Squid": 2,
+        "Cuttlefish": 3,
+        "Jellyfish": 1,
+        "Starfish": 0.5,
+        "Sea Cucumber": 0.5,
+    };
+
+    const defaultDifficulties = {
+        sea: 5,
+        river: 4,
+        lake: 4,
+        shellfish: 3,
+        beasts: 15,
     };
 
     const definitions = [];
@@ -165,6 +228,8 @@
         group.tempGroups.forEach(function (tempGroup) {
             const range = ranges[tempGroup.temp];
             tempGroup.names.forEach(function (name) {
+                const size = sizeOverrides[name] || defaultSizes[group.category];
+                const baseDifficulty = defaultDifficulties[group.category];
                 definitions.push(Object.freeze({
                     name: name,
                     category: group.category,
@@ -172,7 +237,11 @@
                     tempMin: range.min,
                     tempMax: range.max,
                     fishWeight: weights[group.category],
-                    weight: itemWeights[group.category],
+                    weight: 1,
+                    size: size,
+                    difficulty: Math.max(1, Math.round(
+                        baseDifficulty + Math.log10(size + 1) * 2
+                    )),
                     tastymeter: tastymeters[group.category],
                     description: group.category === "beasts"
                         ? "A colossal creature of the deep. It should not fit in a bucket."

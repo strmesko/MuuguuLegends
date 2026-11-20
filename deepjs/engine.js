@@ -2257,14 +2257,41 @@ function getFishingWaterKind(tile) {
     return hasRiver ? "river" : "lake";
 }
 
-function getFishingCatchInterval(power) {
-    const value = Math.max(0, Number(power) || 0);
-    return Math.max(2, 8 / (1 + value * 0.1));
+function getFishingWaterAmount(tile) {
+    const target = tile || (typeof currentTile !== "undefined" ? currentTile : null);
+    if (!target) return 0;
+    const space = target.space || {};
+    return Math.max(0, Number(space.Water) || 0)
+        + Math.max(0, Number(space.SaltWater) || 0)
+        + Math.max(0, target.land && Number(target.land.water) || 0);
+}
+
+function getFishingWaterMultiplier(tile) {
+    const amount = getFishingWaterAmount(tile);
+    if (amount <= 0) return 1;
+    return Math.max(0.25, Math.min(2, Math.sqrt(amount) / 10));
+}
+
+// The action's base power combines the average of Perception and Agility with
+// the Fishing skill. The equipped fishing tool is a multiplier on top.
+function getFishingActionPower(tile) {
+    const perception = Math.max(1, getEffectiveLevel("per") || 0);
+    const agility = Math.max(1, getEffectiveLevel("agi") || 0);
+    const fishing = Math.max(1, getEffectiveLevel("fishing") || 0);
+    const toolPower = typeof getCharacterToolPower === "function"
+        ? Math.max(0, Number(getCharacterToolPower("fishing")) || 0)
+        : 0;
+    const base = Math.sqrt(((perception + agility) / 2) * fishing);
+    return base * (1 + toolPower * 0.1);
 }
 
 function getFishingQuality(power) {
+    const perception = Math.max(1, getEffectiveLevel("per") || 0);
+    const agility = Math.max(1, getEffectiveLevel("agi") || 0);
+    const fishing = Math.max(1, getEffectiveLevel("fishing") || 0);
     return applyWellFedActionQuality(
-        getEffectiveLevel("fishing") + Math.max(0, Number(power) || 0) * 0.1
+        (((perception + agility) / 2) + fishing
+            + Math.max(0, Number(power) || 0) * 0.1) / 3
     );
 }
 
@@ -2299,23 +2326,8 @@ function getFishingCandidates(tile) {
     });
 }
 
-function pickFishingCatch(candidates) {
-    if (!candidates || !candidates.length) return null;
-    const totalWeight = candidates.reduce(function (sum, resourceId) {
-        const definition = RESOURCE_DEFS[resourceId];
-        return sum + Math.max(1, Number(definition && definition.fishWeight) || 1);
-    }, 0);
-
-    let roll = Math.random() * totalWeight;
-    for (let index = 0; index < candidates.length; index++) {
-        const resourceId = candidates[index];
-        const definition = RESOURCE_DEFS[resourceId];
-        roll -= Math.max(1, Number(definition && definition.fishWeight) || 1);
-        if (roll <= 0) return resourceId;
-    }
-    return candidates[candidates.length - 1];
-}
-
+const FISHING_BASE_CHANCE_PER_SECOND = 0.02;
+const FISHING_MAX_CATCHES_PER_TICK = 10;
 const fishingState = { progress: 0, emptyLogged: false };
 
 function resetFishingState() {
@@ -2328,19 +2340,17 @@ function runFishingProduction(diff) {
     const waterKind = getFishingWaterKind(currentTile);
     if (!waterKind) return;
 
-    const power = typeof getCharacterToolPower === "function"
-        ? getCharacterToolPower("fishing")
-        : 0;
-    if (power < 1) return;
+    const power = getFishingActionPower(currentTile);
+    if (!(power > 0)) return;
 
     const seconds = Math.max(0, Number(diff) || 0);
     if (seconds <= 0) return;
 
     fishingState.progress += seconds;
-    const interval = getFishingCatchInterval(power);
-    let catches = Math.floor(fishingState.progress / interval);
-    fishingState.progress -= catches * interval;
-    if (catches <= 0) return;
+    let ticks = Math.floor(fishingState.progress);
+    fishingState.progress -= ticks;
+    if (ticks <= 0) return;
+    ticks = Math.min(ticks, FISHING_MAX_CATCHES_PER_TICK);
 
     const candidates = getFishingCandidates(currentTile);
     if (!candidates.length) {
@@ -2352,16 +2362,31 @@ function runFishingProduction(diff) {
     }
     fishingState.emptyLogged = false;
 
-    catches = Math.min(catches, 10);
+    const waterMultiplier = getFishingWaterMultiplier(currentTile);
     const quality = getFishingQuality(power);
-    for (let index = 0; index < catches; index++) {
-        const resourceId = pickFishingCatch(candidates);
-        if (!resourceId) break;
-        const definition = RESOURCE_DEFS[resourceId];
-        addResource(resourceId, 1, quality);
-        logMessage("You catch " + (definition ? definition.name : "a fish") + ".");
-        if (player.fishing) player.fishing.addexp(1 + power * 0.1);
-        if (player.agi) player.agi.addexp(0.25);
+    let caught = 0;
+
+    for (let tick = 0; tick < ticks; tick++) {
+        for (let index = 0; index < candidates.length; index++) {
+            if (caught >= FISHING_MAX_CATCHES_PER_TICK) break;
+            const resourceId = candidates[index];
+            const definition = RESOURCE_DEFS[resourceId];
+            const difficulty = Math.max(1, Number(definition.fishDifficulty) || 1);
+            const chancePerSecond = FISHING_BASE_CHANCE_PER_SECOND
+                * (power / (power + difficulty))
+                * waterMultiplier;
+            if (Math.random() >= chancePerSecond) continue;
+
+            const amount = Math.max(0.01, Number(definition.fishSize) || 1);
+            addResource(resourceId, round2(amount), quality);
+            logMessage("You catch " + definition.name + " x"
+                + round2(amount) + ".");
+            if (player.fishing) {
+                player.fishing.addexp(0.5 + difficulty * 0.05);
+            }
+            if (player.agi) player.agi.addexp(0.15);
+            caught += 1;
+        }
     }
 }
 
