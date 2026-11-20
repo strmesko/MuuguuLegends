@@ -258,6 +258,30 @@ const MOBS = Object.freeze({
         armor: 0.5,
         attackSpeedMs: COMBAT_ATTACK_SPEED_BASE_MS / 2,
     }),
+    boar: Object.freeze({
+        id: "boar",
+        name: "Boar",
+        description: "A blocky boar with a perfectly cubic snout and absurdly tiny legs. It charges with surprising force.",
+        image: "images/combat/mobs/boar.png",
+        stats: Object.freeze({
+            str: 1,
+            agi: 2,
+            vit: 1,
+            per: 1,
+            int: 1,
+            ins: 1,
+            sou: 1,
+            luck: 1,
+            speed: 100,
+        }),
+        hp: 72,
+        mana: 0,
+        sp: 4,
+        attack: 0.6,
+        armor: 0.5,
+        attackSpeedMs: COMBAT_ATTACK_SPEED_BASE_MS / 3,
+        hitMultiplier: 0.5,
+    }),
 });
 
 function getMobYearLevelBonus() {
@@ -325,6 +349,9 @@ const MOB_LOOT = Object.freeze({
     ]),
     cowass: Object.freeze([
         Object.freeze({ resourceId: RESOURCE_IDS.BEEF, amount: 4 }),
+    ]),
+    boar: Object.freeze([
+        Object.freeze({ resourceId: RESOURCE_IDS.BOAR_MEAT, amount: 7 }),
     ]),
 });
 
@@ -643,11 +670,13 @@ function getCombatFlee(combatant) {
 
 // Raw hit stat before the defender's flee is subtracted.
 function getCombatBaseHit(combatant) {
-    return 100
+    const base = 100
         + (Number(combatant && combatant.hitBonus) || 0)
         + (getCombatantStat(combatant, "agi") * 2
             + getCombatantStat(combatant, "ins")
             + getCombatantSkill(combatant, "tactics"));
+    const multiplier = Number(combatant && combatant.hitMultiplier);
+    return base * (Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1);
 }
 
 function getCombatHitChance(attacker, defender) {
@@ -839,6 +868,7 @@ function createMobCombatant(mobId, level, prefixes) {
         armor: armor,
         hitBonus: hitBonus,
         critBonus: critBonus,
+        hitMultiplier: Math.max(0, Number(def.hitMultiplier) || 1),
         healOnAttack: Math.max(0, Number(def.healOnAttack) || 0),
         fleeMultiplier: fleeMultiplier,
         hungerOnAttack: Math.max(0, Number(def.hungerOnAttack) || 0),

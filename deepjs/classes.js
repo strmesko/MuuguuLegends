@@ -560,6 +560,7 @@ const RESOURCE_IDS = Object.freeze({
     LINEN_CLOTH: 6116,
     MYSTERY_MEAT: 6117,
     BEEF: 6118,
+    BOAR_MEAT: 6119,
 });
 
 const RESOURCE_DEFS = {
@@ -637,6 +638,7 @@ const RESOURCE_DEFS = {
     [RESOURCE_IDS.LINEN_CLOTH]: { name: "Linen cloth", weight: 0.2, unitType: "kg", description: "Woven flax cloth, soft and sturdy. The first real textile of a settled tailor.", category: RESOURCE_CATEGORIES.Intermediate, tailoring: true },
     [RESOURCE_IDS.MYSTERY_MEAT]: { name: "Mystery meat", weight: 0.4, unitType: "kg", description: "A dense cube of unidentified meat. It is still warm and faintly twitching.", category: RESOURCE_CATEGORIES.Food, Tastymeter: 3, meat: true },
     [RESOURCE_IDS.BEEF]: { name: "Beef", weight: 0.5, unitType: "kg", description: "A thick cut of beef from a very strange cow. Rich, red and reassuringly ordinary.", category: RESOURCE_CATEGORIES.Food, Tastymeter: 8, meat: true },
+    [RESOURCE_IDS.BOAR_MEAT]: { name: "Boar meat", weight: 0.5, unitType: "kg", description: "Dark, gamey meat from a very square boar. Best cooked thoroughly.", category: RESOURCE_CATEGORIES.Food, Tastymeter: 7, meat: true },
     [RESOURCE_IDS.SPIRIT_ASPIC]: { name: "Spirit aspic", weight: 0.1, unitType: "kg", description: "A cold, ghostly gel that refuses to stop wobbling.", category: RESOURCE_CATEGORIES.Intermediate, alchemy: true },
     [RESOURCE_IDS.MOB_SPIRIT_DROPS]: { name: "Mob spirit drops", weight: 0.1, unitType: "kg", description: "A single drop of condensed mob spirit.", category: RESOURCE_CATEGORIES.Intermediate, wizardy: true, mobSpirit: true },
     [RESOURCE_IDS.MOB_SPIRIT_TEARS]: { name: "Mob spirit tears", weight: 0.1, unitType: "kg", description: "A frozen tear shed by a slain mob spirit.", category: RESOURCE_CATEGORIES.Intermediate, wizardy: true, mobSpirit: true },
