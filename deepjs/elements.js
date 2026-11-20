@@ -812,6 +812,7 @@ const SKILL_DISPLAY_NAMES = Object.freeze({
     spiritspeak: "Spirit speak",
     digestomancy: "Digestomancy",
     fishing: "Fishing",
+    farming: "Farming",
     wizardy: "Wizardy",
     alchemy: "Alchemy",
     masonry: "Masonry",

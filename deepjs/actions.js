@@ -477,6 +477,28 @@ const ACTIONS = [
         run: runTreesHarvestProduction,
     },
     {
+        id: "harvestcrops",
+        label: "Harvest crops",
+        tags: ["harvest", "harvesting"],
+        description: "Harvest ripe Farm crop buildings on the current tile.<br>Each field takes 30 seconds and then turns back into a growing crop until the next month. Harvest quality is the sum of the farm's quality and the current action quality. Action quality is based on Vitality and Farming. Trains Farming and Vitality.",
+        kind: ACTION_KIND.Timed,
+        initialState: Activity.Idle,
+        startMessage: "You start harvesting crops",
+        stopMessage: "You stop harvesting crops",
+        completeMessage: "There are no ripe crops left to harvest here",
+        isVisible: function () {
+            return typeof hasRipeFarmCrops === "function"
+                && hasRipeFarmCrops();
+        },
+        isComplete: function () {
+            return typeof hasRipeFarmCrops !== "function"
+                || !hasRipeFarmCrops();
+        },
+        staminaPerSecond: function () { return 1; },
+        onStart: resetFarmHarvestState,
+        run: runFarmHarvestProduction,
+    },
+    {
         id: "cuttree",
         label: "Cut Tree",
         tags: ["harvest"],

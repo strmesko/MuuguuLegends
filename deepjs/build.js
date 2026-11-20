@@ -16,6 +16,7 @@ const BUILDING_IDS = Object.freeze({
     STONE_SHED: "stone-shed",
     CLAY_HOUSE: "clay-house",
     STONE_HOUSE: "stone-house",
+    FARM_CROP: "farm-crop",
     WORKBENCH: "workbench",
     STRAY_BED: "stray-bed",
     HAMMOCK: "hammock",
@@ -151,7 +152,6 @@ const DREAM_CATCHER_HERB_CHOICES = Object.freeze(
         ? HERB_ALCHEMY_RESOURCE_IDS
         : []).slice()
 );
-
 let selectedDreamCatcherHerbId = DREAM_CATCHER_HERB_CHOICES[0] ?? null;
 
 function getSelectedDreamCatcherHerbId() {
@@ -168,6 +168,29 @@ function setSelectedDreamCatcherHerbId(resourceId) {
     selectedDreamCatcherHerbId = id;
     if (typeof renderFurniturePanels === "function") {
         renderFurniturePanels();
+    }
+    return true;
+}
+
+const FARM_CROP_CHOICES = Object.freeze(
+    typeof CROP_RESOURCE_IDS !== "undefined" ? CROP_RESOURCE_IDS.slice() : []
+);
+let selectedFarmCropId = FARM_CROP_CHOICES[0] ?? null;
+
+function getSelectedFarmCropId() {
+    if (FARM_CROP_CHOICES.indexOf(selectedFarmCropId) === -1) {
+        selectedFarmCropId = FARM_CROP_CHOICES[0] ?? null;
+    }
+    return selectedFarmCropId;
+}
+
+function setSelectedFarmCropId(resourceId) {
+    const id = Number(resourceId);
+    if (FARM_CROP_CHOICES.indexOf(id) === -1) return false;
+
+    selectedFarmCropId = id;
+    if (typeof renderBuildingsPanels === "function") {
+        renderBuildingsPanels();
     }
     return true;
 }
@@ -202,6 +225,13 @@ function getBuildingBuildRequirements(def) {
         requirements.push({
             resourceId: getSelectedDreamCatcherHerbId(),
             amount: 1,
+        });
+    }
+
+    if (def.id === BUILDING_IDS.FARM_CROP) {
+        requirements.push({
+            resourceId: getSelectedFarmCropId(),
+            amount: 100,
         });
     }
 
@@ -326,6 +356,47 @@ function createDreamCatcherHerbChoiceBox() {
     select.value = String(getSelectedDreamCatcherHerbId());
     select.addEventListener("change", function () {
         setSelectedDreamCatcherHerbId(Number(select.value));
+    });
+    box.appendChild(select);
+    return box;
+}
+
+function createFarmCropChoiceBox() {
+    const box = document.createElement("div");
+    box.className = "craftchoice";
+
+    const label = document.createElement("label");
+    label.className = "craftchoice-label";
+    label.innerText = "Choose crop:";
+    label.htmlFor = "farm-crop-choice";
+    box.appendChild(label);
+
+    if (typeof createCraftIngredientSelect === "function") {
+        box.appendChild(createCraftIngredientSelect({
+            id: "farm-crop-choice",
+            resourceIds: FARM_CROP_CHOICES,
+            selectedResourceId: getSelectedFarmCropId(),
+            includeNone: false,
+            onSelect: function (resourceId) {
+                setSelectedFarmCropId(resourceId);
+            },
+        }));
+        return box;
+    }
+
+    const select = document.createElement("select");
+    select.id = "farm-crop-choice";
+    FARM_CROP_CHOICES.forEach(function (resourceId) {
+        const option = document.createElement("option");
+        option.value = String(resourceId);
+        option.innerText = RESOURCE_DEFS[resourceId]
+            ? RESOURCE_DEFS[resourceId].name
+            : String(resourceId);
+        select.appendChild(option);
+    });
+    select.value = String(getSelectedFarmCropId());
+    select.addEventListener("change", function () {
+        setSelectedFarmCropId(Number(select.value));
     });
     box.appendChild(select);
     return box;
@@ -580,6 +651,20 @@ const BUILDING_DEFS = Object.freeze({
         effects: Object.freeze([]),
         iconClass: "fa-home",
         effectText: "Provides 15 RoomSpace.",
+    }),
+    [BUILDING_IDS.FARM_CROP]: Object.freeze({
+        id: BUILDING_IDS.FARM_CROP,
+        name: "Farm crop",
+        category: BUILDINGS_CATEGORY.id,
+        description: "A tilled field for growing a chosen crop. It ripens with the turning of the in-game month.",
+        resources: Object.freeze([
+            Object.freeze({ resourceId: RESOURCE_IDS.FERTILE_SOIL, amount: 1000 }),
+        ]),
+        workPoints: 10000,
+        skill: "digging",
+        effects: Object.freeze([]),
+        iconClass: "fa-pagelines",
+        effectText: "Grows the selected crop. After one in-game month it becomes ripe and can be harvested with Harvest crops.",
     }),
     [BUILDING_IDS.WORKBENCH]: Object.freeze({
         id: BUILDING_IDS.WORKBENCH,
@@ -1632,6 +1717,10 @@ function applyBuildingCompletion(building) {
     const def = building ? getBuildingDefinition(building.defId) : null;
     if (!def) return;
 
+    if (building.defId === BUILDING_IDS.FARM_CROP) {
+        building.farmRipe = false;
+    }
+
     if (building.defId === BUILDING_IDS.MAPLE_EXTRACTOR
         && !Number.isFinite(Number(building.lastMapleDay))) {
         building.lastMapleDay = getCurrentGameDayIndex();
@@ -1722,6 +1811,30 @@ function runBuildingProduction(building, diff) {
             renderImprovePanels();
         }
     }
+}
+
+function ripenFarmCropsForNewMonth() {
+    let changed = 0;
+    buildings.forEach(function (building) {
+        if (!building
+            || building.defId !== BUILDING_IDS.FARM_CROP
+            || !building.completed
+            || building.farmRipe === true) {
+            return;
+        }
+        building.farmRipe = true;
+        changed += 1;
+    });
+
+    if (changed > 0) {
+        if (typeof renderBuildingsPanels === "function") {
+            renderBuildingsPanels();
+        }
+        if (typeof refreshMapCoordinates === "function") {
+            refreshMapCoordinates(true);
+        }
+    }
+    return changed;
 }
 
 function createBuildingAction(building) {
@@ -1833,6 +1946,10 @@ function serializeBuildings() {
             lastMapleDay: Number.isFinite(Number(building.lastMapleDay))
                 ? Number(building.lastMapleDay)
                 : null,
+            cropResourceId: Number.isFinite(Number(building.cropResourceId))
+                ? Number(building.cropResourceId)
+                : null,
+            farmRipe: building.farmRipe === true,
         };
     });
 }
@@ -1876,6 +1993,10 @@ function restoreBuildings(savedBuildings) {
             lastMapleDay: Number.isFinite(Number(saved.lastMapleDay))
                 ? Number(saved.lastMapleDay)
                 : null,
+            cropResourceId: Number.isFinite(Number(saved.cropResourceId))
+                ? Number(saved.cropResourceId)
+                : null,
+            farmRipe: saved.farmRipe === true,
         };
 
         buildings.push(building);
@@ -2122,7 +2243,7 @@ function renderBuildingInstanceRows(container, def) {
 
         const name = document.createElement("div");
         name.className = "buildinginstance-name";
-        name.innerText = def.name + " #" + building.uid;
+        name.innerText = getBuildingDisplayName(building, def) + " #" + building.uid;
 
         const status = document.createElement("div");
         status.className = "buildinginstance-status";
@@ -2134,6 +2255,20 @@ function renderBuildingInstanceRows(container, def) {
     });
 }
 
+function getFarmCropName(building) {
+    const definition = building && RESOURCE_DEFS[building.cropResourceId];
+    return definition ? definition.name : "crop";
+}
+
+function getBuildingDisplayName(building, def) {
+    if (building && building.defId === BUILDING_IDS.FARM_CROP
+        && building.completed) {
+        return (building.farmRipe ? "Ripe crop with " : "Growing crop with ")
+            + getFarmCropName(building);
+    }
+    return def ? def.name : "Building";
+}
+
 function getBuildingInstanceStatus(building, def) {
     const quality = Number.isFinite(building.quality)
         ? building.quality
@@ -2141,6 +2276,10 @@ function getBuildingInstanceStatus(building, def) {
     const qualityText = "Q" + round2(quality);
 
     if (building.completed) {
+        if (building.defId === BUILDING_IDS.FARM_CROP) {
+            return qualityText + " | "
+                + (building.farmRipe ? "Ready to harvest" : "Growing");
+        }
         if (building.defId === BUILDING_IDS.CAMPFIRE) {
             return "Completed | " + qualityText
                 + " | " + getRarityLabel(getBuildingRarityId(building))
@@ -2482,7 +2621,11 @@ function renderBuildingsResources() {
     const container = document.createElement("div");
     container.className = "craftresources";
 
-    def.resources.forEach(function (requirement) {
+    if (def.id === BUILDING_IDS.FARM_CROP) {
+        panel.appendChild(createFarmCropChoiceBox());
+    }
+
+    getBuildingBuildRequirements(def).forEach(function (requirement) {
         const row = createBuildResourceRow(def, requirement);
         if (row) container.appendChild(row);
     });
@@ -2571,7 +2714,7 @@ function renderBuildingsInstanceRows(container, def) {
 
         const name = document.createElement("div");
         name.className = "buildinginstance-name";
-        name.innerText = def.name + " #" + building.uid;
+        name.innerText = getBuildingDisplayName(building, def) + " #" + building.uid;
 
         const status = document.createElement("div");
         status.className = "buildinginstance-status";
@@ -3027,7 +3170,7 @@ function renderHousesInstanceRows(container, def) {
 
         const name = document.createElement("div");
         name.className = "buildinginstance-name";
-        name.innerText = def.name + " #" + building.uid;
+        name.innerText = getBuildingDisplayName(building, def) + " #" + building.uid;
 
         const status = document.createElement("div");
         status.className = "buildinginstance-status";
@@ -3514,7 +3657,7 @@ function renderFurnitureInstanceRows(container, def) {
 
         const name = document.createElement("div");
         name.className = "buildinginstance-name";
-        name.innerText = def.name + " #" + building.uid;
+        name.innerText = getBuildingDisplayName(building, def) + " #" + building.uid;
 
         const status = document.createElement("div");
         status.className = "buildinginstance-status";
@@ -4320,6 +4463,10 @@ function performBuild(def) {
         completed: false,
         quality: quality,
         roomSpaceApplied: false,
+        cropResourceId: def.id === BUILDING_IDS.FARM_CROP
+            ? getSelectedFarmCropId()
+            : null,
+        farmRipe: false,
     };
 
     buildings.push(building);

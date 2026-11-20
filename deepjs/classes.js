@@ -1878,7 +1878,7 @@ function getResourceMultiplier(tile, resourceId) {
 const PERCENT = 100;
 const CORE_STAT_COUNT = 9;
 const CORE_STAT_NAMES = ["str", "agi", "vit", "per", "int", "ins", "sou", "luck", "speed"];
-const LEARNABLE_SKILL_KEYS = ["exploration", "forage", "rest", "focus", "meditation", "wizardy", "alchemy", "masonry", "pottery", "regeneration", "autism", "science", "traveling", "dreammastery", "survival", "ropemaking", "tailoring", "fishing", "carpentry", "architecture", "gardening", "digging", "lumberjack", "mining", "smithing", "cooking", "milling", "tactics", "anatomy", "dodging", "bullseye", "axechopping", "swordsswingin", "knifesstabbing", "spearsspooning", "brawlbaps", "hammerscrushworks", "dodgedancing", "critomancy", "spiritspeak", "digestomancy"];
+const LEARNABLE_SKILL_KEYS = ["exploration", "forage", "rest", "focus", "meditation", "wizardy", "alchemy", "masonry", "pottery", "regeneration", "autism", "science", "traveling", "dreammastery", "survival", "ropemaking", "tailoring", "fishing", "carpentry", "architecture", "gardening", "farming", "digging", "lumberjack", "mining", "smithing", "cooking", "milling", "tactics", "anatomy", "dodging", "bullseye", "axechopping", "swordsswingin", "knifesstabbing", "spearsspooning", "brawlbaps", "hammerscrushworks", "dodgedancing", "critomancy", "spiritspeak", "digestomancy"];
 
 // Every edible resource is bound to one core stat for the whole playthrough.
 // The binding is rolled once when a new game starts and is stored in saves.
@@ -2225,6 +2225,7 @@ class Character {
         this.carpentry = new Skill("Carpentry", "The art of turning sticks into straight shafts and useful wooden parts.");
         this.architecture = new Skill("Architecture", "The art of planning and raising durable buildings.");
         this.gardening = new Skill("Gardening", "The art of tending fruit and nut trees and gathering their harvest.");
+        this.farming = new Skill("Farming", "The art of turning tilled soil into a reliable harvest.");
         this.digging = new Skill("Digging", "The art of moving earth, stone and foundations.");
         this.mining = new Skill("Mining", "The art of breaking stone and extracting ore from the earth.");
         this.smithing = new Skill("Smithing", "The art of smelting ore and working refined metal into bars.");

@@ -21,6 +21,7 @@ const LEARNED_SKILLS = [
     { barId: 'skillsplaceropemaking', key: 'ropemaking', label: 'Ropemaking', descriptionKey: 'ropemaking' },
     { barId: 'skillsplacetailoring', key: 'tailoring', label: 'Tailoring', descriptionKey: 'tailoring' },
     { barId: 'skillsplacefishing', key: 'fishing', label: 'Fishing', descriptionKey: 'fishing' },
+    { barId: 'skillsplacefarming', key: 'farming', label: 'Farming', descriptionKey: 'farming' },
     { barId: 'skillsplacecarpentry', key: 'carpentry', label: 'Carpentry', descriptionKey: 'carpentry' },
     { barId: 'skillsplacearchitecture', key: 'architecture', label: 'Architecture', descriptionKey: 'architecture' },
     { barId: 'skillsplacegardening', key: 'gardening', label: 'Gardening', descriptionKey: 'gardening' },
@@ -3161,8 +3162,88 @@ function runTreesHarvestProduction(diff) {
 }
 
 // Called by the game clock exactly when the calendar month changes.
-function resetHarvestedTreesForNewMonth() {
-    if (typeof window !== "undefined"
+const FARM_HARVEST_SECONDS = 30;
+const FARM_HARVEST_AMOUNT = 100;
+const farmHarvestState = {
+    uid: null,
+    progress: 0,
+};
+
+function resetFarmHarvestState() {
+    farmHarvestState.uid = null;
+    farmHarvestState.progress = 0;
+}
+
+function getRipeFarmCrops(tile) {
+    const target = tile || (typeof currentTile !== "undefined" ? currentTile : null);
+    if (!target || !Array.isArray(target.buildings)) return [];
+    return target.buildings.filter(function (building) {
+        return !!building
+            && building.defId === BUILDING_IDS.FARM_CROP
+            && building.completed === true
+            && building.farmRipe === true
+            && building.cropResourceId != null;
+    });
+}
+
+function hasRipeFarmCrops(tile) {
+    return getRipeFarmCrops(tile).length > 0;
+}
+
+function getFarmHarvestActionQuality() {
+    const vitality = Math.max(1, getEffectiveLevel("vit") || 0);
+    const farming = Math.max(1, getEffectiveLevel("farming") || 0);
+    return applyWellFedActionQuality(Math.sqrt(vitality * farming));
+}
+
+function runFarmHarvestProduction(diff) {
+    if (actionStates.harvestcrops !== Activity.Active) return;
+
+    const ripeCrops = getRipeFarmCrops(currentTile);
+    if (!ripeCrops.length) return;
+
+    let target = ripeCrops.find(function (building) {
+        return building.uid === farmHarvestState.uid;
+    });
+    if (!target) {
+        target = ripeCrops[0];
+        farmHarvestState.uid = target.uid;
+        farmHarvestState.progress = 0;
+    }
+
+    const seconds = Math.max(0, Number(diff) || 0);
+    if (seconds <= 0) return;
+
+    farmHarvestState.progress += seconds;
+    if (farmHarvestState.progress < FARM_HARVEST_SECONDS) return;
+
+    farmHarvestState.progress -= FARM_HARVEST_SECONDS;
+    farmHarvestState.uid = null;
+
+    const cropDefinition = RESOURCE_DEFS[target.cropResourceId];
+    if (!cropDefinition) return;
+
+    const actionQuality = getFarmHarvestActionQuality();
+    const farmQuality = Math.max(0, Number(target.quality) || 0);
+    const quality = round2(farmQuality + actionQuality);
+
+    target.farmRipe = false;
+    addResource(target.cropResourceId, FARM_HARVEST_AMOUNT, quality);
+    logMessage("You harvest " + FARM_HARVEST_AMOUNT + " "
+        + cropDefinition.name + " from the farm.");
+
+    if (player.farming) player.farming.addexp(1 + quality * 0.2);
+    if (player.vit) player.vit.addexp(0.25);
+
+    if (typeof renderBuildingsPanels === "function") {
+        renderBuildingsPanels();
+    }
+    if (typeof refreshMapCoordinates === "function") {
+        refreshMapCoordinates(true);
+    }
+}
+
+function resetHarvestedTreesForNewMonth() {    if (typeof window !== "undefined"
         && window.mapView
         && window.mapView.world
         && typeof window.mapView.world.resetHarvestedTrees === "function") {
@@ -3172,6 +3253,10 @@ function resetHarvestedTreesForNewMonth() {
     const tile = getTreeHarvestTile();
     if (tile && Number(tile.revealed) > 0) tile.harvestedTrees = {};
     resetTreeHarvestTarget();
+
+    if (typeof ripenFarmCropsForNewMonth === "function") {
+        ripenFarmCropsForNewMonth();
+    }
 
     // The monthly growth changes tile space values, so refresh the visible map
     // and coordinate tooltip immediately.
