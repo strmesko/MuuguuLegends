@@ -135,6 +135,21 @@
             : "common";
     }
 
+    function populateNpcOptions(select) {
+        if (!select || typeof NPC_PRESETS === "undefined") return;
+
+        select.innerHTML = "";
+        Object.keys(NPC_PRESETS).forEach(function (typeId) {
+            const preset = NPC_PRESETS[typeId];
+            if (!preset) return;
+
+            const option = document.createElement("option");
+            option.value = typeId;
+            option.textContent = preset.name;
+            select.appendChild(option);
+        });
+    }
+
     function eachCharacterEntry(callback) {
         if (!player) return;
 
@@ -262,6 +277,29 @@
 
             if (typeof renderInventorySlots === "function") renderInventorySlots();
             setCheatStatus("Added " + ITEM_DEFS[itemId].name + ".");
+        },
+
+        "generate-npc": function () {
+            if (typeof generateNpcHere !== "function") {
+                setCheatStatus("NPC system is not available.");
+                return;
+            }
+
+            const select = cheatMenuElement.querySelector("#cheat-npc-type");
+            const typeId = select ? select.value : "fairy";
+            const npc = generateNpcHere(typeId);
+            if (!npc) {
+                setCheatStatus("Could not generate an NPC here.");
+                return;
+            }
+
+            if (typeof logMessage === "function") {
+                logMessage("A " + getNpcDisplayName(npc) + " appears here.");
+            }
+            setCheatStatus("Generated " + getNpcDisplayName(npc)
+                + " at X: " + npc.x + ", Y: " + npc.y
+                + ". Mood " + npc.mood + ", favor " + npc.favor + ".");
+            refreshGameUI();
         },
 
         "reveal-tile": function () {
@@ -415,6 +453,10 @@
             + '      <button type="button" data-cheat="advance-hour">+1 hour</button>'
             + '      <button type="button" data-cheat="advance-day">+1 day</button>'
             + '    </div>'
+            + '    <div class="cheatrow">'
+            + '      <select id="cheat-npc-type" title="NPC type"></select>'
+            + '      <button type="button" data-cheat="generate-npc">Generate NPC here</button>'
+            + '    </div>'
             + '  </section>'
             + '  <section class="cheatmenu-section">'
             + '    <h3>Interface</h3>'
@@ -431,6 +473,7 @@
         populateResourceOptions(menu.querySelector("#cheat-resource"));
         populateItemOptions(menu.querySelector("#cheat-item"));
         populateRarityOptions(menu.querySelector("#cheat-item-rarity"));
+        populateNpcOptions(menu.querySelector("#cheat-npc-type"));
 
         menu.addEventListener("click", function (event) {
             const closeButton = event.target.closest("[data-cheat-close]");
