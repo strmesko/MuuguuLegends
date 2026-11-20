@@ -2699,3 +2699,36 @@ ul.resource-tree li a:before {
   font-weight: bold;
   white-space: nowrap;
 }
+
+/* Bottom tip ticker. The game view stops just above it so no UI is covered. */
+.allblock {
+  height: calc(100vh - 26px);
+}
+.tipsticker {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  height: 26px;
+  box-sizing: border-box;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  background: #203018;
+  border-top: 2px solid #9fce4b;
+  color: #d8f5b0;
+  font: max(6px, 0.85em) "SimSun", serif;
+}
+.tipsticker-text {
+  position: absolute;
+  left: 100%;
+  padding-right: 2em;
+  white-space: nowrap;
+  will-change: transform;
+  animation: tipsticker-scroll 32s linear infinite;
+}
+@keyframes tipsticker-scroll {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-100% - 100vw)); }
+}
