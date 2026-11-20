@@ -455,6 +455,7 @@ function showLimbo(cause) {
     rebornButton.innerText = "reborn";
     rebornButton.addEventListener("click", function () {
         rebornButton.disabled = true;
+        if (typeof resetGameTime === "function") resetGameTime();
         queueNextWorldSeed();
         window.location.reload();
     });

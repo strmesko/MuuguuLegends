@@ -13,7 +13,6 @@ const COMBAT_ATTACK_SPEED_BASE_MS = 5000;
 const COMBAT_ATTACK_SPEED_FACTOR = 0.03;
 const COMBAT_AUTO_CLOSE_DELAY_MS = 2500;
 const SPIRIT_SPEAK_COOLDOWN_MS = 3000;
-const MOB_LEVEL_TILES = 5;
 const MOB_LEVEL_STAT_MULTIPLIER = 1.05;
 const ASS_POISON_DURATION_SECONDS = 30;
 const ASS_POISON_DAMAGE_PER_STACK_PER_SECOND = 0.05;
@@ -192,6 +191,18 @@ const MOBS = Object.freeze({
     }),
 });
 
+function getMobYearLevelBonus() {
+    if (typeof gameTime === "undefined"
+        || typeof gameMinutesToDateTime !== "function") {
+        return 0;
+    }
+    const dateTime = gameMinutesToDateTime(gameTime.totalMinutes);
+    const startYear = typeof GAME_START_YEAR !== "undefined"
+        ? Number(GAME_START_YEAR) || 0
+        : 0;
+    return Math.max(0, Math.floor((Number(dateTime.year) || 0) - startYear));
+}
+
 function getMobLevelForTile(x, y) {
     const start = typeof getStartCoordinates === "function"
         ? getStartCoordinates()
@@ -199,7 +210,9 @@ function getMobLevelForTile(x, y) {
     const dx = (Number(x) || 0) - start.x;
     const dy = (Number(y) || 0) - start.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
-    return 1 + Math.max(0, Math.floor(distance / MOB_LEVEL_TILES));
+    return 1
+        + Math.max(0, Math.floor(distance))
+        + getMobYearLevelBonus();
 }
 
 function getMobLevelMultiplier(level) {

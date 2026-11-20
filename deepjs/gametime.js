@@ -506,6 +506,17 @@ function restoreGameWeather(weatherId, checkSegment) {
         : getGameWeatherCheckSegment(gameTime.totalMinutes);
 }
 
+// Rebirth starts a fresh calendar at the original date and time.
+function resetGameTime() {
+    gameTime.totalMinutes = GAME_START_TOTAL_MINUTES;
+    gameTime.weatherId = "clear";
+    gameTime.weatherInitialized = false;
+    gameTime.weatherChangedAt = GAME_START_TOTAL_MINUTES;
+    gameTime.weatherCheckSegment = getGameWeatherCheckSegment(
+        GAME_START_TOTAL_MINUTES
+    );
+}
+
 function isGameNight(minuteOfDay) {
     return minuteOfDay >= GAME_NIGHT_START_MINUTE
         || minuteOfDay < GAME_NIGHT_END_MINUTE;
