@@ -2755,3 +2755,245 @@ ul.resource-tree li a:before {
   from { transform: translateX(0); }
   to { transform: translateX(calc(-100% - 100vw)); }
 }
+
+/* Internal wiki overlay. */
+#wikibutton {
+  margin-left: 4px;
+}
+.wikioverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  box-sizing: border-box;
+  background: rgba(8, 10, 14, 0.84);
+  color: #f4ecff;
+  font: 1em "MS Gothic";
+}
+.wikioverlay[hidden] {
+  display: none;
+}
+.wiki-panel {
+  width: min(1180px, 98vw);
+  height: min(820px, 94vh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 3px double #9fce49;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #2a2436 0%, #17131f 100%);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.72), inset 0 0 22px rgba(160, 100, 220, 0.12);
+}
+.wiki-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #241d31;
+  border-bottom: 2px solid #6d5c8a;
+}
+.wiki-brand {
+  color: #caf37d;
+  font-size: 1.15em;
+  font-weight: bold;
+  white-space: nowrap;
+}
+#wikisearch {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid #6d5c8a;
+  border-radius: 4px;
+  background: #14101b;
+  color: #f4ecff;
+  font: inherit;
+}
+#wikisearch:focus {
+  outline: 1px solid #9fce49;
+}
+.wikiclose {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #9fce49;
+  border-radius: 4px;
+  background: #3a2f4a;
+  color: #f4ecff;
+  font: inherit;
+  font-weight: bold;
+  cursor: pointer;
+}
+.wikiclose:hover {
+  background: #54436c;
+}
+.wiki-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.wiki-sidebar {
+  flex: 0 0 290px;
+  width: 290px;
+  overflow: auto;
+  padding: 8px;
+  box-sizing: border-box;
+  background: #1b1724;
+  border-right: 1px solid #5c4b76;
+}
+.wikisection {
+  margin: 0 0 6px;
+}
+.wikisection > summary {
+  padding: 4px 6px;
+  color: #caf37d;
+  font-weight: bold;
+  cursor: pointer;
+  user-select: none;
+}
+.wikinav {
+  display: block;
+  width: 100%;
+  padding: 4px 8px 4px 18px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #e7dcff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.wikinav:hover {
+  background: rgba(200, 170, 255, 0.12);
+}
+.wikinav.active {
+  background: #4b3b66;
+  color: #ffffff;
+}
+.wikisearchempty {
+  padding: 8px;
+  color: #b9a7d9;
+}
+.wiki-content {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: auto;
+  padding: 16px 22px;
+  box-sizing: border-box;
+  background: linear-gradient(180deg, #211b2c 0%, #17131f 100%);
+  line-height: 1.45;
+}
+.wikipage h1 {
+  margin: 0 0 12px;
+  color: #caf37d;
+  font-size: 1.55em;
+  border-bottom: 1px solid #5c4b76;
+  padding-bottom: 6px;
+}
+.wikipage h2 {
+  margin: 18px 0 8px;
+  color: #c7e9ff;
+  font-size: 1.2em;
+}
+.wikipage h3 {
+  margin: 10px 0 6px;
+  color: #f5c6ff;
+  font-size: 1.05em;
+}
+.wikipage p {
+  margin: 6px 0 10px;
+}
+.wikipage code {
+  color: #ffd166;
+  font-family: Consolas, monospace;
+  font-size: 0.92em;
+}
+.wikitables {
+  width: 100%;
+  margin: 8px 0 14px;
+  border-collapse: collapse;
+  font-size: 0.92em;
+}
+.wikitables th,
+.wikitables td {
+  padding: 4px 6px;
+  border: 1px solid #5c4b76;
+  text-align: left;
+  vertical-align: top;
+}
+.wikitables th {
+  background: #3a2f4a;
+  color: #d8f5b0;
+}
+.wikilink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #9fce49;
+  font: inherit;
+  text-align: left;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.wikilink:hover {
+  color: #e2ffb2;
+}
+.wikiformulalink {
+  margin: 4px 0;
+  color: #b9a7d9;
+}
+.wikiformula {
+  margin: 10px 0;
+  padding: 8px 10px;
+  border: 1px solid #5c4b76;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.035);
+}
+.wikiformula h3 {
+  margin: 0 0 6px;
+  font-size: 1em;
+}
+.wikisample {
+  margin: 4px 0;
+  color: #ffd166;
+}
+.wikidetails {
+  margin: 6px 0;
+}
+.wikidetails > summary {
+  color: #c7e9ff;
+  cursor: pointer;
+}
+.wikicode {
+  max-height: 420px;
+  margin: 6px 0 0;
+  padding: 8px;
+  overflow: auto;
+  border: 1px solid #4a3d5f;
+  border-radius: 4px;
+  background: #111018;
+  color: #d8f5b0;
+  font: 12px/1.35 Consolas, "Courier New", monospace;
+  white-space: pre-wrap;
+}
+.wiki-footer {
+  padding: 6px 12px;
+  border-top: 1px solid #5c4b76;
+  color: #b9a7d9;
+  font-size: 0.82em;
+  background: #1b1724;
+}
+body.wikiopen {
+  overflow: hidden;
+}
+@media (max-width: 760px) {
+  .wiki-sidebar {
+    flex-basis: 210px;
+    width: 210px;
+  }
+  .wiki-content {
+    padding: 10px 12px;
+  }
+}
