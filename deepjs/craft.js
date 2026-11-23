@@ -34,7 +34,7 @@ const CRAFT_CATEGORIES = Object.freeze([
     }),
     Object.freeze({
         id: "jewerly",
-        name: "Jewerly",
+        name: "Jewelry",
         placeholderId: "jewerlyplace",
         buttonId: "craftjewerly",
     }),
@@ -2798,8 +2798,8 @@ function addCraftMeatChoices(recipe) {
 }
 
 // Common items, tools and cutlery can take optional raw gemstones. The
-// Jewerly level curve is the same as for rings, but every slot requires twice
-// the Jewerly level.
+// Jewelry level curve is the same as for rings, but every slot requires twice
+// the Jewelry level.
 const GEM_BONUS_CRAFT_CATEGORIES = Object.freeze([
     "common",
     "tools",
@@ -2857,7 +2857,7 @@ const CRAFT_RARITY_LADDER = Object.freeze(
 
 // Jewelry cutting. A carved stone keeps the dormant item bonuses of its raw
 // gemstone, then scales them by the craft quality, the gemstone rarity and the
-// cut quality. Better cuts unlock at higher Jewerly levels and keep improving
+// cut quality. Better cuts unlock at higher Jewelry levels and keep improving
 // by one percentage point per level after their unlock.
 const JEWERLY_CUTS = Object.freeze([
     Object.freeze({
@@ -3021,7 +3021,7 @@ function getJewerlyCraftExp(quality, cutId, rarityId) {
         * rarityMultiplier);
 }
 
-// Jewerly-scaled optional gemstone slots use the same square-root curve as
+// Jewelry-scaled optional gemstone slots use the same square-root curve as
 // Cooking bonus ingredients. Rings use the base curve: 1 slot at level 1, 2 at
 // level 4, 3 at level 9... Other gear passes a multiplier of 2, which doubles
 // every level requirement: 0 slots at level 1, 1 at level 2-7, 2 at 8-17...
@@ -3056,7 +3056,7 @@ function getRingRarityId(recipe) {
 
 // Oil is deliberately ignored: it is consumed but never changes quality or
 // properties. The chain's quality, the carved gemstone and the jeweler's AGI
-// and Jewerly all contribute equally.
+// and Jewelry all contribute equally.
 function getRingCraftQualityInfo(recipe) {
     const gemstone = getRingMainGemstone(recipe);
     const gemstoneQuality = gemstone
@@ -4963,9 +4963,9 @@ function renderCraftResources(category) {
         );
         const bonusSource = recipe.bonusChoiceSlotsFromSkill === "jewerly"
             ? (bonusSkillMultiplier > 1
-                ? " from Jewerly (" + bonusSkillMultiplier
+                ? " from Jewelry (" + bonusSkillMultiplier
                     + "x level requirement)"
-                : " from Jewerly")
+                : " from Jewelry")
             : ((recipe.bonusChoiceSlotsFromCooking === true
                 || isExtraIngredientDish(recipe)) ? " from Cooking" : "");
         bonusLabel.innerText = "Bonus ingredients (optional, "
@@ -5289,7 +5289,7 @@ function renderCraftDetails(category) {
     if (isJewerly && !isRing) {
         const cutNote = document.createElement("div");
         cutNote.className = "craftnote";
-        cutNote.innerText = "Cut chances at Jewerly Lv "
+        cutNote.innerText = "Cut chances at Jewelry Lv "
             + getJewerlyLevel() + ": "
             + getJewerlyCutChanceSummary(getJewerlyLevel());
         info.appendChild(cutNote);

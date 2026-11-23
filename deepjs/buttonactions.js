@@ -69,7 +69,7 @@
     };
     craftjewerly.onclick = function(){
         craftSubTab(event, 'jewerlyplace')
-        logMessage('jewerlyclick');
+        logMessage('jewelryclick');
     };
     //research tab selector
     researchhabits.onclick = function(){

@@ -843,7 +843,7 @@ const SKILL_DISPLAY_NAMES = Object.freeze({
     fishing: "Fishing",
     farming: "Farming",
     social: "Social",
-    jewerly: "Jewerly",
+    jewerly: "Jewelry",
     wizardy: "Wizardy",
     alchemy: "Alchemy",
     masonry: "Masonry",
@@ -1369,7 +1369,7 @@ function renderStatusIcons() {
     createChildElement('button', 'craftsub', 'food', 'craftfood', 'craftplace', 'Fuel for your infinite entropy');
     createChildElement('button', 'craftsub', 'tools', 'crafttools', 'craftplace', 'First step for civilization');
     createChildElement('button', 'craftsub', 'Cultery', 'craftcultery', 'craftplace', 'Wooden cutlery and tableware');
-    createChildElement('button', 'craftsub', 'Jewerly', 'craftjewerly', 'craftplace', 'Cut and polish raw gemstones');
+    createChildElement('button', 'craftsub', 'Jewelry', 'craftjewerly', 'craftplace', 'Cut and polish raw gemstones');
     createChildElement('div', 'craftsubplace', '', 'commonplace', 'craftplace', '');
     // crafting panels are built by deepjs/craft.js
     createChildElement('div', 'craftsubplace', 'food', 'foodplace', 'craftplace', '');

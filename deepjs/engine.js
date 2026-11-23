@@ -23,7 +23,7 @@ const LEARNED_SKILLS = [
     { barId: 'skillsplacefishing', key: 'fishing', label: 'Fishing', descriptionKey: 'fishing' },
     { barId: 'skillsplacefarming', key: 'farming', label: 'Farming', descriptionKey: 'farming' },
     { barId: 'skillsplacesocial', key: 'social', label: 'Social', descriptionKey: 'social' },
-    { barId: 'skillsplacejewerly', key: 'jewerly', label: 'Jewerly', descriptionKey: 'jewerly' },
+    { barId: 'skillsplacejewerly', key: 'jewerly', label: 'Jewelry', descriptionKey: 'jewerly' },
     { barId: 'skillsplacecarpentry', key: 'carpentry', label: 'Carpentry', descriptionKey: 'carpentry' },
     { barId: 'skillsplacearchitecture', key: 'architecture', label: 'Architecture', descriptionKey: 'architecture' },
     { barId: 'skillsplacegardening', key: 'gardening', label: 'Gardening', descriptionKey: 'gardening' },

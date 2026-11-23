@@ -2340,7 +2340,7 @@ class Character {
         this.gardening = new Skill("Gardening", "The art of tending fruit and nut trees and gathering their harvest.");
         this.farming = new Skill("Farming", "The art of turning tilled soil into a reliable harvest.");
         this.social = new Skill("Social", "The art of talking to others and winning their trust.");
-        this.jewerly = new Skill("Jewerly", "The art of cutting, shaping and polishing gemstones.");
+        this.jewerly = new Skill("Jewelry", "The art of cutting, shaping and polishing gemstones.");
         this.digging = new Skill("Digging", "The art of moving earth, stone and foundations.");
         this.mining = new Skill("Mining", "The art of breaking stone and extracting ore from the earth.");
         this.smithing = new Skill("Smithing", "The art of smelting ore and working refined metal into bars.");
