@@ -160,6 +160,7 @@ const RESOURCE_CATEGORIES = Object.freeze({
 const RESOURCE_TAGS = Object.freeze({
     Edible: "Edible",
     Seed: "seed",
+    Gemstone: "gemstone",
 });
 
 const POUNCH_SLOT_IDS = Object.freeze(Array.from(
@@ -1504,6 +1505,118 @@ function isFishResource(resourceId) {
 
 function getFishResourceIdByName(name) {
     return FISH_RESOURCE_IDS_BY_NAME[String(name)] || null;
+}
+
+// Gemstones are raw, inedible resources shown under Raw resources -> Gemstones.
+// Every variety has its own rarity and item grade. The actual ItemDefs-style
+// affixes are rolled at game start from the map seed, so the same world always
+// produces the same dormant bonuses.
+const GEMSTONE_RESOURCE_ID_BASE = 8001;
+const GEMSTONE_RESOURCE_IDS = [];
+const GEMSTONE_RESOURCE_IDS_BY_NAME = {};
+const GEMSTONE_DEFINITIONS = [
+    { name: "Amethyst", rarity: "uncommon", quality: 2, color: "violet quartz" },
+    { name: "Aquamarine", rarity: "uncommon", quality: 2, color: "sea-blue beryl" },
+    { name: "Citrine", rarity: "uncommon", quality: 1, color: "golden quartz" },
+    { name: "Diamond", rarity: "rare", quality: 8, color: "clear carbon crystal" },
+    { name: "Emerald", rarity: "rare", quality: 7, color: "deep green beryl" },
+    { name: "Garnet", rarity: "uncommon", quality: 3, color: "blood-red silicate" },
+    { name: "Opal", rarity: "somewhat-rare", quality: 4, color: "iridescent silica" },
+    { name: "Pearl", rarity: "uncommon", quality: 2, color: "lustrous organic gem" },
+    { name: "Peridot", rarity: "uncommon", quality: 2, color: "olive-green olivine" },
+    { name: "Ruby", rarity: "rare", quality: 8, color: "crimson corundum" },
+    { name: "Sapphire", rarity: "rare", quality: 8, color: "deep blue corundum" },
+    { name: "Topaz", rarity: "uncommon", quality: 3, color: "golden topaz" },
+    { name: "Tourmaline", rarity: "somewhat-rare", quality: 4, color: "multicoloured tourmaline" },
+    { name: "Turquoise", rarity: "uncommon", quality: 2, color: "sky-blue phosphate" },
+    { name: "Zircon", rarity: "uncommon", quality: 2, color: "fiery zircon" },
+    { name: "Onyx", rarity: "uncommon", quality: 1, color: "black chalcedony" },
+    { name: "Jasper", rarity: "uncommon", quality: 1, color: "earthy quartz" },
+    { name: "Agate", rarity: "uncommon", quality: 1, color: "banded chalcedony" },
+    { name: "Carnelian", rarity: "uncommon", quality: 2, color: "orange chalcedony" },
+    { name: "Chalcedony", rarity: "uncommon", quality: 1, color: "waxy silica" },
+    { name: "Chrysoprase", rarity: "somewhat-rare", quality: 3, color: "apple-green chalcedony" },
+    { name: "Bloodstone", rarity: "uncommon", quality: 2, color: "green quartz with red flecks" },
+    { name: "Moonstone", rarity: "somewhat-rare", quality: 3, color: "pale feldspar" },
+    { name: "Sunstone", rarity: "somewhat-rare", quality: 3, color: "sparkling feldspar" },
+    { name: "Labradorite", rarity: "somewhat-rare", quality: 3, color: "labradorescent feldspar" },
+    { name: "Amazonite", rarity: "uncommon", quality: 2, color: "blue-green feldspar" },
+    { name: "Apatite", rarity: "uncommon", quality: 2, color: "sea-green phosphate" },
+    { name: "Fluorite", rarity: "uncommon", quality: 2, color: "rainbow fluorite" },
+    { name: "Kunzite", rarity: "rare", quality: 5, color: "pink spodumene" },
+    { name: "Morganite", rarity: "rare", quality: 5, color: "pink beryl" },
+    { name: "Tanzanite", rarity: "rare", quality: 6, color: "violet zoisite" },
+    { name: "Spinel", rarity: "rare", quality: 5, color: "scarlet spinel" },
+    { name: "Iolite", rarity: "somewhat-rare", quality: 3, color: "violet cordierite" },
+    { name: "Danburite", rarity: "somewhat-rare", quality: 3, color: "clear borosilicate" },
+    { name: "Demantoid", rarity: "rare", quality: 6, color: "green andradite garnet" },
+    { name: "Tsavorite", rarity: "rare", quality: 6, color: "green grossular garnet" },
+    { name: "Alexandrite", rarity: "rare-rare", quality: 8, color: "colour-changing chrysoberyl" },
+    { name: "Rhodonite", rarity: "uncommon", quality: 2, color: "pink manganese silicate" },
+    { name: "Rhodochrosite", rarity: "uncommon", quality: 2, color: "rose manganese carbonate" },
+    { name: "Sodalite", rarity: "uncommon", quality: 1, color: "blue sodalite" },
+    { name: "Lapis Lazuli", rarity: "somewhat-rare", quality: 4, color: "deep blue lazurite" },
+    { name: "Malachite", rarity: "uncommon", quality: 2, color: "banded green copper carbonate" },
+    { name: "Azurite", rarity: "uncommon", quality: 2, color: "azure copper carbonate" },
+    { name: "Diopside", rarity: "uncommon", quality: 2, color: "green pyroxene" },
+    { name: "Chrome Diopside", rarity: "somewhat-rare", quality: 4, color: "bright green diopside" },
+    { name: "Prehnite", rarity: "uncommon", quality: 2, color: "pale green silicate" },
+    { name: "Scapolite", rarity: "somewhat-rare", quality: 3, color: "waxy scapolite" },
+    { name: "Sphalerite", rarity: "somewhat-rare", quality: 3, color: "fiery zinc sulfide" },
+    { name: "Cassiterite", rarity: "rare", quality: 5, color: "dark tin oxide" },
+    { name: "Pyrite", rarity: "uncommon", quality: 1, color: "metallic iron sulfide" },
+    { name: "Hematite", rarity: "uncommon", quality: 1, color: "metallic iron oxide" },
+    { name: "Magnetite", rarity: "uncommon", quality: 1, color: "magnetic iron oxide" },
+    { name: "Amber", rarity: "uncommon", quality: 2, color: "golden fossil resin" },
+    { name: "Jet", rarity: "uncommon", quality: 1, color: "black fossil wood" },
+    { name: "Beryl", rarity: "somewhat-rare", quality: 4, color: "pale beryl" },
+    { name: "Heliodor", rarity: "rare", quality: 5, color: "golden beryl" },
+    { name: "Goshenite", rarity: "somewhat-rare", quality: 3, color: "clear beryl" },
+    { name: "Hiddenite", rarity: "rare", quality: 5, color: "green spodumene" },
+    { name: "Euclase", rarity: "rare", quality: 5, color: "blue beryl-like silicate" },
+    { name: "Benitoite", rarity: "rare-rare", quality: 8, color: "blue barium titanium silicate" },
+    { name: "Painite", rarity: "unique", quality: 10, color: "rare borate" },
+    { name: "Grandidierite", rarity: "rare-rare", quality: 7, color: "blue-green silicate" },
+    { name: "Taaffeite", rarity: "rare-rare", quality: 8, color: "mauve beryllium oxide" },
+    { name: "Musgravite", rarity: "unique", quality: 10, color: "gray-green oxide" },
+    { name: "Serendibite", rarity: "unique", quality: 10, color: "blue-green silicate" },
+    { name: "Poudretteite", rarity: "unique", quality: 10, color: "pink borosilicate" },
+    { name: "Jeremejevite", rarity: "unique", quality: 10, color: "blue borate" },
+    { name: "Paraiba Tourmaline", rarity: "unique", quality: 10, color: "neon blue tourmaline" },
+];
+
+GEMSTONE_DEFINITIONS.forEach(function (entry, index) {
+    const gemstoneId = GEMSTONE_RESOURCE_ID_BASE + index;
+    entry.resourceId = gemstoneId;
+    entry.description = "Raw " + entry.name.toLowerCase()
+        + ", a " + entry.color + " gemstone. Its item bonuses are dormant.";
+
+    RESOURCE_DEFS[gemstoneId] = {
+        name: entry.name,
+        weight: 0.01,
+        unitType: "kg",
+        description: entry.description,
+        category: RESOURCE_CATEGORIES.Raw,
+        tags: [RESOURCE_TAGS.Gemstone],
+        gemstone: true,
+        gemRarity: entry.rarity,
+        gemQuality: entry.quality,
+        gemColor: entry.color,
+    };
+
+    GEMSTONE_RESOURCE_IDS.push(gemstoneId);
+    GEMSTONE_RESOURCE_IDS_BY_NAME[entry.name] = gemstoneId;
+});
+
+Object.freeze(GEMSTONE_RESOURCE_IDS);
+Object.freeze(GEMSTONE_RESOURCE_IDS_BY_NAME);
+
+function isGemstoneResource(resourceId) {
+    return GEMSTONE_RESOURCE_IDS.indexOf(Number(resourceId)) !== -1;
+}
+
+function getGemstoneResourceIdByName(name) {
+    return GEMSTONE_RESOURCE_IDS_BY_NAME[String(name)] || null;
 }
 
 

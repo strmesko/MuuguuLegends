@@ -469,10 +469,14 @@ if (typeof updateAscensionMultiplierDisplay === 'function') {
       ensureResourceBranch('raw-resources-items', 'nature-resources', 'nature resources', 'Your local treasury from nature');
       ensureResourceBranch('nature-resources-items', 'vegetables', 'Vegetables', 'Vegetables grown in gardens and wild patches');
       ensureResourceBranch('nature-resources-items', 'crops', 'Crops', 'Grain and field crops');
+      ensureResourceBranch('raw-resources-items', 'gemstones', 'Gemstones', 'Raw gemstones with dormant item bonuses');
       ensureResourceBranch('raw-resources-items', 'wild-herbs', 'herbs', 'Medical and spice herbs gathered with Forage');
       ensureResourceBranch('wild-herbs-items', 'medicinal-herbs', 'medicinal', 'Healing herbs used by herbalists');
       ensureResourceBranch('wild-herbs-items', 'spice-herbs', 'spices', 'Aromatic herbs for cooking');
 
+      if (resource && RESOURCE_DEFS[resource.id] && RESOURCE_DEFS[resource.id].gemstone) {
+        return document.getElementById('gemstones-items');
+      }
       if (isVegetableFoodResource(resource)) return document.getElementById('vegetables-items');
       if (isCropFoodResource(resource)) return document.getElementById('crops-items');
       if (isMedicalHerbResource(resource)) return document.getElementById('medicinal-herbs-items');
@@ -575,6 +579,30 @@ if (typeof updateAscensionMultiplierDisplay === 'function') {
       label.innerText = resource.name + ' Q' + formatResourceQuality(resource) + ' x:' + round2(resource.amount) + resource.unitType;
 
       const definition = RESOURCE_DEFS[resource.id];
+      const gemLines = [];
+      if (definition && definition.gemstone) {
+        const rarityDefinition = typeof ITEM_RARITY_DEFS !== 'undefined'
+          ? ITEM_RARITY_DEFS[definition.gemRarity]
+          : null;
+        gemLines.push('Gemstone rarity: ' + (rarityDefinition
+          ? rarityDefinition.label
+          : definition.gemRarity));
+        gemLines.push('Item quality: Q' + round2(definition.gemQuality));
+        const gemProperties = Array.isArray(definition.gemProperties)
+          ? definition.gemProperties
+          : [];
+        if (gemProperties.length) {
+          gemLines.push('Dormant item bonuses:');
+          gemProperties.forEach(function (property) {
+            const label = typeof getItemPropertyLabel === 'function'
+              ? getItemPropertyLabel(property)
+              : String(property.key);
+            gemLines.push('<span class="itemproperty">' + label + '</span>');
+          });
+        } else {
+          gemLines.push('Dormant item bonuses: none');
+        }
+      }
       const foodLines = [];
       const herb = getHerbDefinitionForResource(resource);
       const plant = typeof getPlantDefinition === 'function'
@@ -686,6 +714,7 @@ if (typeof updateAscensionMultiplierDisplay === 'function') {
       item.setAttribute(
         'data-tooltip',
         resource.description
+        + (gemLines.length ? '<br>' + gemLines.join('<br>') : '')
         + (herbLines.length ? '<br>' + herbLines.join('<br>') : '')
         + (foodLines.length ? '<br>' + foodLines.join('<br>') : '')
       );

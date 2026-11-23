@@ -42,6 +42,9 @@ function getResourceImageFolder(itemName) {
             continue;
         }
 
+        if (definition.gemstone) {
+            return "gemstones";
+        }
         if (typeof MUSHROOM_RESOURCE_IDS !== "undefined"
             && MUSHROOM_RESOURCE_IDS.indexOf(resourceId) !== -1) {
             return "mushrooms";
@@ -171,6 +174,9 @@ function getItemImagePath(itemName) {
     // name. The shared herbs/herb.png stays as a fallback for custom herbs.
     if (resourceFolder === "herbs") {
         return RESOURCE_IMAGE_DIRECTORY + "herbs/" + normalizedName + ".png";
+    }
+    if (resourceFolder === "gemstones") {
+        return RESOURCE_IMAGE_DIRECTORY + "gemstones/gemstone.png";
     }
 
     return resourceFolder

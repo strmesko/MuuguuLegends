@@ -2506,9 +2506,10 @@ function normalizeItemPropertyEffect(effect) {
     return effect === "level" || effect === "growth" ? effect : "both";
 }
 
-function rollItemPropertyVariance() {
+function rollItemPropertyVariance(randomFn) {
+    const random = typeof randomFn === "function" ? randomFn : Math.random;
     return ITEM_PROPERTY_VARIANCE_MIN
-        + Math.random() * (ITEM_PROPERTY_VARIANCE_MAX - ITEM_PROPERTY_VARIANCE_MIN);
+        + random() * (ITEM_PROPERTY_VARIANCE_MAX - ITEM_PROPERTY_VARIANCE_MIN);
 }
 
 // Single source of truth for item power. Every value an item grants (base
@@ -2697,10 +2698,11 @@ function getItemPropertyTemplates() {
 // Picks distinct property templates (stat/skill level, stat/skill growth or a
 // standalone global effect). Every value uses the unified quality * rarity
 // scaling and a 50%-150% variance roll.
-function rollItemProperties(rarityId, quality, powerMultiplier) {
+function rollItemProperties(rarityId, quality, powerMultiplier, randomFn) {
     const count = getItemPropertyCount(rarityId);
     if (count <= 0) return [];
 
+    const random = typeof randomFn === "function" ? randomFn : Math.random;
     const pool = getItemPropertyTemplates();
     const rarityMultiplier = getRarityMultiplier(rarityId);
     const extraPower = Number.isFinite(Number(powerMultiplier))
@@ -2713,7 +2715,7 @@ function rollItemProperties(rarityId, quality, powerMultiplier) {
             Array.prototype.push.apply(pool, getItemPropertyTemplates());
         }
 
-        const poolIndex = Math.floor(Math.random() * pool.length);
+        const poolIndex = Math.floor(random() * pool.length);
         const template = pool.splice(poolIndex, 1)[0];
 
         const property = {
@@ -2730,7 +2732,7 @@ function rollItemProperties(rarityId, quality, powerMultiplier) {
                 baseValue * getItemPowerMultiplier(
                     quality,
                     rarityMultiplier,
-                    rollItemPropertyVariance()
+                    rollItemPropertyVariance(random)
                 ) * extraPower
             ));
         } else {
@@ -2738,7 +2740,7 @@ function rollItemProperties(rarityId, quality, powerMultiplier) {
                 template.basePercent * getItemPowerMultiplier(
                     quality,
                     rarityMultiplier,
-                    rollItemPropertyVariance()
+                    rollItemPropertyVariance(random)
                 ) * extraPower
             );
         }
@@ -2747,6 +2749,57 @@ function rollItemProperties(rarityId, quality, powerMultiplier) {
     }
 
     return properties;
+}
+
+// Small deterministic PRNG used only for world-seeded gemstone affixes.
+// The same map seed and gemstone id always produce the same item properties.
+function createSeededItemRandom(seed) {
+    let state = Number(seed) >>> 0;
+    return function () {
+        state = (state + 0x6D2B79F5) >>> 0;
+        let value = state;
+        value = Math.imul(value ^ (value >>> 15), value | 1);
+        value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+        return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+let gemstonePropertySeed = null;
+
+function ensureGemstoneProperties(seed) {
+    if (typeof GEMSTONE_RESOURCE_IDS === "undefined"
+        || !Array.isArray(GEMSTONE_RESOURCE_IDS)) {
+        return;
+    }
+
+    const propertySeed = seed == null ? getOrCreateMapSeed() : seed;
+    if (gemstonePropertySeed === propertySeed
+        && GEMSTONE_RESOURCE_IDS.every(function (resourceId) {
+            const definition = RESOURCE_DEFS[resourceId];
+            return definition && Array.isArray(definition.gemProperties);
+        })) {
+        return;
+    }
+
+    GEMSTONE_RESOURCE_IDS.forEach(function (resourceId) {
+        const definition = RESOURCE_DEFS[resourceId];
+        if (!definition || definition.gemstone !== true) return;
+
+        const random = createSeededItemRandom(
+            hashFoodStatBindingSeed(
+                String(propertySeed) + "|gemstone",
+                resourceId
+            )
+        );
+        definition.gemProperties = rollItemProperties(
+            definition.gemRarity,
+            definition.gemQuality,
+            1,
+            random
+        );
+    });
+
+    gemstonePropertySeed = propertySeed;
 }
 
 function getItemPropertyTargetName(property) {

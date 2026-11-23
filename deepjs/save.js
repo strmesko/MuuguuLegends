@@ -485,6 +485,9 @@
         if (typeof setFoodStatBindings === "function") {
             setFoodStatBindings(saved.foodStatBindings, saved.mapSeed);
         }
+        if (typeof ensureGemstoneProperties === "function") {
+            ensureGemstoneProperties(saved.mapSeed);
+        }
         maxInventory = INVENTORY_SLOTS;
         scrapRarityFilter = normalizeScrapRarityFilter(saved.scrapRarityFilter);
         lastUpdate = saved.lastUpdate;

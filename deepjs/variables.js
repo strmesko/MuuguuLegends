@@ -831,6 +831,9 @@ Object.keys(RESOURCE_DEFS).forEach(function (resourceId) {
 // New game: every edible resource gets its permanent stat binding here.
 // The roll is deterministic and depends on the seed of the generated map.
 ensureFoodStatBindings(getOrCreateMapSeed());
+if (typeof ensureGemstoneProperties === "function") {
+    ensureGemstoneProperties(getOrCreateMapSeed());
+}
 
 function addResource(resourceId, amount, quality) {
     const stack = resources[resourceId];
