@@ -5,8 +5,12 @@
 
 const NPC_MOOD_MIN = 0;
 const NPC_MOOD_MAX = 100;
-const NPC_FAVOR_MIN = 0;
-const NPC_FAVOR_MAX = 100;
+const NPC_MOOD_STRONG_THRESHOLD = 1000;
+const NPC_MOOD_EXTREME_THRESHOLD = 10000;
+const NPC_ANGRY_MIN = 0;
+const NPC_ANGRY_MAX = 100;
+const NPC_FOOD_PREFERENCE_MIN = 1;
+const NPC_FOOD_PREFERENCE_MAX = 3;
 
 const NPC_TYPE_IDS = Object.freeze({
     FAIRY: "fairy",
@@ -44,6 +48,7 @@ const NPC_PRESETS = Object.freeze({
         }),
         mood: Object.freeze({ base: 50, variance: 10 }),
         favor: Object.freeze({ base: 0, variance: 0 }),
+        foodPreferenceTag: "berry",
     }),
 });
 
@@ -89,11 +94,119 @@ function clampNpcMood(value) {
     return round2(Math.max(NPC_MOOD_MIN, Math.min(NPC_MOOD_MAX, Number(value) || 0)));
 }
 
-function clampNpcFavor(value) {
+// Favor is intentionally uncapped. It can grow through repeated positive
+// interactions and is never clamped to the old 0..100 range.
+function normalizeNpcFavor(value) {
+    const number = Number(value);
+    return Number.isFinite(number) ? round2(number) : 0;
+}
+
+function normalizeNpcBoredom(value) {
+    const number = Number(value);
+    return Number.isFinite(number) ? round2(number) : 0;
+}
+
+function normalizeNpcHappy(value) {
+    const number = Number(value);
+    return Number.isFinite(number) ? round2(number) : 0;
+}
+
+function clampNpcAngryOmeter(value) {
     return round2(Math.max(
-        NPC_FAVOR_MIN,
-        Math.min(NPC_FAVOR_MAX, Number(value) || 0)
+        NPC_ANGRY_MIN,
+        Math.min(NPC_ANGRY_MAX, Number(value) || 0)
     ));
+}
+
+function getNpcMoodDescription(npc) {
+    if (!npc) return "Neutral";
+
+    const candidates = [
+        {
+            value: normalizeNpcBoredom(npc.boredom),
+            negative: "Bored",
+            positive: "Curious",
+            extremeNegative: "Extremely bored",
+            extremePositive: "Extremely curious",
+        },
+        {
+            value: normalizeNpcHappy(npc.happy),
+            negative: "Unhappy",
+            positive: "Happy",
+            extremeNegative: "Sad",
+            extremePositive: "Excited",
+        },
+    ];
+
+    let strongest = null;
+    candidates.forEach(function (candidate) {
+        if (Math.abs(candidate.value) < NPC_MOOD_STRONG_THRESHOLD) return;
+        if (!strongest || Math.abs(candidate.value) > Math.abs(strongest.value)) {
+            strongest = candidate;
+        }
+    });
+
+    if (!strongest) return "Neutral";
+
+    const extreme = Math.abs(strongest.value) >= NPC_MOOD_EXTREME_THRESHOLD;
+    if (strongest.value < 0) {
+        return extreme ? strongest.extremeNegative : strongest.negative;
+    }
+    return extreme ? strongest.extremePositive : strongest.positive;
+}
+
+function refreshNpcMoodDescription(npc) {
+    if (!npc) return "Neutral";
+    npc.moodDescription = getNpcMoodDescription(npc);
+    return npc.moodDescription;
+}
+
+function getNpcFoodPreferencePool(preset) {
+    const allFood = Object.keys(RESOURCE_DEFS)
+        .map(Number)
+        .filter(function (resourceId) {
+            const definition = RESOURCE_DEFS[resourceId];
+            return !!definition
+                && (definition.RestoresHunger === true
+                    || definition.category === RESOURCE_CATEGORIES.Food);
+        });
+
+    if (preset && preset.foodPreferenceTag === "berry"
+        && typeof BERRY_RESOURCE_IDS !== "undefined") {
+        const berries = BERRY_RESOURCE_IDS.filter(function (resourceId) {
+            return allFood.indexOf(resourceId) !== -1;
+        });
+        if (berries.length) return berries;
+    }
+
+    return allFood;
+}
+
+function generateNpcFoodPreferences(preset) {
+    const pool = getNpcFoodPreferencePool(preset).slice();
+    if (!pool.length) return [];
+
+    const wanted = NPC_FOOD_PREFERENCE_MIN + Math.floor(
+        Math.random() * (NPC_FOOD_PREFERENCE_MAX - NPC_FOOD_PREFERENCE_MIN + 1)
+    );
+    const count = Math.min(pool.length, wanted);
+
+    for (let index = pool.length - 1; index > 0; index--) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        const temporary = pool[index];
+        pool[index] = pool[swapIndex];
+        pool[swapIndex] = temporary;
+    }
+
+    return pool.slice(0, count);
+}
+
+function getNpcFoodPreferenceNames(npc) {
+    if (!npc || !Array.isArray(npc.foodPreferences)) return [];
+    return npc.foodPreferences.map(function (resourceId) {
+        const definition = RESOURCE_DEFS[resourceId];
+        return definition ? definition.name : null;
+    }).filter(Boolean);
 }
 
 function setNpcEntryLevel(entry, level) {
@@ -166,7 +279,13 @@ class Npc extends Character {
             ? getExperienceRequiredForLevel(this.lvl)
             : BASE_EXP;
         this.mood = clampNpcMood(rollNpcParameter(preset.mood));
-        this.favor = clampNpcFavor(rollNpcParameter(preset.favor));
+        this.favor = normalizeNpcFavor(rollNpcParameter(preset.favor));
+        this.boredom = 0;
+        this.happy = 0;
+        this.angryOmeter = 0;
+        this.foodPreferences = generateNpcFoodPreferences(preset);
+        this.moodDescription = "Neutral";
+        refreshNpcMoodDescription(this);
         this.attack = 1;
 
         applyNpcPreset(this, preset);
@@ -245,7 +364,14 @@ function serializeNpcs() {
             x: npc.x,
             y: npc.y,
             mood: npc.mood,
+            moodDescription: refreshNpcMoodDescription(npc),
             favor: npc.favor,
+            boredom: npc.boredom,
+            happy: npc.happy,
+            angryOmeter: npc.angryOmeter,
+            foodPreferences: Array.isArray(npc.foodPreferences)
+                ? npc.foodPreferences.slice()
+                : [],
         };
     });
 }
@@ -274,8 +400,26 @@ function restoreNpcs(savedNpcs) {
         }
 
         if (saved.mood != null) npc.mood = clampNpcMood(saved.mood);
-        if (saved.favor != null) npc.favor = clampNpcFavor(saved.favor);
+        if (saved.favor != null) npc.favor = normalizeNpcFavor(saved.favor);
+        if (saved.boredom != null) {
+            npc.boredom = normalizeNpcBoredom(saved.boredom);
+        }
+        if (saved.happy != null) npc.happy = normalizeNpcHappy(saved.happy);
+        if (saved.angryOmeter != null) {
+            npc.angryOmeter = clampNpcAngryOmeter(saved.angryOmeter);
+        }
 
+        if (Array.isArray(saved.foodPreferences)) {
+            const validPreferences = [];
+            saved.foodPreferences.forEach(function (resourceId) {
+                const id = Number(resourceId);
+                if (!RESOURCE_DEFS[id]) return;
+                if (validPreferences.indexOf(id) === -1) validPreferences.push(id);
+            });
+            if (validPreferences.length) npc.foodPreferences = validPreferences;
+        }
+
+        refreshNpcMoodDescription(npc);
         npcs.push(npc);
     });
 }
@@ -299,13 +443,55 @@ function adjustNpcMood(npc, delta) {
 
 function setNpcFavor(npc, value) {
     if (!npc) return false;
-    npc.favor = clampNpcFavor(value);
+    npc.favor = normalizeNpcFavor(value);
     return true;
 }
 
 function adjustNpcFavor(npc, delta) {
     if (!npc) return false;
-    npc.favor = clampNpcFavor(npc.favor + (Number(delta) || 0));
+    npc.favor = normalizeNpcFavor(npc.favor + (Number(delta) || 0));
+    return true;
+}
+
+function setNpcBoredom(npc, value) {
+    if (!npc) return false;
+    npc.boredom = normalizeNpcBoredom(value);
+    refreshNpcMoodDescription(npc);
+    return true;
+}
+
+function adjustNpcBoredom(npc, delta) {
+    if (!npc) return false;
+    npc.boredom = normalizeNpcBoredom(npc.boredom + (Number(delta) || 0));
+    refreshNpcMoodDescription(npc);
+    return true;
+}
+
+function setNpcHappy(npc, value) {
+    if (!npc) return false;
+    npc.happy = normalizeNpcHappy(value);
+    refreshNpcMoodDescription(npc);
+    return true;
+}
+
+function adjustNpcHappy(npc, delta) {
+    if (!npc) return false;
+    npc.happy = normalizeNpcHappy(npc.happy + (Number(delta) || 0));
+    refreshNpcMoodDescription(npc);
+    return true;
+}
+
+function setNpcAngryOmeter(npc, value) {
+    if (!npc) return false;
+    npc.angryOmeter = clampNpcAngryOmeter(value);
+    return true;
+}
+
+function adjustNpcAngryOmeter(npc, delta) {
+    if (!npc) return false;
+    npc.angryOmeter = clampNpcAngryOmeter(
+        npc.angryOmeter + (Number(delta) || 0)
+    );
     return true;
 }
 
@@ -388,21 +574,25 @@ function ensureNpcDialogueOverlay() {
     const stats = document.createElement("div");
     stats.className = "npcdialogue-stats";
 
-    const favor = document.createElement("div");
-    favor.className = "npcdialogue-stat";
-    favor.innerText = "Favor: ";
-    const favorValue = document.createElement("span");
-    favorValue.id = "npcdialoguefavor";
-    favor.appendChild(favorValue);
-    stats.appendChild(favor);
+    const addStat = function (id, label, wide) {
+        const row = document.createElement("div");
+        row.className = "npcdialogue-stat"
+            + (wide ? " npcdialogue-stat-wide" : "");
+        row.innerText = label + ": ";
+        const value = document.createElement("span");
+        value.id = id;
+        row.appendChild(value);
+        stats.appendChild(row);
+        return value;
+    };
 
-    const mood = document.createElement("div");
-    mood.className = "npcdialogue-stat";
-    mood.innerText = "Mood: ";
-    const moodValue = document.createElement("span");
-    moodValue.id = "npcdialoguemood";
-    mood.appendChild(moodValue);
-    stats.appendChild(mood);
+    addStat("npcdialoguefavor", "Favor");
+    addStat("npcdialoguemood", "Mood");
+    addStat("npcdialoguemooddescription", "Mood state");
+    addStat("npcdialogueboredom", "Boredom");
+    addStat("npcdialoguehappy", "Happiness");
+    addStat("npcdialogueangry", "Angry-O-Meter");
+    addStat("npcdialoguefoodpreferences", "Food preferences", true);
 
     panel.appendChild(stats);
 
@@ -448,6 +638,11 @@ function renderNpcDialogue() {
     const npcImage = document.getElementById("npcdialoguenpcimage");
     const favor = document.getElementById("npcdialoguefavor");
     const mood = document.getElementById("npcdialoguemood");
+    const moodDescription = document.getElementById("npcdialoguemooddescription");
+    const boredom = document.getElementById("npcdialogueboredom");
+    const happy = document.getElementById("npcdialoguehappy");
+    const angry = document.getElementById("npcdialogueangry");
+    const foodPreferences = document.getElementById("npcdialoguefoodpreferences");
 
     if (playerName) {
         playerName.innerText = (typeof player !== "undefined" && player && player.name)
@@ -457,8 +652,20 @@ function renderNpcDialogue() {
     if (playerImage) playerImage.src = "muguu.png";
     if (npcName) npcName.innerText = getNpcDisplayName(npc);
     if (npcImage) npcImage.src = npc.image;
-    if (favor) favor.innerText = round2(npc.favor) + " / " + NPC_FAVOR_MAX;
+    if (favor) favor.innerText = round2(npc.favor);
     if (mood) mood.innerText = round2(npc.mood) + " / " + NPC_MOOD_MAX;
+    if (moodDescription) {
+        moodDescription.innerText = refreshNpcMoodDescription(npc);
+    }
+    if (boredom) boredom.innerText = round2(npc.boredom);
+    if (happy) happy.innerText = round2(npc.happy);
+    if (angry) {
+        angry.innerText = round2(npc.angryOmeter) + " / " + NPC_ANGRY_MAX;
+    }
+    if (foodPreferences) {
+        const names = getNpcFoodPreferenceNames(npc);
+        foodPreferences.innerText = names.length ? names.join(", ") : "None";
+    }
 }
 
 function captureNpcDialogueResumeActions() {

@@ -122,6 +122,11 @@ const CRAFT_TAG_LABELS = Object.freeze({
     fishy: "Fishy",
     meaty: "Meaty",
     numbing: "Numbing",
+    berry: "Berry",
+    vegetable: "Vegetable",
+    mushroom: "Mushroom",
+    grain: "Grain",
+    oil: "Oil",
 });
 
 const CRAFT_RECIPE_TAGS = Object.freeze({
@@ -519,6 +524,39 @@ const CRAFT_TASTE_TAGS = Object.freeze({
     "fish-dish-fish-pizza": ["fishy", "salty", "herby"],
 });
 
+let craftRecipeTagsComputationDepth = 0;
+
+// Dishes inherit cooking tags from every resource that actually goes into the
+// pot, including the selected choice and bonus ingredients. Only known craft
+// tags are copied so internal markers such as "Edible" or "seed" do not leak
+// into the dish description.
+function getCraftInheritedResourceTags(recipe) {
+    if (!recipe || recipe.category !== "food") return [];
+    if (typeof getCraftRequirements !== "function") return [];
+    if (typeof player === "undefined" || !player) return [];
+
+    let requirements = [];
+    try {
+        requirements = getCraftRequirements(recipe);
+    } catch (error) {
+        return [];
+    }
+
+    const inherited = [];
+    const add = function (tagId) {
+        const id = String(tagId || "");
+        if (!id || !CRAFT_TAG_LABELS[id]) return;
+        if (inherited.indexOf(id) === -1) inherited.push(id);
+    };
+
+    requirements.forEach(function (requirement) {
+        if (typeof getResourceTags !== "function") return;
+        getResourceTags(requirement.resourceId).forEach(add);
+    });
+
+    return inherited;
+}
+
 function getCraftRecipeTags(recipe) {
     if (!recipe) return [];
     const base = Array.isArray(recipe.tags)
@@ -572,6 +610,15 @@ function getCraftRecipeTags(recipe) {
             add("savory");
         }
         (CRAFT_TASTE_TAGS[recipe.id] || []).forEach(add);
+    }
+
+    if (craftRecipeTagsComputationDepth === 0) {
+        craftRecipeTagsComputationDepth++;
+        try {
+            getCraftInheritedResourceTags(recipe).forEach(add);
+        } finally {
+            craftRecipeTagsComputationDepth--;
+        }
     }
 
     return tags;

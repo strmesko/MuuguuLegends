@@ -161,6 +161,17 @@ const RESOURCE_TAGS = Object.freeze({
     Edible: "Edible",
     Seed: "seed",
     Gemstone: "gemstone",
+    Meat: "meat",
+    Fish: "fishy",
+    Vegetable: "vegetable",
+    Fruit: "fruity",
+    Berry: "berry",
+    Mushroom: "mushroom",
+    Nut: "nutty",
+    Grain: "grain",
+    Herb: "herby",
+    Spice: "spicy",
+    Oil: "oil",
 });
 
 const POUNCH_SLOT_IDS = Object.freeze(Array.from(
@@ -1731,6 +1742,28 @@ const NUT_RESOURCE_IDS = Object.freeze([
     RESOURCE_IDS.PINE_NUTS,
 ]);
 
+// Berries are used both for cooking tags and for NPC food preferences.
+const BERRY_RESOURCE_IDS = Object.freeze([
+    RESOURCE_IDS.BLUEBERRY,
+    RESOURCE_IDS.RASPBERRY,
+    RESOURCE_IDS.CORNBERRY,
+    RESOURCE_IDS.STRAWBERRY,
+    RESOURCE_IDS.HONEYSUCKLE,
+    RESOURCE_IDS.SEABUCKTHORN,
+    RESOURCE_IDS.WATERMELON,
+    RESOURCE_IDS.BLACKBERRY,
+    RESOURCE_IDS.LINGONBERRY,
+    RESOURCE_IDS.CLOUDBERRY,
+    RESOURCE_IDS.GOOSEBERRY,
+    RESOURCE_IDS.ELDERBERRY,
+    RESOURCE_IDS.CURRANT,
+    RESOURCE_IDS.CRANBERRY,
+    RESOURCE_IDS.MULBERRY,
+    RESOURCE_IDS.MULBERRIES,
+    RESOURCE_IDS.ROWAN_BERRIES,
+    RESOURCE_IDS.SERVICEBERRIES,
+]);
+
 // Every Food resource is edible, but not every one can be eaten raw. While
 // definitions are being enriched (before the freeze), tags are assembled here.
 function getResourceTags(resourceId) {
@@ -1816,6 +1849,58 @@ HERB_EDIBLE_RESOURCE_IDS.forEach(function (resourceId) {
 
 RAW_INEDIBLE_MUSHROOM_IDS.forEach(function (resourceId) {
     removeResourceTag(resourceId, RESOURCE_TAGS.Edible);
+});
+
+// Food resources also expose their cooking nature as tags. Recipes inherit
+// these tags, so a dish made with beef is tagged as a meat dish even when the
+// recipe itself only lists the ingredient.
+Object.keys(RESOURCE_DEFS).forEach(function (resourceId) {
+    const definition = RESOURCE_DEFS[resourceId];
+    if (!definition || definition.category !== RESOURCE_CATEGORIES.Food) return;
+
+    const id = Number(resourceId);
+    if (definition.meat === true) addResourceTag(id, RESOURCE_TAGS.Meat);
+    if (definition.fish === true) addResourceTag(id, RESOURCE_TAGS.Fish);
+    if (definition.plantKind === "vegetable") {
+        addResourceTag(id, RESOURCE_TAGS.Vegetable);
+    }
+    if (definition.plantKind === "crop" || definition.flour === true) {
+        addResourceTag(id, RESOURCE_TAGS.Grain);
+    }
+    if (MUSHROOM_RESOURCE_IDS.indexOf(id) !== -1) {
+        addResourceTag(id, RESOURCE_TAGS.Mushroom);
+    }
+    if (FRUIT_RESOURCE_IDS.indexOf(id) !== -1) {
+        addResourceTag(id, RESOURCE_TAGS.Fruit);
+    }
+    if (NUT_RESOURCE_IDS.indexOf(id) !== -1) {
+        addResourceTag(id, RESOURCE_TAGS.Nut);
+    }
+    if (BERRY_RESOURCE_IDS.indexOf(id) !== -1) {
+        addResourceTag(id, RESOURCE_TAGS.Berry);
+        addResourceTag(id, RESOURCE_TAGS.Fruit);
+    }
+    if (HERB_RESOURCE_IDS.indexOf(id) !== -1) {
+        addResourceTag(id, RESOURCE_TAGS.Herb);
+    }
+    if (SPICE_RESOURCE_IDS.indexOf(id) !== -1) {
+        addResourceTag(id, RESOURCE_TAGS.Spice);
+    }
+    if (OIL_RESOURCE_IDS.indexOf(id) !== -1) {
+        addResourceTag(id, RESOURCE_TAGS.Oil);
+    }
+});
+
+// Spices, oils and herbs are often stored outside the Food category, but they
+// are still cooking ingredients and must pass their tags to dishes.
+SPICE_RESOURCE_IDS.forEach(function (resourceId) {
+    addResourceTag(resourceId, RESOURCE_TAGS.Spice);
+});
+OIL_RESOURCE_IDS.forEach(function (resourceId) {
+    addResourceTag(resourceId, RESOURCE_TAGS.Oil);
+});
+HERB_RESOURCE_IDS.forEach(function (resourceId) {
+    addResourceTag(resourceId, RESOURCE_TAGS.Herb);
 });
 
 Object.keys(RESOURCE_DEFS).forEach(function (resourceId) {
