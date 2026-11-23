@@ -373,7 +373,18 @@ const ACTIONS = [
         id: "talktonpc",
         label: "Talk to NPC",
         tags: ["social"],
-        description: "Start a conversation with an NPC on the current tile. All other actions are paused until you say goodbye.",
+        description: function () {
+            const max = typeof getMaxTalkActionsPerHour === "function"
+                ? getMaxTalkActionsPerHour()
+                : 1;
+            const remaining = typeof getRemainingTalkActions === "function"
+                ? getRemainingTalkActions()
+                : max;
+            return "Start a conversation with an NPC on the current tile. All other actions are paused until you say goodbye."
+                + "<br>Maximum Talk actions per game hour: " + max
+                + " (1 at Social 1, +1 at Social 2, 4, 8, 16...)."
+                + "<br>Remaining this hour: " + remaining + ".";
+        },
         kind: ACTION_KIND.Instant,
         initialState: Activity.Idle,
         isVisible: function () {
@@ -397,9 +408,11 @@ const ACTIONS = [
                 && !(typeof isCombatActive === "function" && isCombatActive())
                 && !(typeof isNpcDialogueActive === "function"
                     && isNpcDialogueActive())
+                && (typeof canUseTalkAction !== "function"
+                    || canUseTalkAction())
                 && Number(player && player.hp) > 0;
         },
-        unavailableMessage: "There is no NPC to talk to here.",
+        unavailableMessage: "There is no NPC to talk to here, or you have no Talk actions left this hour.",
         run: function () {
             return typeof startNpcDialogue === "function"
                 ? startNpcDialogue()

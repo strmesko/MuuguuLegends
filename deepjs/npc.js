@@ -593,6 +593,60 @@ function getCurrentGameHour() {
     );
 }
 
+// Talk actions per game hour: 1 at Social 1, then +1 at Social 2,
+// Social 4, Social 8, Social 16 and so on (each threshold doubles).
+function getMaxTalkActionsPerHour(level) {
+    const rawLevel = level != null
+        ? Number(level)
+        : (typeof getNpcCheckLevel === "function"
+            ? getNpcCheckLevel("social")
+            : 1);
+    const social = Math.max(1, Math.floor(Number(rawLevel) || 1));
+    return 1 + Math.floor(Math.log2(social));
+}
+
+function getTalkActionUsage() {
+    const hour = getCurrentGameHour();
+    const max = getMaxTalkActionsPerHour();
+
+    if (typeof player === "undefined" || !player) {
+        return { hour: hour, max: max, used: 0, remaining: max };
+    }
+
+    const savedHour = Number(player.lastTalkGameHour);
+    if (!Number.isFinite(savedHour) || savedHour !== hour) {
+        player.lastTalkGameHour = hour;
+        player.talkActionsUsed = 0;
+    }
+
+    const used = Math.max(0, Math.floor(Number(player.talkActionsUsed) || 0));
+    player.talkActionsUsed = used;
+
+    return {
+        hour: hour,
+        max: max,
+        used: used,
+        remaining: Math.max(0, max - used),
+    };
+}
+
+function getRemainingTalkActions() {
+    return getTalkActionUsage().remaining;
+}
+
+function canUseTalkAction() {
+    return getTalkActionUsage().remaining > 0;
+}
+
+function consumeTalkAction() {
+    const usage = getTalkActionUsage();
+    if (usage.remaining <= 0) return false;
+    if (typeof player === "undefined" || !player) return false;
+
+    player.talkActionsUsed = usage.used + 1;
+    return true;
+}
+
 function getNpcGreetTarget(tile) {
     const target = tile
         || (typeof currentTile !== "undefined" ? currentTile : null);
@@ -897,6 +951,13 @@ function startNpcDialogue(npc) {
         return false;
     }
 
+    if (!consumeTalkAction()) {
+        if (typeof logMessage === "function") {
+            logMessage("You have used all Talk actions for this game hour.");
+        }
+        return false;
+    }
+
     captureNpcDialogueResumeActions();
     if (typeof stopActiveTimedActions === "function") {
         stopActiveTimedActions();
@@ -910,7 +971,10 @@ function startNpcDialogue(npc) {
 
     renderNpcDialogue();
     if (typeof logMessage === "function") {
-        logMessage("You start talking to " + getNpcDisplayName(target) + ".");
+        const usage = getTalkActionUsage();
+        logMessage("You start talking to " + getNpcDisplayName(target)
+            + ". Talk actions left this hour: "
+            + usage.remaining + "/" + usage.max + ".");
     }
     if (typeof refreshActionButtons === "function") refreshActionButtons();
     return true;

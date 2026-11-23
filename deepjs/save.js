@@ -404,6 +404,18 @@
         restoredPlayer.lastGreetGameHour = Number.isFinite(savedGreetHour)
             ? savedGreetHour
             : null;
+        // Talk action charges were added with Social conversation limits.
+        const savedTalkHour = savedPlayer
+            && savedPlayer.lastTalkGameHour != null
+            ? Number(savedPlayer.lastTalkGameHour)
+            : null;
+        restoredPlayer.lastTalkGameHour = Number.isFinite(savedTalkHour)
+            ? savedTalkHour
+            : null;
+        const savedTalkUsed = Number(savedPlayer && savedPlayer.talkActionsUsed);
+        restoredPlayer.talkActionsUsed = Number.isFinite(savedTalkUsed)
+            ? Math.max(0, Math.floor(savedTalkUsed))
+            : 0;
         // Old saves do not have hunger yet either; it is always hidden.
         const savedHunger = Number(savedPlayer && savedPlayer.hunger);
         restoredPlayer.hunger = Number.isFinite(savedHunger)
