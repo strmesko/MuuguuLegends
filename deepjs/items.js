@@ -175,10 +175,6 @@ function getItemImagePath(itemName) {
     if (resourceFolder === "herbs") {
         return RESOURCE_IMAGE_DIRECTORY + "herbs/" + normalizedName + ".png";
     }
-    if (resourceFolder === "gemstones") {
-        return RESOURCE_IMAGE_DIRECTORY + "gemstones/gemstone.png";
-    }
-
     return resourceFolder
         ? RESOURCE_IMAGE_DIRECTORY + resourceFolder + "/" + normalizedName + ".png"
         : GEAR_IMAGE_DIRECTORY + normalizedName + ".png";
