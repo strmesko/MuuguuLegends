@@ -347,6 +347,7 @@ const ITEM_IDS = Object.freeze({
     ANCHOVY_PIZZA: ITEM_ID_BASE + 462,
     FISH_PIZZA: ITEM_ID_BASE + 463,
     CARVED_GEMSTONE: ITEM_ID_BASE + 464,
+    RING: ITEM_ID_BASE + 465,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -1872,6 +1873,11 @@ const ITEM_DEFS = Object.freeze({
         ITEM_IDS.PREDATOR_BAND, "Predator band", "ring1", "predatorband",
         { lootChance: 15, lootAmount: 20, mobLevelBonus: 1 }, RING_SLOT_IDS,
         "A band of predator bone. It attracts stronger prey and better spoils."
+    ),
+    [ITEM_IDS.RING]: createCombatGearDefinition(
+        ITEM_IDS.RING, "Ring", "ring1", "ring",
+        {}, RING_SLOT_IDS,
+        "A metal band set with a carved gemstone and, if the jeweler is skilled enough, additional gems."
     ),
     [ITEM_IDS.FOCUS_EARRING]: createCombatGearDefinition(
         ITEM_IDS.FOCUS_EARRING, "Focus earring", "ear1", "focuseering",
