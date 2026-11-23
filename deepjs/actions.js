@@ -629,7 +629,7 @@ const ACTIONS = [
         id: "mining",
         label: "Mining",
         tags: ["harvest"],
-        description: "MINERS. STRIKE THE STONE NOW! This rock is your prey.<br>Action power: 1 + sqrt(STR * Mining) + Mining power. Mining trains Mining and Strength.<br>Each mined Rock has a 1/10 chance to become Limestone or Coal at Mining power 10, or Rocksalt at Mining power 20.",
+        description: "MINERS. STRIKE THE STONE NOW! This rock is your prey.<br>Action power: 1 + sqrt(STR * Mining) + Mining power. Mining trains Mining and Strength.<br>Each mined Rock has a 1/10 chance to become Limestone or Coal at Mining power 10, or Rocksalt at Mining power 20.<br>Above Mining level 30, each second has a chance to find 1 random gemstone: (1 + (Mining - 30 + Luck / 5)) / (100 + (Mining - 30 + Luck / 5)).",
         kind: ACTION_KIND.Timed,
         initialState: Activity.Idle,
         startMessage: "You start mining",

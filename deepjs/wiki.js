@@ -602,6 +602,9 @@
                     ])
                     + (action.unavailableMessage
                         ? "<p><b>Unavailable:</b> " + richText(action.unavailableMessage) + "</p>"
+                        : "")
+                    + (action.id === "mining"
+                        ? formulaLink("formula-mining-gem", "mining gemstone chance")
                         : "");
             },
         });
@@ -1443,6 +1446,18 @@
             ["Item power multiplier", typeof getItemPowerMultiplier !== "undefined" ? getItemPowerMultiplier : null,
                 function () { return formatValue(getItemPowerMultiplier(20, 2, 1)); }],
             ["Property variance", typeof rollItemPropertyVariance !== "undefined" ? rollItemPropertyVariance : null],
+        ]
+    );
+
+    addFormulaPage(
+        "formula-mining-gem",
+        "Mining gemstone chance",
+        "Above Mining level 30, each second of mining can uncover one random gemstone. The chance uses the same Mining and Luck values as the live game.",
+        [
+            ["Gemstone chance per second", typeof getMiningGemChance !== "undefined" ? getMiningGemChance : null,
+                function () { return round2(getMiningGemChance() * 100) + "%"; }],
+            ["Roll one gemstone drop", typeof rollMiningGem !== "undefined" ? rollMiningGem : null],
+            ["Random gemstone resource", typeof getRandomMiningGemResourceId !== "undefined" ? getRandomMiningGemResourceId : null],
         ]
     );
 

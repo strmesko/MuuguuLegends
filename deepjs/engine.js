@@ -4039,6 +4039,48 @@ function getMiningResourceChance(difficulty, power) {
     );
 }
 
+// Mining can uncover one raw gemstone per second above Mining level 30. The
+// odd-looking fraction is intentional: at level 30 it is 1/100, and every
+// level above 30 (plus Luck / 5) increases both the numerator and denominator.
+const MINING_GEM_MIN_LEVEL = 30;
+
+function getMiningGemChance() {
+    const mining = Math.max(0, Number(getEffectiveLevel("mining")) || 0);
+    if (mining <= MINING_GEM_MIN_LEVEL) return 0;
+
+    const luck = Math.max(0, Number(getEffectiveLevel("luck")) || 0);
+    const bonus = mining - MINING_GEM_MIN_LEVEL + luck / 5;
+    return (1 + bonus) / (100 + bonus);
+}
+
+function getRandomMiningGemResourceId() {
+    if (typeof GEMSTONE_RESOURCE_IDS === "undefined"
+        || !Array.isArray(GEMSTONE_RESOURCE_IDS)
+        || GEMSTONE_RESOURCE_IDS.length === 0) {
+        return null;
+    }
+    return GEMSTONE_RESOURCE_IDS[
+        Math.floor(Math.random() * GEMSTONE_RESOURCE_IDS.length)
+    ];
+}
+
+function rollMiningGem(seconds, quality, foundTotals) {
+    const chancePerSecond = getMiningGemChance();
+    if (chancePerSecond <= 0 || !(seconds > 0)) return null;
+
+    const chance = 1 - Math.pow(1 - chancePerSecond, seconds);
+    if (Math.random() >= chance) return null;
+
+    const resourceId = getRandomMiningGemResourceId();
+    if (resourceId == null) return null;
+
+    addResource(resourceId, 1, quality);
+    if (foundTotals) {
+        foundTotals[resourceId] = (foundTotals[resourceId] || 0) + 1;
+    }
+    return resourceId;
+}
+
 function getAvailableMiningSpecialStones() {
     const miningPower = typeof getCharacterToolPower === "function"
         ? Math.max(0, getCharacterToolPower("mining") || 0)
@@ -4102,6 +4144,8 @@ function rollMiningResources(power, seconds, quality, foundTotals, yieldMultipli
         foundTotals[roll.resourceId] =
             (foundTotals[roll.resourceId] || 0) + amount;
     });
+
+    rollMiningGem(seconds, quality, foundTotals);
 }
 
 const MINING_EXTRACTION = Object.freeze({
