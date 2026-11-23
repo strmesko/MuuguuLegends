@@ -3337,3 +3337,12 @@ body.theme-dark .equipbonus {
         0 1px 0 #0a1a0a,
         1px 1px 0 #0a1a0a;
 }
+
+/* Dark-theme borders for the main status bars. */
+body.theme-dark .hpbar,
+body.theme-dark .manabar,
+body.theme-dark .staminabar,
+body.theme-dark .expbar {
+    border: 1px solid #000;
+    box-sizing: border-box;
+}
