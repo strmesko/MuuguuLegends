@@ -1,7 +1,6 @@
 // Bottom-of-screen tip ticker. The full list lives in tips.txt so it can be
 // edited without touching code; the fallback only covers a missing file.
 (function () {
-    const TIP_ROTATE_MS = 45000;
     const TIP_COLORS = [
         "#d8f5b0",
         "#c7e9ff",
@@ -22,7 +21,6 @@
     let tips = [];
     let lastIndex = -1;
     let lastColorIndex = -1;
-    let rotateTimer = null;
 
     function pickTip() {
         if (!tips.length) return "";
@@ -80,9 +78,17 @@
         }
 
         if (!tips.length) tips = FALLBACK_TIPS.slice();
+
+        const element = document.getElementById("tipstickertext");
+        if (element && element.dataset.tipTickerBound !== "1") {
+            element.dataset.tipTickerBound = "1";
+            // The marquee is one infinite CSS animation. `animationiteration`
+            // fires exactly when it reaches the end and starts again from the
+            // right edge, so the next tip is chosen at that moment.
+            element.addEventListener("animationiteration", showTip);
+        }
+
         showTip();
-        if (rotateTimer) clearInterval(rotateTimer);
-        rotateTimer = setInterval(showTip, TIP_ROTATE_MS);
     }
 
     if (document.readyState === "loading") {
