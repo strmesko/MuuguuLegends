@@ -3338,11 +3338,18 @@ body.theme-dark .equipbonus {
         1px 1px 0 #0a1a0a;
 }
 
-/* Dark-theme borders for the main status bars. */
-body.theme-dark .hpbar,
-body.theme-dark .manabar,
-body.theme-dark .staminabar,
-body.theme-dark .expbar {
-    border: 1px solid #000;
-    box-sizing: border-box;
+/* Dark-theme text outlines for the main status bars. */
+body.theme-dark .hpbartext,
+body.theme-dark .manabartext,
+body.theme-dark .staminabartext,
+body.theme-dark .expbartext {
+    text-shadow:
+        -1px -1px 0 #000,
+        0 -1px 0 #000,
+        1px -1px 0 #000,
+        -1px 0 0 #000,
+        1px 0 0 #000,
+        -1px 1px 0 #000,
+        0 1px 0 #000,
+        1px 1px 0 #000;
 }
