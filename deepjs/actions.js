@@ -1373,7 +1373,11 @@ function updateActionButton(actionId) {
         ? (darkTheme
             ? ACTION_DARK_TOGGLE_ACTIVE_COLOR
             : ACTION_TOGGLE_ACTIVE_COLOR)
-        : (darkTheme ? ACTION_DARK_ACTIVE_COLOR : ACTION_ACTIVE_COLOR);
+        : (darkTheme
+            ? (action && hasActionTag(action, "Production")
+                ? ACTION_DARK_PRODUCTION_ACTIVE_COLOR
+                : ACTION_DARK_ACTIVE_COLOR)
+            : ACTION_ACTIVE_COLOR);
     button.style.backgroundColor = state === "active"
         ? activeColor
         : getActionIdleColor(action);
