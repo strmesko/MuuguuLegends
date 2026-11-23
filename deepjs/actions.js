@@ -382,7 +382,7 @@ const ACTIONS = [
                 : max;
             return "Start a conversation with an NPC on the current tile. All other actions are paused until you say goodbye."
                 + "<br>Maximum Talk actions per game hour: " + max
-                + " (1 at Social 1, +1 at Social 2, 4, 8, 16...)."
+                + " (1 + floor(Social / 2): 1 at Social 1, 2 at Social 2, 3 at Social 4, 5 at Social 8, 11 at Social 20)."
                 + "<br>Remaining this hour: " + remaining + ".";
         },
         kind: ACTION_KIND.Instant,

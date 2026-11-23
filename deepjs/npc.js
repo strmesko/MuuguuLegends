@@ -593,8 +593,8 @@ function getCurrentGameHour() {
     );
 }
 
-// Talk actions per game hour: 1 at Social 1, then +1 at Social 2,
-// Social 4, Social 8, Social 16 and so on (each threshold doubles).
+// Talk actions per game hour: 1 at Social 1, then +1 for every two
+// Social levels: 2 -> 2, 4 -> 3, 6 -> 4, 8 -> 5, 20 -> 11.
 function getMaxTalkActionsPerHour(level) {
     const rawLevel = level != null
         ? Number(level)
@@ -602,7 +602,7 @@ function getMaxTalkActionsPerHour(level) {
             ? getNpcCheckLevel("social")
             : 1);
     const social = Math.max(1, Math.floor(Number(rawLevel) || 1));
-    return 1 + Math.floor(Math.log2(social));
+    return 1 + Math.floor(social / 2);
 }
 
 function getTalkActionUsage() {
