@@ -3289,3 +3289,51 @@ body.theme-dark .logdiv-odd {
 body.theme-dark .actionbutton {
     color: #e8f0e8;
 }
+
+/* Dark-theme readability: action categories, character name, craft text,
+   tool powers and equip bonuses. Font sizes are deliberately untouched. */
+body.theme-dark .actionbutton-tags {
+    color: #cfe3cf;
+    opacity: 1;
+}
+body.theme-dark .actionbutton.action-harvest .actionbutton-tags {
+    color: #ffd9a8;
+}
+body.theme-dark .charactername {
+    color: #e8f0e8;
+    background-color: #263026;
+    border-color: #4b5d4b;
+}
+body.theme-dark .craftlist,
+body.theme-dark .craftdescription,
+body.theme-dark .craftdetails,
+body.theme-dark .craftrecipe,
+body.theme-dark .craftnote,
+body.theme-dark .craftitemdescription,
+body.theme-dark .craftdetailsitem,
+body.theme-dark .craftresources,
+body.theme-dark .craftchoice,
+body.theme-dark .craftchoice-label,
+body.theme-dark .craftempty {
+    color: #d8e8d8;
+}
+body.theme-dark .toolpower-label,
+body.theme-dark .housepower-label,
+body.theme-dark .toolpower-value,
+body.theme-dark .housepower-value {
+    color: #e8f0e8;
+    font-weight: bold;
+}
+body.theme-dark .itembonus,
+body.theme-dark .equipbonus {
+    color: #e8f0e8;
+    text-shadow:
+        -1px -1px 0 #0a1a0a,
+        0 -1px 0 #0a1a0a,
+        1px -1px 0 #0a1a0a,
+        -1px 0 0 #0a1a0a,
+        1px 0 0 #0a1a0a,
+        -1px 1px 0 #0a1a0a,
+        0 1px 0 #0a1a0a,
+        1px 1px 0 #0a1a0a;
+}
