@@ -3353,3 +3353,17 @@ body.theme-dark .expbartext {
         0 1px 0 #000,
         1px 1px 0 #000;
 }
+
+/* White text for key values in the dark theme. */
+body.theme-dark .characterlevel,
+body.theme-dark .toolpowers-title,
+body.theme-dark .housepowers-title,
+body.theme-dark .toolpower-row,
+body.theme-dark .housepower-row,
+body.theme-dark .toolpower-label,
+body.theme-dark .housepower-label,
+body.theme-dark .toolpower-value,
+body.theme-dark .housepower-value,
+body.theme-dark .habitrangevalue {
+    color: #fff;
+}
