@@ -136,7 +136,7 @@ function scrollTabTrack(track, direction) {
     );
 
     if (typeof track.scrollTo === "function") {
-        track.scrollTo({ left: target, behavior: "smooth" });
+        track.scrollTo({ left: target, behavior: "auto" });
     } else {
         track.scrollLeft = target;
     }
@@ -220,13 +220,21 @@ function ensureTabScrollGroup(spec) {
 
     if (!track) return null;
 
-    if (!track.dataset.tabScrollResizeBound
-        && typeof ResizeObserver !== "undefined") {
-        track.dataset.tabScrollResizeBound = "1";
-        const resizeObserver = new ResizeObserver(function () {
-            scheduleTabScrollRefresh();
+    if (typeof ResizeObserver !== "undefined") {
+        let resizeObserver = track._tabScrollResizeObserver;
+        if (!resizeObserver) {
+            resizeObserver = new ResizeObserver(function () {
+                scheduleTabScrollRefresh();
+            });
+            track._tabScrollResizeObserver = resizeObserver;
+            resizeObserver.observe(track);
+        }
+        // Track width can stay the same while font/layout changes only the
+        // widths of the buttons inside it. Observe them too, otherwise stale
+        // arrows can remain visible after the first layout settles.
+        track.querySelectorAll("button").forEach(function (button) {
+            resizeObserver.observe(button);
         });
-        resizeObserver.observe(track);
     }
 
     const state = {
@@ -254,11 +262,9 @@ function scheduleTabScrollRefresh() {
         refreshTabScrollBars();
     };
 
-    if (typeof requestAnimationFrame === "function") {
-        requestAnimationFrame(run);
-    } else {
-        setTimeout(run, 0);
-    }
+    // Always use a timer. requestAnimationFrame is paused in background and
+    // unfocused tabs, which would leave the scheduled flag stuck forever.
+    setTimeout(run, 16);
 }
 
 function initTabScrollBars() {
@@ -294,8 +300,9 @@ function initTabScrollBars() {
     }
 
     refreshTabScrollBars();
-    setTimeout(scheduleTabScrollRefresh, 0);
-    setTimeout(scheduleTabScrollRefresh, 250);
+    setTimeout(refreshTabScrollBars, 0);
+    setTimeout(refreshTabScrollBars, 250);
+    setTimeout(refreshTabScrollBars, 1000);
 }
 
 window.refreshTabScrollBars = refreshTabScrollBars;
