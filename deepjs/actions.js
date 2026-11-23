@@ -407,6 +407,39 @@ const ACTIONS = [
         },
     },
     {
+        id: "greet",
+        label: "Greet",
+        tags: ["social"],
+        description: "Greet the NPC on the current tile. Can be used once per in-game hour.<br>CharismaCheck = (Social * Charisma + Autism) / Autism, adjusted by the NPC's mood: Bored/Unhappy -20%, Extremely bored/Sad -50%, Curious/Happy +20%, Extremely curious/Excited +50%.<br>Favor and Social experience increase by CharismaCheck. Boredom and Happiness increase by half of it.",
+        kind: ACTION_KIND.Instant,
+        initialState: Activity.Idle,
+        isVisible: function () {
+            return typeof player !== "undefined"
+                && !!player
+                && typeof getNpcsAtTile === "function"
+                && typeof currentTile !== "undefined"
+                && !!currentTile
+                && getNpcsAtTile(currentTile.x, currentTile.y).length > 0
+                && !(typeof isTraveling === "function" && isTraveling())
+                && !(typeof isCombatActive === "function" && isCombatActive())
+                && !(typeof isNpcDialogueActive === "function"
+                    && isNpcDialogueActive());
+        },
+        isEnabled: function () {
+            return typeof player !== "undefined"
+                && !!player
+                && Number(player.hp) > 0
+                && typeof canGreetNpcAtTile === "function"
+                && canGreetNpcAtTile(currentTile);
+        },
+        unavailableMessage: "You can greet an NPC only once per game hour.",
+        run: function () {
+            return typeof greetNpcAtTile === "function"
+                ? greetNpcAtTile(currentTile)
+                : false;
+        },
+    },
+    {
         id: "explore",
         label: "Explore",
         description: "Explore the entire tile for further investigate. <br>Full tile exploration reveals neighbour tiles",
@@ -2251,6 +2284,10 @@ function clickAction(actionId) {
         if (action.unavailableMessage) logMessage(action.unavailableMessage);
         updateActionButton(action.id);
         return;
+    }
+
+    if (typeof applyActionRepetitionBoredom === "function") {
+        applyActionRepetitionBoredom(action.id);
     }
 
     performAction(action);

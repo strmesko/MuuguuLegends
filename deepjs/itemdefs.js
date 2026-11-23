@@ -2175,6 +2175,10 @@ const ITEM_STAT_DEFS = Object.freeze({
         label: "Defence",
         kind: "flat",
     }),
+    cha: Object.freeze({
+        label: "Charisma",
+        kind: "flat",
+    }),
     // Combat equipment stats. Percentage values are stored as points: 10
     // means +10%.
     attackPercent: Object.freeze({

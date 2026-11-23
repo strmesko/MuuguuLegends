@@ -56,6 +56,7 @@
         "int",
         "ins",
         "sou",
+        "cha",
         "luck",
         "speed",
     ];
@@ -73,7 +74,17 @@
             : new Skill(skillName, "");
     }
 
-    function restoreStat(savedStat) {
+    function createDefaultStat(statName) {
+        const template = player && player[statName];
+        return template
+            ? new Stat(template.name, template.description)
+            : new Stat(statName, "");
+    }
+
+    function restoreStat(savedStat, statName) {
+        if (!savedStat || typeof savedStat !== "object") {
+            return createDefaultStat(statName);
+        }
         const stat = new Stat(savedStat.name, savedStat.description);
         stat.clone(savedStat);
         return stat;
@@ -366,7 +377,10 @@
                 : createDefaultSkill(skillName);
         });
         RESTORABLE_PLAYER_STATS.forEach(function (statName) {
-            restoredPlayer[statName] = restoreStat(savedPlayer[statName]);
+            restoredPlayer[statName] = restoreStat(
+                savedPlayer ? savedPlayer[statName] : null,
+                statName
+            );
         });
         restoredPlayer.equipment = restoreEquipment(
             savedPlayer && savedPlayer.equipment
@@ -382,6 +396,14 @@
         ensurePantsEquipped(restoredPlayer);
         // Old saves do not have sleepyness yet.
         restoredPlayer.sleepyness = clampSleepyness(savedPlayer && savedPlayer.sleepyness);
+        // Greet cooldown was added with Charisma. Old saves simply start ready.
+        const savedGreetHour = savedPlayer
+            && savedPlayer.lastGreetGameHour != null
+            ? Number(savedPlayer.lastGreetGameHour)
+            : null;
+        restoredPlayer.lastGreetGameHour = Number.isFinite(savedGreetHour)
+            ? savedGreetHour
+            : null;
         // Old saves do not have hunger yet either; it is always hidden.
         const savedHunger = Number(savedPlayer && savedPlayer.hunger);
         restoredPlayer.hunger = Number.isFinite(savedHunger)

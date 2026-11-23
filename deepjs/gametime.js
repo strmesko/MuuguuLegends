@@ -456,8 +456,15 @@ function advanceGameClock(seconds) {
     if (!Number.isFinite(value) || value <= 0) return false;
 
     const previousDate = gameMinutesToDateTime(gameTime.totalMinutes);
+    const previousHour = Math.floor(gameTime.totalMinutes / GAME_MINUTES_PER_HOUR);
     gameTime.totalMinutes += value * GAME_MINUTES_PER_REAL_SECOND;
     const currentDate = gameMinutesToDateTime(gameTime.totalMinutes);
+    const currentHour = Math.floor(gameTime.totalMinutes / GAME_MINUTES_PER_HOUR);
+    const elapsedHours = currentHour - previousHour;
+
+    if (elapsedHours > 0 && typeof updateNpcsForGameHours === "function") {
+        updateNpcsForGameHours(elapsedHours);
+    }
 
     if ((previousDate.year !== currentDate.year
         || previousDate.month !== currentDate.month)

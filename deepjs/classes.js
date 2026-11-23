@@ -2074,8 +2074,8 @@ function getResourceMultiplier(tile, resourceId) {
 }
 
 const PERCENT = 100;
-const CORE_STAT_COUNT = 9;
-const CORE_STAT_NAMES = ["str", "agi", "vit", "per", "int", "ins", "sou", "luck", "speed"];
+const CORE_STAT_COUNT = 10;
+const CORE_STAT_NAMES = ["str", "agi", "vit", "per", "int", "ins", "sou", "cha", "luck", "speed"];
 const LEARNABLE_SKILL_KEYS = ["exploration", "forage", "rest", "focus", "meditation", "wizardy", "alchemy", "masonry", "pottery", "regeneration", "autism", "science", "traveling", "dreammastery", "survival", "ropemaking", "tailoring", "fishing", "carpentry", "architecture", "gardening", "farming", "social", "jewerly", "digging", "lumberjack", "mining", "smithing", "cooking", "milling", "tactics", "anatomy", "dodging", "bullseye", "axechopping", "swordsswingin", "knifesstabbing", "spearsspooning", "brawlbaps", "hammerscrushworks", "dodgedancing", "critomancy", "spiritspeak", "digestomancy"];
 
 // Every edible resource is bound to one core stat for the whole playthrough.
@@ -2455,6 +2455,7 @@ class Character {
         this.int = new Stat("Intellect", "Some situations need a logical solution. But using it <br>in wrong situations can blow your mind, or skull.");
         this.ins = new Stat("Insight", "Inner guide which helps you to solve solutions where intellect cant. <br>You dont know how it's works. Your inner guide");
         this.sou = new Stat("Soul", "Are you lack of soul? HOW DARE YOU!");
+        this.cha = new Stat("Charisma", "Literally the best skill in the unsettled world.");
         this.luck = new Stat("Luck", "You dont know how it works... probably.");
         this.speed = new Stat("Speed", "GOTTA GO FAST");
         this.speed.lvl = STARTING_SPEED_LEVEL;
@@ -2462,6 +2463,7 @@ class Character {
         this.equipinventory = new Array(EQUIPMENT_SLOTS);
         this.equipment = createEmptyEquipment();
         this.sleepyness = 0;
+        this.lastGreetGameHour = null;
     }
 }
 function addPlayerExp(amount) {

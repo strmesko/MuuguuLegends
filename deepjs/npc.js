@@ -495,6 +495,201 @@ function adjustNpcAngryOmeter(npc, delta) {
     return true;
 }
 
+function moveNpcMoodTowardZero(value, step) {
+    const current = Number(value) || 0;
+    const amount = Math.max(0, Number(step) || 0);
+    if (current > 0) return Math.max(0, current - amount);
+    if (current < 0) return Math.min(0, current + amount);
+    return 0;
+}
+
+function getNpcAngryDecayForMood(npc) {
+    const mood = getNpcMoodDescription(npc);
+    if (mood === "Excited") return 5;
+    if (mood === "Happy") return 2;
+    return 1;
+}
+
+// Moods drift back toward neutral every in-game hour. AngryOmeter always
+// falls, but a Happy or Excited NPC calms down faster.
+function updateNpcForGameHours(npc, hours) {
+    if (!npc) return false;
+
+    const totalHours = Math.max(0, Math.floor(Number(hours) || 0));
+    for (let index = 0; index < totalHours; index++) {
+        const angryDecay = getNpcAngryDecayForMood(npc);
+        npc.angryOmeter = clampNpcAngryOmeter(npc.angryOmeter - angryDecay);
+        npc.boredom = normalizeNpcBoredom(
+            moveNpcMoodTowardZero(npc.boredom, 100)
+        );
+        npc.happy = normalizeNpcHappy(
+            moveNpcMoodTowardZero(npc.happy, 100)
+        );
+        refreshNpcMoodDescription(npc);
+    }
+    return totalHours > 0;
+}
+
+function updateNpcsForGameHours(hours) {
+    const count = Math.max(0, Math.floor(Number(hours) || 0));
+    if (count <= 0) return 0;
+
+    npcs.forEach(function (npc) {
+        updateNpcForGameHours(npc, count);
+    });
+    return count;
+}
+
+function getNpcCheckLevel(key) {
+    if (typeof getEffectiveLevel === "function") {
+        return Math.max(0, Number(getEffectiveLevel(key)) || 0);
+    }
+    const entry = typeof player !== "undefined" && player
+        ? player[key]
+        : null;
+    return Math.max(0, Number(entry && entry.lvl) || 0);
+}
+
+function getNpcMoodCharismaMultiplier(npc) {
+    switch (getNpcMoodDescription(npc)) {
+        case "Bored":
+        case "Unhappy":
+            return 0.8;
+        case "Extremely bored":
+        case "Sad":
+            return 0.5;
+        case "Curious":
+        case "Happy":
+            return 1.2;
+        case "Extremely curious":
+        case "Excited":
+            return 1.5;
+        default:
+            return 1;
+    }
+}
+
+// CharismaCheck = (Social * Charisma + Autism) / Autism, then adjusted by the
+// target NPC's current mood.
+function getNpcCharismaCheck(npc) {
+    const social = Math.max(1, getNpcCheckLevel("social"));
+    const cha = Math.max(1, getNpcCheckLevel("cha"));
+    const autism = Math.max(1, getNpcCheckLevel("autism"));
+    const base = (social * cha + autism) / autism;
+    return round2(Math.max(
+        0,
+        base * getNpcMoodCharismaMultiplier(npc)
+    ));
+}
+
+function getCurrentGameHour() {
+    if (typeof gameTime === "undefined"
+        || typeof GAME_MINUTES_PER_HOUR === "undefined") {
+        return 0;
+    }
+    return Math.floor(
+        Math.max(0, Number(gameTime.totalMinutes) || 0)
+        / GAME_MINUTES_PER_HOUR
+    );
+}
+
+function getNpcGreetTarget(tile) {
+    const target = tile
+        || (typeof currentTile !== "undefined" ? currentTile : null);
+    if (!target || typeof getNpcsAtTile !== "function") return null;
+
+    const npcsHere = getNpcsAtTile(target.x, target.y);
+    return npcsHere.length ? npcsHere[0] : null;
+}
+
+function canGreetNpcAtTile(tile) {
+    const target = getNpcGreetTarget(tile);
+    if (!target) return false;
+
+    const hour = getCurrentGameHour();
+    return !(typeof player !== "undefined"
+        && player
+        && player.lastGreetGameHour != null
+        && Number(player.lastGreetGameHour) === hour);
+}
+
+function greetNpcAtTile(tile) {
+    const target = getNpcGreetTarget(tile);
+    if (!target) return false;
+
+    const hour = getCurrentGameHour();
+    if (typeof player !== "undefined"
+        && player
+        && player.lastGreetGameHour != null
+        && Number(player.lastGreetGameHour) === hour) {
+        return false;
+    }
+
+    const check = getNpcCharismaCheck(target);
+    adjustNpcFavor(target, check);
+
+    if (typeof player !== "undefined" && player) {
+        if (player.social
+            && typeof player.social.addexp === "function") {
+            player.social.addexp(check);
+        }
+        player.lastGreetGameHour = hour;
+    }
+
+    const half = round2(check / 2);
+    adjustNpcBoredom(target, half);
+    adjustNpcHappy(target, half);
+
+    if (typeof logMessage === "function") {
+        logMessage("You greet " + getNpcDisplayName(target)
+            + ". Favor +" + round2(check)
+            + ", boredom +" + half + ", happiness +" + half + ".");
+    }
+    if (typeof renderNpcDialogue === "function"
+        && typeof isNpcDialogueActive === "function"
+        && isNpcDialogueActive()) {
+        renderNpcDialogue();
+    }
+    if (typeof updateGUI === "function") updateGUI();
+    return true;
+}
+
+// Repeating the exact same action bores the NPCs standing on the tile.
+// The second consecutive selection costs 50 boredom, the third 100, then the
+// penalty doubles for every further repetition.
+let lastSelectedActionId = null;
+let consecutiveActionSelections = 0;
+
+function applyActionRepetitionBoredom(actionId) {
+    const id = actionId ? String(actionId) : "";
+    if (!id) return 0;
+
+    if (lastSelectedActionId === id) {
+        consecutiveActionSelections += 1;
+    } else {
+        lastSelectedActionId = id;
+        consecutiveActionSelections = 1;
+        return 0;
+    }
+
+    const repeats = consecutiveActionSelections - 1;
+    if (repeats < 1) return 0;
+
+    const penalty = 50 * Math.pow(2, repeats - 1);
+    const target = typeof currentTile !== "undefined" ? currentTile : null;
+    if (target && typeof getNpcsAtTile === "function") {
+        getNpcsAtTile(target.x, target.y).forEach(function (npc) {
+            adjustNpcBoredom(npc, -penalty);
+        });
+    }
+    return penalty;
+}
+
+function resetActionRepetitionTracking() {
+    lastSelectedActionId = null;
+    consecutiveActionSelections = 0;
+}
+
 // --- conversation ---------------------------------------------------------
 
 const NPC_GREET_FAVOR_GAIN = 10;

@@ -1106,6 +1106,7 @@ createSkillBar("per");
 createSkillBar("int");
 createSkillBar("ins");
 createSkillBar("sou");
+createSkillBar("cha");
 createSkillBar("luck");
 createSkillBar("speed");
 createToolPowerSection();
