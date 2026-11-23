@@ -2152,6 +2152,21 @@ const ACTION_MAGIC_IDLE_COLOR = "#f0dcff";
 const ACTION_PRODUCTION_IDLE_COLOR = "#b7e3a1";
 const ACTION_MOVEMENT_IDLE_COLOR = "#d9f7c0";
 const ACTION_COMBAT_IDLE_COLOR = "#e8b4b4";
+const ACTION_DARK_ACTIVE_COLOR = "#5a522a";
+const ACTION_DARK_TOGGLE_ACTIVE_COLOR = "#4a3a5a";
+const ACTION_DARK_IDLE_COLOR = "#2f4a2f";
+const ACTION_DARK_HARVEST_IDLE_COLOR = "#5a3a1f";
+const ACTION_DARK_RESTORATION_IDLE_COLOR = "#1f3a5a";
+const ACTION_DARK_MAGIC_IDLE_COLOR = "#3a2a4a";
+const ACTION_DARK_PRODUCTION_IDLE_COLOR = "#2a3f2a";
+const ACTION_DARK_MOVEMENT_IDLE_COLOR = "#2f4a2f";
+const ACTION_DARK_COMBAT_IDLE_COLOR = "#4a2a2a";
+
+function isDarkInterfaceTheme() {
+    return typeof document !== "undefined"
+        && document.body
+        && document.body.classList.contains("theme-dark");
+}
 const MIN_STAMINA_TO_FORAGE = 0.1;
 const EXPLORATION_PROGRESS_RATE = 0.01;
 const SEARCH_UNITS_RATE = 1;

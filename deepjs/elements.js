@@ -236,6 +236,66 @@
     });
     numberFormatRow.appendChild(numberFormatSelect);
     optionsContent.appendChild(numberFormatRow);
+
+    const INTERFACE_THEME_STORAGE_KEY = 'muuguu_interface_theme';
+
+    function normalizeInterfaceTheme(value) {
+        return value === 'dark' ? 'dark' : 'light';
+    }
+
+    function readStoredInterfaceTheme() {
+        try {
+            return normalizeInterfaceTheme(
+                localStorage.getItem(INTERFACE_THEME_STORAGE_KEY)
+            );
+        } catch (error) {
+            return 'light';
+        }
+    }
+
+    function applyInterfaceTheme(value) {
+        const theme = normalizeInterfaceTheme(value);
+        document.body.classList.toggle('theme-dark', theme === 'dark');
+        document.body.dataset.interfaceTheme = theme;
+        if (typeof refreshActionButtons === "function") {
+            refreshActionButtons(true);
+        }
+        return theme;
+    }
+
+    let interfaceTheme = applyInterfaceTheme(readStoredInterfaceTheme());
+
+    const themeRow = document.createElement('label');
+    themeRow.className = 'habitsetting themerow';
+    themeRow.setAttribute(
+        'data-tooltip',
+        'Switch between the light and dark interface themes.'
+    );
+
+    const themeLabel = document.createElement('span');
+    themeLabel.className = 'habitname';
+    themeLabel.innerText = 'Interface theme:';
+    themeRow.appendChild(themeLabel);
+
+    const themeSelect = document.createElement('select');
+    themeSelect.id = 'interfacetheme';
+    themeSelect.className = 'habitselect interfacethemeselect';
+    [['light', 'Light'], ['dark', 'Dark']].forEach(function (definition) {
+        const option = document.createElement('option');
+        option.value = definition[0];
+        option.innerText = definition[1];
+        themeSelect.appendChild(option);
+    });
+    themeSelect.value = interfaceTheme;
+    themeSelect.addEventListener('change', function () {
+        interfaceTheme = applyInterfaceTheme(themeSelect.value);
+        try {
+            localStorage.setItem(INTERFACE_THEME_STORAGE_KEY, interfaceTheme);
+        } catch (error) {}
+    });
+    themeRow.appendChild(themeSelect);
+    optionsContent.appendChild(themeRow);
+
     actionContent.appendChild(actionText);
     resourcePanel.appendChild(charState);
     charState.appendChild(playerNameInput);

@@ -3059,3 +3059,233 @@ body.wikiopen {
 .tabscrollarrow.is-hidden {
     display: none;
 }
+
+/* --- dark interface theme ------------------------------------------------ */
+body.theme-dark {
+    background-color: #0f130f;
+    color: #d8e8d8;
+}
+body.theme-dark .alert {
+    background-color: #3a2424;
+    color: #f0d8d8;
+}
+body.theme-dark .allblock,
+body.theme-dark .resbl,
+body.theme-dark .topic,
+body.theme-dark .rightbar,
+body.theme-dark .gameclock,
+body.theme-dark .actionselect,
+body.theme-dark .actionplace,
+body.theme-dark .leftselector,
+body.theme-dark .lefttabs,
+body.theme-dark .actiontext,
+body.theme-dark .charstate,
+body.theme-dark .focuspoints,
+body.theme-dark .skillsbar,
+body.theme-dark .skillsbar-even,
+body.theme-dark .skillsbar-odd,
+body.theme-dark .skillsbar-skill-even,
+body.theme-dark .skillsbar-skill-odd,
+body.theme-dark .statprogress,
+body.theme-dark .toolpower-row,
+body.theme-dark .housepower-row,
+body.theme-dark .habitsplace,
+body.theme-dark #habitsplace,
+body.theme-dark #knowledgeplace,
+body.theme-dark .habitcategory,
+body.theme-dark .habit-tree,
+body.theme-dark #knowledgetree,
+body.theme-dark .craftlist,
+body.theme-dark .craftdescription,
+body.theme-dark .craftdetails,
+body.theme-dark .craftsubplace,
+body.theme-dark .researchsubplace,
+body.theme-dark .craftchoice-select,
+body.theme-dark .craftingredient-current,
+body.theme-dark .craftingredient-menu,
+body.theme-dark .equipDisplay,
+body.theme-dark .inventoryPlace,
+body.theme-dark .offlinesim-track {
+    background-color: #1b231b;
+    color: #d8e8d8;
+    border-color: #4b5d4b;
+}
+body.theme-dark #habitsplace,
+body.theme-dark .habit-tree {
+    background-color: #241f2f;
+}
+body.theme-dark #knowledgeplace,
+body.theme-dark #knowledgetree {
+    background-color: #1b2431;
+}
+body.theme-dark .habitcategorytitle,
+body.theme-dark .equipheader,
+body.theme-dark .equipgrouptitle {
+    background-color: #2a3a2a;
+    color: #cfe8cf;
+    border-color: #4b5d4b;
+}
+body.theme-dark .actiontab,
+body.theme-dark .restab,
+body.theme-dark .optionsbutton,
+body.theme-dark .actionbutton,
+body.theme-dark .craftsub,
+body.theme-dark .researchsub,
+body.theme-dark .buildsub,
+body.theme-dark .craftbutton,
+body.theme-dark .tabscrollarrow,
+body.theme-dark .habitslider,
+body.theme-dark .habit-skill,
+body.theme-dark .offlinesim-panel {
+    background-color: #2f4a2f;
+    color: #e6f0e6;
+    border-color: #5d7d5d;
+}
+body.theme-dark .actiontab.active,
+body.theme-dark .restab.active,
+body.theme-dark .optionsbutton.active,
+body.theme-dark .buildsub.active,
+body.theme-dark .craftsub.active,
+body.theme-dark .researchsub.active,
+body.theme-dark .craftrecipe.selected,
+body.theme-dark .habit-skill.researching,
+body.theme-dark #habitsplace .habit-skill.researching,
+body.theme-dark #knowledgeplace .habit-skill.researching {
+    background-color: #4a5f2a;
+    color: #f0f0d0;
+    border-color: #8fae5f;
+}
+body.theme-dark .researchsub,
+body.theme-dark #knowledgeplace .habit-skill {
+    background-color: #24344a;
+    color: #d8e8f8;
+}
+body.theme-dark #habitsplace .habit-skill {
+    background-color: #3a2a4a;
+    color: #e8d8f8;
+}
+body.theme-dark .optionsbutton.active,
+body.theme-dark .craftrecipe.selected,
+body.theme-dark .craftrecipe.selected .habitslider,
+body.theme-dark .habitswitch input:checked + .habitslider {
+    background-color: #5a522a;
+    color: #f0e8c0;
+}
+body.theme-dark .habitslider::after {
+    background-color: #d8e8d8;
+}
+body.theme-dark .habitselect,
+body.theme-dark .actionplace input,
+body.theme-dark .actionplace select,
+body.theme-dark .actionplace textarea,
+body.theme-dark .actionplace option {
+    background-color: #263026;
+    color: #e0ece0;
+    border-color: #4b5d4b;
+}
+body.theme-dark .actionbutton.action-harvest {
+    background-color: #5a3a1f;
+}
+body.theme-dark .actionbutton.action-restoration {
+    background-color: #1f3a5a;
+}
+body.theme-dark .actionbutton.action-magic {
+    background-color: #3a2450;
+}
+body.theme-dark .actionbutton.action-production {
+    background-color: #264a24;
+}
+body.theme-dark .actionbutton.action-moverment {
+    background-color: #2d4a2a;
+}
+body.theme-dark .actionbutton.action-combat {
+    background-color: #5a2a2a;
+}
+body.theme-dark .craftrecipe:hover {
+    background-color: #263326;
+}
+body.theme-dark .craftingredient-option:hover {
+    background-color: #2a3a2a;
+}
+body.theme-dark .equipslot,
+body.theme-dark .invslot {
+    background-color: #243024;
+    border-color: #4b5d4b;
+}
+body.theme-dark .equipslot:hover {
+    background-color: #2a3a2a;
+}
+body.theme-dark .equipslot.filled {
+    background-color: #243024;
+}
+body.theme-dark .equipslot.equipment-drop {
+    background-color: #2d3f2d;
+}
+body.theme-dark .invslot.drop-target,
+body.theme-dark .equipslot.drop-target {
+    background-color: #2d4a2d;
+}
+body.theme-dark .scrapbutton {
+    background-color: #5a2a2a;
+    color: #f0d8d8;
+}
+body.theme-dark .scrapbutton:hover {
+    background-color: #6f3333;
+}
+body.theme-dark .scrapbutton.active {
+    background-color: #7a3a3a;
+}
+body.theme-dark .scrapraritybutton {
+    background-color: #4a4322;
+    color: #f0e8c0;
+}
+body.theme-dark .scrapraritybutton:hover {
+    background-color: #5a522a;
+}
+body.theme-dark .inventoryPlace.scrap-mode .invslot.has-item {
+    background-color: #4a2a2a;
+}
+body.theme-dark .inventoryPlace.scrap-mode .invslot.has-item:hover {
+    background-color: #5a3030;
+}
+body.theme-dark .sortbutton {
+    background-color: #24344a;
+    color: #d8e8f8;
+}
+body.theme-dark .sortbutton:hover {
+    background-color: #344a6f;
+}
+body.theme-dark .crafttag {
+    background-color: #2a3a2a;
+    color: #cfe8cf;
+}
+body.theme-dark .tooltip {
+    background-color: #2b3320;
+    color: #e6f0c8;
+    border-color: #6f7d4b;
+}
+body.theme-dark .habitname,
+body.theme-dark .saveslotlabel,
+body.theme-dark .craftnote,
+body.theme-dark .craftitemdescription,
+body.theme-dark .buildingtitle,
+body.theme-dark .buildingdescription,
+body.theme-dark .resourceitem,
+body.theme-dark .resourceamount,
+body.theme-dark .skillname,
+body.theme-dark .statname {
+    color: #d8e8d8;
+}
+
+/* Log rows are light surfaces, so they follow the dark theme. */
+body.theme-dark .logdiv-even {
+    background-color: #1b231b;
+    color: #cfe3cf;
+}
+body.theme-dark .logdiv-odd {
+    background-color: #202a20;
+    color: #cfe3cf;
+}
+body.theme-dark .actionbutton {
+    color: #e8f0e8;
+}

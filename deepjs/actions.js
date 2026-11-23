@@ -1272,13 +1272,33 @@ function getActionLabel(action) {
 }
 
 function getActionIdleColor(action) {
-    if (hasActionTag(action, "Magic")) return ACTION_MAGIC_IDLE_COLOR;
-    if (hasActionTag(action, "restoration")) return ACTION_RESTORATION_IDLE_COLOR;
-    if (hasActionTag(action, "harvest")) return ACTION_HARVEST_IDLE_COLOR;
-    if (hasActionTag(action, "Production")) return ACTION_PRODUCTION_IDLE_COLOR;
-    if (hasActionTag(action, "Moverment")) return ACTION_MOVEMENT_IDLE_COLOR;
-    if (hasActionTag(action, "combat")) return ACTION_COMBAT_IDLE_COLOR;
-    return ACTION_IDLE_COLOR;
+    const dark = typeof isDarkInterfaceTheme === "function"
+        && isDarkInterfaceTheme();
+    if (hasActionTag(action, "Magic")) {
+        return dark ? ACTION_DARK_MAGIC_IDLE_COLOR : ACTION_MAGIC_IDLE_COLOR;
+    }
+    if (hasActionTag(action, "restoration")) {
+        return dark
+            ? ACTION_DARK_RESTORATION_IDLE_COLOR
+            : ACTION_RESTORATION_IDLE_COLOR;
+    }
+    if (hasActionTag(action, "harvest")) {
+        return dark ? ACTION_DARK_HARVEST_IDLE_COLOR : ACTION_HARVEST_IDLE_COLOR;
+    }
+    if (hasActionTag(action, "Production")) {
+        return dark
+            ? ACTION_DARK_PRODUCTION_IDLE_COLOR
+            : ACTION_PRODUCTION_IDLE_COLOR;
+    }
+    if (hasActionTag(action, "Moverment")) {
+        return dark
+            ? ACTION_DARK_MOVEMENT_IDLE_COLOR
+            : ACTION_MOVEMENT_IDLE_COLOR;
+    }
+    if (hasActionTag(action, "combat")) {
+        return dark ? ACTION_DARK_COMBAT_IDLE_COLOR : ACTION_COMBAT_IDLE_COLOR;
+    }
+    return dark ? ACTION_DARK_IDLE_COLOR : ACTION_IDLE_COLOR;
 }
 
 function createActionButton(action) {
@@ -1347,9 +1367,13 @@ function updateActionButton(actionId) {
     const state = isActionActive(actionId) ? "active" : "idle";
     // Apply the colour even when the state did not change: freshly created
     // buttons start with data-state="idle" before their first paint.
+    const darkTheme = typeof isDarkInterfaceTheme === "function"
+        && isDarkInterfaceTheme();
     const activeColor = action && action.kind === ACTION_KIND.Toggle
-        ? ACTION_TOGGLE_ACTIVE_COLOR
-        : ACTION_ACTIVE_COLOR;
+        ? (darkTheme
+            ? ACTION_DARK_TOGGLE_ACTIVE_COLOR
+            : ACTION_TOGGLE_ACTIVE_COLOR)
+        : (darkTheme ? ACTION_DARK_ACTIVE_COLOR : ACTION_ACTIVE_COLOR);
     button.style.backgroundColor = state === "active"
         ? activeColor
         : getActionIdleColor(action);
