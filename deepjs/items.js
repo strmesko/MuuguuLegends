@@ -150,8 +150,38 @@ function getItemIconPathByName(itemName) {
     return itemIconPathByName[itemName] || null;
 }
 
+const CARVED_GEMSTONE_NAME_PATTERN =
+    /^(chipped|flawed|normal|flawless|perfect)\s+(.+)$/i;
+
+function getCarvedGemstoneImagePath(itemName) {
+    if (typeof GEMSTONE_RESOURCE_IDS === "undefined"
+        || !Array.isArray(GEMSTONE_RESOURCE_IDS)
+        || typeof RESOURCE_DEFS === "undefined") {
+        return null;
+    }
+
+    const match = CARVED_GEMSTONE_NAME_PATTERN.exec(String(itemName || ""));
+    if (!match) return null;
+
+    const normalizedGemName = normalizeItemImageName(match[2]);
+    const resourceId = GEMSTONE_RESOURCE_IDS.find(function (id) {
+        const definition = RESOURCE_DEFS[id];
+        return definition
+            && normalizeItemImageName(definition.name) === normalizedGemName;
+    });
+    if (resourceId == null) return null;
+
+    return RESOURCE_IMAGE_DIRECTORY
+        + "gemstones/"
+        + normalizeItemImageName(RESOURCE_DEFS[resourceId].name)
+        + ".png";
+}
+
 function getItemImagePath(itemName) {
     const normalizedName = normalizeItemImageName(itemName);
+    const carvedGemstonePath = getCarvedGemstoneImagePath(itemName);
+    if (carvedGemstonePath) return carvedGemstonePath;
+
     // Every cooked kebob stores its ingredient in the display name, but all
     // variants share one generic item icon.
     if (normalizedName.endsWith("stickkebob")) {

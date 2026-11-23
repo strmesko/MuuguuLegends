@@ -67,6 +67,10 @@
         craftSubTab(event, 'toolsplace')
         logMessage('toolsclick');
     };
+    craftjewerly.onclick = function(){
+        craftSubTab(event, 'jewerlyplace')
+        logMessage('jewerlyclick');
+    };
     //research tab selector
     researchhabits.onclick = function(){
         researchSubTab(event, 'habitsplace')

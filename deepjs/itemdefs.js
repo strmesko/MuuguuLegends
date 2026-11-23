@@ -346,6 +346,7 @@ const ITEM_IDS = Object.freeze({
     TUNA_PIZZA: ITEM_ID_BASE + 461,
     ANCHOVY_PIZZA: ITEM_ID_BASE + 462,
     FISH_PIZZA: ITEM_ID_BASE + 463,
+    CARVED_GEMSTONE: ITEM_ID_BASE + 464,
 });
 
 const ITEM_KINDS = Object.freeze({
@@ -1645,6 +1646,18 @@ const ITEM_DEFS = Object.freeze({
     ...ASIAN_DISH_ITEM_DEFS,
     ...ARABIC_SAUCE_ITEM_DEFS,
     ...ARABIC_DISH_ITEM_DEFS,
+    [ITEM_IDS.CARVED_GEMSTONE]: Object.freeze({
+        id: ITEM_IDS.CARVED_GEMSTONE,
+        name: "Carved gemstone",
+        kind: ITEM_KINDS.Trinket,
+        stackable: false,
+        weight: 0.01,
+        rarity: ITEM_RARITIES.Common,
+        quality: 1,
+        durability: 1,
+        icon: "carvedgemstone",
+        description: "A raw gemstone cut, shaped and polished by a jeweler.",
+    }),
     [ITEM_IDS.HANDY_STICK]: createForagingToolDefinition(
         ITEM_IDS.HANDY_STICK, "Handy Stick", "handystick",
         { type: "digging", power: 1 },

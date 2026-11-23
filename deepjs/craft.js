@@ -32,6 +32,12 @@ const CRAFT_CATEGORIES = Object.freeze([
         placeholderId: "culteryplace",
         buttonId: "craftcultery",
     }),
+    Object.freeze({
+        id: "jewerly",
+        name: "Jewerly",
+        placeholderId: "jewerlyplace",
+        buttonId: "craftjewerly",
+    }),
 ]);
 
 // --- craft list grouping ---------------------------------------------------
@@ -61,6 +67,7 @@ const CRAFT_GROUP_NAMES = Object.freeze({
     asian: "Asian",
     arabic: "Arabic",
     fishing: "Fishing",
+    gemstones: "Gemstones",
     other: "Other",
 });
 
@@ -2676,6 +2683,18 @@ const BASE_CRAFT_RECIPES = Object.freeze([
     ...ARABIC_DISH_RECIPES,
     ...FISHING_RECIPES,
     ...FISH_DISH_RECIPES,
+    Object.freeze({
+        id: "carve-gemstone",
+        category: "jewerly",
+        itemId: ITEM_IDS.CARVED_GEMSTONE,
+        skill: "jewerly",
+        group: "gemstones",
+        resultName: "Carve gemstone",
+        choiceResourceIds: GEMSTONE_RESOURCE_IDS,
+        choiceAmount: 1,
+        choiceLabel: "Choose gemstone:",
+        resources: Object.freeze([]),
+    }),
     ...METAL_VARIANT_RECIPES,
 ]);
 
@@ -2765,6 +2784,191 @@ const CRAFT_RARITY_LADDER = Object.freeze(
         return rarityId !== ITEM_RARITIES.Junk && rarityId !== ITEM_RARITIES.Common;
     })
 );
+
+// Jewelry cutting. A carved stone keeps the dormant item bonuses of its raw
+// gemstone, then scales them by the craft quality, the gemstone rarity and the
+// cut quality. Better cuts unlock at higher Jewerly levels and keep improving
+// by one percentage point per level after their unlock.
+const JEWERLY_CUTS = Object.freeze([
+    Object.freeze({
+        id: "chipped",
+        label: "Chipped",
+        modifier: 0.5,
+        unlockLevel: 0,
+        baseChance: 0,
+    }),
+    Object.freeze({
+        id: "flawed",
+        label: "Flawed",
+        modifier: 0.8,
+        unlockLevel: 10,
+        baseChance: 5,
+    }),
+    Object.freeze({
+        id: "normal",
+        label: "Normal",
+        modifier: 1,
+        unlockLevel: 25,
+        baseChance: 5,
+    }),
+    Object.freeze({
+        id: "flawless",
+        label: "Flawless",
+        modifier: 1.5,
+        unlockLevel: 50,
+        baseChance: 5,
+    }),
+    Object.freeze({
+        id: "perfect",
+        label: "Perfect",
+        modifier: 2.5,
+        unlockLevel: 100,
+        baseChance: 5,
+    }),
+]);
+const JEWERLY_CUTS_BY_ID = Object.freeze(
+    JEWERLY_CUTS.reduce(function (index, cut) {
+        index[cut.id] = cut;
+        return index;
+    }, Object.create(null))
+);
+
+function getJewerlyLevel() {
+    return Math.max(0, Number(getEffectiveLevel("jewerly")) || 0);
+}
+
+function getJewerlyCut(cutId) {
+    return JEWERLY_CUTS_BY_ID[cutId] || JEWERLY_CUTS[0];
+}
+
+function getJewerlyCutChancePercent(cut, level) {
+    if (!cut) return 0;
+    if (cut.unlockLevel <= 0) return 100;
+
+    const skillLevel = Math.max(0, Number(level) || 0);
+    if (skillLevel < cut.unlockLevel) return 0;
+
+    return Math.min(
+        100,
+        cut.baseChance + Math.max(0, skillLevel - cut.unlockLevel)
+    );
+}
+
+// Best cuts are checked first. Anything that fails every improved-cut roll
+// falls back to Chipped.
+function rollJewerlyCut(level) {
+    const skillLevel = Math.max(0, Number(level) || 0);
+    for (let index = JEWERLY_CUTS.length - 1; index >= 1; index--) {
+        const cut = JEWERLY_CUTS[index];
+        const chance = getJewerlyCutChancePercent(cut, skillLevel);
+        if (chance > 0 && Math.random() * 100 < chance) return cut.id;
+    }
+    return JEWERLY_CUTS[0].id;
+}
+
+function getJewerlyResultName(resourceId, cutId) {
+    const resource = RESOURCE_DEFS[resourceId];
+    const cut = getJewerlyCut(cutId);
+    if (!resource) return "Carved gemstone";
+    return cut.label + " " + resource.name.toLowerCase();
+}
+
+function getJewerlyCraftQualityInfo(recipe) {
+    const choice = getSelectedCraftChoice(recipe);
+    const ingredientQuality = choice != null
+        ? getResourceQuality(choice)
+        : RESOURCE_DEFAULT_QUALITY;
+    const agility = Math.max(1, Number(getEffectiveLevel("agi")) || 0);
+    const jewerly = Math.max(1, Number(getEffectiveLevel("jewerly")) || 0);
+    const rawQuality = (ingredientQuality + agility + jewerly) / 3;
+
+    return {
+        rawQuality: rawQuality,
+        quality: roundItemNumber(rawQuality),
+        skillLevel: jewerly,
+        softcapped: false,
+        powerMultiplier: 1,
+        cookingPowerMultiplier: 1,
+    };
+}
+
+function getJewerlyPropertyMultiplier(quality, cutId, rarityId) {
+    const cut = getJewerlyCut(cutId);
+    const effectiveQuality = Math.max(0, Number(quality) || 0);
+    const rarityMultiplier = Math.max(
+        0,
+        Number(getRarityMultiplier(rarityId)) || 1
+    );
+    return (1 + 0.1 * effectiveQuality)
+        * rarityMultiplier
+        * Math.max(0, Number(cut.modifier) || 0);
+}
+
+// Copy the gemstone's dormant properties into a real item property list.
+// `scaled: true` tells ItemInstance that these values are already final.
+function createJewerlyProperties(resourceId, quality, cutId) {
+    const resource = RESOURCE_DEFS[resourceId];
+    if (!resource || !Array.isArray(resource.gemProperties)) return [];
+
+    const multiplier = getJewerlyPropertyMultiplier(
+        quality,
+        cutId,
+        resource.gemRarity
+    );
+
+    return resource.gemProperties.map(function (property) {
+        if (!property || typeof property.key !== "string") return null;
+
+        const copy = {
+            type: property.type,
+            key: property.key,
+            effect: property.effect,
+            scaled: true,
+        };
+
+        if (property.type === "global" && property.value != null) {
+            const value = Number(property.value);
+            if (!Number.isFinite(value) || value <= 0) return null;
+            copy.value = Math.max(1, Math.round(value * multiplier));
+            return copy;
+        }
+
+        const percent = Number(property.percent);
+        if (!Number.isFinite(percent) || percent <= 0) return null;
+        copy.percent = Math.max(0.01, roundItemNumber(percent * multiplier));
+        return copy;
+    }).filter(Boolean);
+}
+
+function getJewerlyCraftExp(quality, cutId, rarityId) {
+    const cut = getJewerlyCut(cutId);
+    const rarityMultiplier = Math.max(
+        0,
+        Number(getRarityMultiplier(rarityId)) || 1
+    );
+    return round2(10 * Math.max(0, Number(quality) || 0)
+        * Math.max(0, Number(cut.modifier) || 0)
+        * rarityMultiplier);
+}
+
+function getJewerlyCutChanceSummary(level) {
+    const improved = JEWERLY_CUTS.filter(function (cut) {
+        return cut.unlockLevel > 0;
+    }).map(function (cut) {
+        return {
+            label: cut.label,
+            chance: getJewerlyCutChancePercent(cut, level),
+        };
+    }).filter(function (entry) {
+        return entry.chance > 0;
+    });
+
+    if (!improved.length) return "Chipped 100%";
+
+    return improved.map(function (entry) {
+        return entry.label + " " + entry.chance + "%";
+    }).join(", ") + " (otherwise Chipped)";
+}
 
 // Which recipe is selected in each category. Kept in memory only: it is a UI
 // detail and does not need to be saved.
@@ -3288,6 +3492,10 @@ function getCraftRecipeForItem(itemId) {
 }
 
 function getCraftResultName(recipe) {
+    if (recipe && typeof recipe.resultName === "string" && recipe.resultName) {
+        return recipe.resultName;
+    }
+
     if (recipe && getCraftChoiceResourceIds(recipe).length
         && recipe.resultNameSuffix !== "") {
         const choice = getSelectedCraftChoice(recipe);
@@ -3542,6 +3750,10 @@ function applyCraftSoftcap(quality, skillLevel) {
 }
 
 function getCraftQualityInfo(recipe) {
+    if (recipe && recipe.category === "jewerly") {
+        return getJewerlyCraftQualityInfo(recipe);
+    }
+
     const rawQuality = getCraftResourceQuality(recipe);
     const skillLevel = getCraftSkillLevel(recipe);
     const cappedQuality = skillLevel == null
@@ -4726,21 +4938,35 @@ function renderCraftDetails(category) {
 
     const qualityInfo = getCraftQualityInfo(recipe);
     const choice = getSelectedCraftChoice(recipe);
-    const potentialBonuses = getCraftPotentialBonuses(
-        recipe,
-        qualityInfo.quality,
-        ITEM_RARITIES.Common
-    );
+    const isJewerly = recipe.category === "jewerly";
+    const previewCutId = "chipped";
+    const previewName = isJewerly
+        ? getJewerlyResultName(choice, previewCutId)
+        : getCraftResultName(recipe);
+    const previewRarity = isJewerly && RESOURCE_DEFS[choice]
+        ? RESOURCE_DEFS[choice].gemRarity
+        : ITEM_RARITIES.Common;
+    const potentialBonuses = isJewerly
+        ? null
+        : getCraftPotentialBonuses(
+            recipe,
+            qualityInfo.quality,
+            ITEM_RARITIES.Common
+        );
+    const previewProperties = isJewerly
+        ? createJewerlyProperties(choice, qualityInfo.quality, previewCutId)
+        : undefined;
 
-    // Preview uses the computed quality and Common rarity; the final rarity is
-    // rolled when the craft is performed.
+    // Preview uses Chipped for carved gemstones; the final cut is rolled when
+    // the craft is performed.
     const preview = createItemInstance(recipe.itemId, {
         quality: qualityInfo.quality,
-        rarity: ITEM_RARITIES.Common,
-        displayName: getCraftResultName(recipe),
+        rarity: previewRarity,
+        displayName: previewName,
         primaryStat: recipe.stat || null,
         sourceResourceId: choice,
         potentialBonuses: potentialBonuses,
+        properties: previewProperties,
     });
 
     panel.appendChild(createCraftPanelTitle("Result"));
@@ -4770,7 +4996,10 @@ function renderCraftDetails(category) {
 
     const rarityNote = document.createElement("div");
     rarityNote.className = "craftnote";
-    rarityNote.innerText = "Rarity: random (Common by default, power scales with quality and rarity)";
+    rarityNote.innerText = isJewerly
+        ? "Rarity: inherited from the gemstone ("
+            + getRarityLabel(previewRarity) + ")"
+        : "Rarity: random (Common by default, power scales with quality and rarity)";
     info.appendChild(rarityNote);
 
     const propertiesNote = document.createElement("div");
@@ -4778,10 +5007,21 @@ function renderCraftDetails(category) {
     const resultDefinition = typeof getItemDefinition === "function"
         ? getItemDefinition(recipe.itemId)
         : null;
-    propertiesNote.innerText = resultDefinition && resultDefinition.food
-        ? "Food bonuses: potential only; higher rarity adds more potential instead of random properties"
-        : "Properties: random, 50-150% variance, quality- and rarity-scaled";
+    propertiesNote.innerText = isJewerly
+        ? "Properties: inherited from the raw gemstone, scaled by quality, gemstone rarity and cut type"
+        : (resultDefinition && resultDefinition.food
+            ? "Food bonuses: potential only; higher rarity adds more potential instead of random properties"
+            : "Properties: random, 50-150% variance, quality- and rarity-scaled");
     info.appendChild(propertiesNote);
+
+    if (isJewerly) {
+        const cutNote = document.createElement("div");
+        cutNote.className = "craftnote";
+        cutNote.innerText = "Cut chances at Jewerly Lv "
+            + getJewerlyLevel() + ": "
+            + getJewerlyCutChanceSummary(getJewerlyLevel());
+        info.appendChild(cutNote);
+    }
 
     if (recipe.multiplyQualityByCookingPower === true) {
         const powerNote = document.createElement("div");
@@ -4812,6 +5052,15 @@ function renderCraftDetails(category) {
         const bonuses = document.createElement("div");
         bonuses.innerHTML = bonusHtml;
         info.appendChild(bonuses);
+    }
+
+    const propertiesHtml = typeof getItemPropertiesHtml === "function"
+        ? getItemPropertiesHtml(preview)
+        : "";
+    if (propertiesHtml) {
+        const properties = document.createElement("div");
+        properties.innerHTML = propertiesHtml;
+        info.appendChild(properties);
     }
 
     const description = getItemDescription(preview);
@@ -5446,14 +5695,33 @@ function performCraft(recipe) {
     }
 
     const qualityInfo = getCraftQualityInfo(recipe);
-    let rarity = rollCraftRarity(qualityInfo.rawQuality, qualityInfo.skillLevel);
-    rarity = getItemChoiceBoostedRarity(recipe, rarity);
     const choice = getSelectedCraftChoice(recipe);
-    const potentialBonuses = getCraftPotentialBonuses(
-        recipe,
-        qualityInfo.quality,
-        rarity
-    );
+    const isJewerly = recipe.category === "jewerly";
+    const jewerlyCutId = isJewerly
+        ? rollJewerlyCut(getJewerlyLevel())
+        : null;
+    const gemstoneDefinition = isJewerly && choice != null
+        ? RESOURCE_DEFS[choice]
+        : null;
+    let rarity = isJewerly
+        ? (gemstoneDefinition && gemstoneDefinition.gemRarity) || ITEM_RARITIES.Common
+        : rollCraftRarity(qualityInfo.rawQuality, qualityInfo.skillLevel);
+    if (!isJewerly) {
+        rarity = getItemChoiceBoostedRarity(recipe, rarity);
+    }
+    const craftedName = isJewerly
+        ? getJewerlyResultName(choice, jewerlyCutId)
+        : getCraftResultName(recipe);
+    const potentialBonuses = isJewerly
+        ? null
+        : getCraftPotentialBonuses(
+            recipe,
+            qualityInfo.quality,
+            rarity
+        );
+    const itemProperties = isJewerly
+        ? createJewerlyProperties(choice, qualityInfo.quality, jewerlyCutId)
+        : undefined;
 
     if (chosenItem) {
         consumeCraftItemChoice(recipe, chosenItem);
@@ -5479,24 +5747,29 @@ function performCraft(recipe) {
     const item = createItemInstance(recipe.itemId, {
         quality: qualityInfo.quality,
         rarity: rarity,
-        displayName: getCraftResultName(recipe),
+        displayName: craftedName,
         primaryStat: recipe.stat || null,
         sourceResourceId: choice,
         potentialBonuses: potentialBonuses,
+        properties: itemProperties,
     });
     addCraftedItem(item);
 
     const skill = getCraftSkill(recipe);
-    const rarityMultiplier = getRarityMultiplier(rarity);
-    const exp = round2(
-        CRAFT_SKILL_EXP_MULTIPLIER * qualityInfo.quality * rarityMultiplier
-    );
+    const exp = isJewerly
+        ? getJewerlyCraftExp(qualityInfo.quality, jewerlyCutId, rarity)
+        : round2(
+            CRAFT_SKILL_EXP_MULTIPLIER * qualityInfo.quality
+            * getRarityMultiplier(rarity)
+        );
     skill.addexp(exp);
 
-    // Rare and better crafts train Luck. The reward grows exponentially with
-    // the rarity tier: Uncommon = 5^2, SomewhatRare = 5^3, and so on.
-    const luckExp = getCraftLuckExpForRarity(rarity);
-    if (luckExp > 0 && player.luck) player.luck.addexp(luckExp);
+    // Rare and better crafts train Luck. Carved gemstones already inherit
+    // their rarity and do not add a separate Luck roll.
+    if (!isJewerly) {
+        const luckExp = getCraftLuckExpForRarity(rarity);
+        if (luckExp > 0 && player.luck) player.luck.addexp(luckExp);
+    }
 
     const rarityLabel = getRarityLabel(rarity);
     const propertyCount = Array.isArray(item.properties) ? item.properties.length : 0;
@@ -5507,10 +5780,10 @@ function performCraft(recipe) {
     const suffix = " (" + rarityLabel + ", quality " + qualityInfo.quality
         + propertySuffix + ")";
 
-    logMessage(prefix + resultName + suffix, {
+    logMessage(prefix + craftedName + suffix, {
         html: highlightLogText(prefix)
             + '<span class="itemname rarity-' + rarity + '">'
-            + escapeLogHtml(resultName)
+            + escapeLogHtml(craftedName)
             + "</span>"
             + highlightLogText(suffix),
     });

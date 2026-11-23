@@ -843,6 +843,7 @@ const SKILL_DISPLAY_NAMES = Object.freeze({
     fishing: "Fishing",
     farming: "Farming",
     social: "Social",
+    jewerly: "Jewerly",
     wizardy: "Wizardy",
     alchemy: "Alchemy",
     masonry: "Masonry",
@@ -1368,11 +1369,13 @@ function renderStatusIcons() {
     createChildElement('button', 'craftsub', 'food', 'craftfood', 'craftplace', 'Fuel for your infinite entropy');
     createChildElement('button', 'craftsub', 'tools', 'crafttools', 'craftplace', 'First step for civilization');
     createChildElement('button', 'craftsub', 'Cultery', 'craftcultery', 'craftplace', 'Wooden cutlery and tableware');
+    createChildElement('button', 'craftsub', 'Jewerly', 'craftjewerly', 'craftplace', 'Cut and polish raw gemstones');
     createChildElement('div', 'craftsubplace', '', 'commonplace', 'craftplace', '');
     // crafting panels are built by deepjs/craft.js
     createChildElement('div', 'craftsubplace', 'food', 'foodplace', 'craftplace', '');
     createChildElement('div', 'craftsubplace', 'tools', 'toolsplace', 'craftplace', '');
     createChildElement('div', 'craftsubplace', 'cultery', 'culteryplace', 'craftplace', '');
+    createChildElement('div', 'craftsubplace', 'jewerly', 'jewerlyplace', 'craftplace', '');
     // subtabs for research
     createChildElement('button', 'researchsub', 'Habits', 'researchhabits', 'researchplace', 'Your little quirks and habits');
     createChildElement('button', 'researchsub', 'Knowledge', 'researchknowledge', 'researchplace', 'Knowledge and self-improvement');
