@@ -1420,6 +1420,11 @@ function ensureNpcDialogueOverlay() {
     ));
     panel.appendChild(arena);
 
+    const speech = document.createElement("div");
+    speech.id = "npcdialoguespeech";
+    speech.className = "npcdialoguespeech";
+    panel.appendChild(speech);
+
     const stats = document.createElement("div");
     stats.className = "npcdialogue-stats";
 
@@ -1706,6 +1711,26 @@ function renderNpcDialogue() {
                 return tag.charAt(0).toUpperCase() + tag.slice(1);
             }).join(", ")
             : "None";
+    }
+
+    const speech = document.getElementById("npcdialoguespeech");
+    if (speech) {
+        const style = typeof getKanojoNpcStyle === "function"
+            ? getKanojoNpcStyle(npc)
+            : null;
+        if (style) {
+            speech.style.backgroundColor = style.background;
+            speech.style.borderColor = style.border;
+            speech.style.borderWidth = style.borderWidth || "1px";
+            speech.style.borderStyle = "solid";
+        }
+        const speechAction = (typeof lastSelectedActionId !== "undefined"
+            && lastSelectedActionId)
+            || "talktonpc";
+        const line = typeof getKanojoNpcLine === "function"
+            ? getKanojoNpcLine(npc, speechAction)
+            : "";
+        speech.innerText = line || "Hello!";
     }
 
     const check = getNpcCharismaCheck(npc);

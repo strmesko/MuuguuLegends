@@ -3420,3 +3420,18 @@ body.theme-dark .housepower-value,
 body.theme-dark .habitrangevalue {
     color: #fff;
 }
+
+/* --- Kanojo NPC speech --- */
+.npcdialoguespeech {
+    margin: 8px 12px;
+    padding: 8px 10px;
+    min-height: 1.5em;
+    border-radius: 8px;
+    font-family: "SimSun", serif;
+    font-size: 1em;
+    font-style: italic;
+    line-height: 1.35;
+    color: #145a20;
+    text-align: center;
+    box-sizing: border-box;
+}
