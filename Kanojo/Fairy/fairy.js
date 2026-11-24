@@ -245,6 +245,32 @@ const KANOJO_FAIRY = Object.freeze({
             "You are my favorite person. After the trees. And the snails.",
         ],
     }),
+    interactionLines: Object.freeze({
+        talk: [
+            "Hi! Wanna play hide-and-seek? You count, I hide!",
+            "You came to talk? I have a very important question: why is mud squishy?",
+        ],
+        greet: [
+            "Hi hi! You found me! Do you want to play tag now?",
+            "Hello! I was hiding behind that leaf. You are good at finding!",
+        ],
+        commonchat: [
+            "I saw a beetle today. It was very round. Do you think beetles have tiny hats?",
+            "Do you like sticks? I have a favorite stick. It is the best stick.",
+        ],
+        gift: [
+            "For me? Is it shiny? Can I eat it? I will keep it in my leaf pile!",
+            "A present! I will give you a pinecone later. It is a very good pinecone.",
+        ],
+        play: [
+            "Yay! Tag! You are it! No, wait, I am it! Run!",
+            "Play play play! Do you know the game where we are both squirrels?",
+        ],
+        goodbye: [
+            "Bye bye! Come back before the moon gets sleepy!",
+            "Okay! I will count the clouds until you come back.",
+        ],
+    }),
     defaultLines: Object.freeze([
         "What are you doing? Is it a game? Can I help?",
         "The forest is nice today. Do you like moss? I love moss.",
@@ -286,7 +312,15 @@ function kanojoGetActionKey(actionId) {
     return null;
 }
 
-function getKanojoFairyLine(actionId, npc, randomFn) {
+function getKanojoFairyLine(actionId, npc, randomFn, interactionId) {
+    if (interactionId
+        && KANOJO_FAIRY.interactionLines
+        && KANOJO_FAIRY.interactionLines[interactionId]) {
+        return kanojoPickLine(
+            KANOJO_FAIRY.interactionLines[interactionId],
+            randomFn
+        );
+    }
     const random = typeof randomFn === "function" ? randomFn : Math.random;
     const actionKey = kanojoGetActionKey(actionId);
     const roll = random();
@@ -308,9 +342,9 @@ function getKanojoFairyLine(actionId, npc, randomFn) {
     return kanojoPickLine(KANOJO_FAIRY.defaultLines, random);
 }
 
-function getKanojoNpcLine(npc, actionId, randomFn) {
+function getKanojoNpcLine(npc, actionId, randomFn, interactionId) {
     if (!npc || npc.type !== "fairy") return "";
-    return getKanojoFairyLine(actionId, npc, randomFn);
+    return getKanojoFairyLine(actionId, npc, randomFn, interactionId);
 }
 
 function getKanojoNpcStyle(npc) {

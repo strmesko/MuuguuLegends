@@ -1361,6 +1361,9 @@ function simulateTimePassage(seconds, options) {
     if (typeof processMapleExtractors === "function") {
         processMapleExtractors(currentTile);
     }
+    if (typeof updateNpcAmbientLines === "function") {
+        updateNpcAmbientLines(value);
+    }
     if (typeof updateDrama === "function") updateDrama(value);
     if (!options || options.skipGUI !== true) {
         updateGUI();

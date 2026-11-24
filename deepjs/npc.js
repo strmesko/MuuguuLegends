@@ -1137,6 +1137,9 @@ function giveGiftToNpc(npc, item) {
         }
         logMessage(message);
     }
+    if (activeNpcDialogue && activeNpcDialogue.npcUid === npc.uid) {
+        activeNpcDialogue.speechKey = "gift";
+    }
     if (typeof renderNpcDialogue === "function"
         && typeof isNpcDialogueActive === "function"
         && isNpcDialogueActive()) {
@@ -1336,6 +1339,81 @@ function applyActionRepetitionBoredom(actionId) {
 function resetActionRepetitionTracking() {
     lastSelectedActionId = null;
     consecutiveActionSelections = 0;
+}
+
+function escapeNpcLogText(value) {
+    return String(value == null ? "" : value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function getNpcAmbientActionId() {
+    if (typeof ACTIONS !== "undefined" && typeof actionStates !== "undefined") {
+        const activeState = typeof Activity !== "undefined" ? Activity.Active : 1;
+        for (let index = 0; index < ACTIONS.length; index++) {
+            const id = ACTIONS[index].id;
+            if (actionStates[id] === activeState) return id;
+        }
+    }
+    if (typeof lastSelectedActionId !== "undefined" && lastSelectedActionId) {
+        return lastSelectedActionId;
+    }
+    return null;
+}
+
+let npcAmbientLogTimer = 0;
+
+function updateNpcAmbientLines(diff) {
+    if (typeof isOfflineSimulationRunning === "function"
+        && isOfflineSimulationRunning()) {
+        return 0;
+    }
+    if (typeof isTraveling === "function" && isTraveling()) return 0;
+    if (typeof currentTile === "undefined" || !currentTile) return 0;
+    if (typeof getNpcsAtTile !== "function" || typeof logMessage !== "function") {
+        return 0;
+    }
+
+    const seconds = Math.max(0, Number(diff) || 0);
+    if (seconds <= 0) return 0;
+
+    npcAmbientLogTimer += seconds;
+    const ticks = Math.min(12, Math.floor(npcAmbientLogTimer / 5));
+    if (ticks <= 0) return 0;
+    npcAmbientLogTimer -= ticks * 5;
+
+    const npcsHere = getNpcsAtTile(currentTile.x, currentTile.y);
+    if (!npcsHere.length) return 0;
+
+    let logged = 0;
+    for (let tick = 0; tick < ticks; tick++) {
+        const actionId = getNpcAmbientActionId();
+        npcsHere.forEach(function (npc) {
+            if (Math.random() >= 0.05) return;
+            const line = typeof getKanojoNpcLine === "function"
+                ? getKanojoNpcLine(npc, actionId)
+                : "";
+            if (!line) return;
+
+            const style = typeof getKanojoNpcStyle === "function"
+                ? getKanojoNpcStyle(npc)
+                : null;
+            const color = style ? style.border : "#1f8f2f";
+            const background = style ? style.background : "#c8ff9e";
+            const text = npc.name + ": " + line;
+            const html = '<span style="color:' + color
+                + ';background-color:' + background
+                + ';border:1px solid ' + color
+                + ';padding:0 2px;">'
+                + escapeNpcLogText(text)
+                + "</span>";
+            logMessage(text, { html: html });
+            logged += 1;
+        });
+    }
+    return logged;
 }
 
 // --- conversation ---------------------------------------------------------
@@ -1727,8 +1805,11 @@ function renderNpcDialogue() {
         const speechAction = (typeof lastSelectedActionId !== "undefined"
             && lastSelectedActionId)
             || "talktonpc";
+        const speechKey = activeNpcDialogue
+            ? activeNpcDialogue.speechKey
+            : null;
         const line = typeof getKanojoNpcLine === "function"
-            ? getKanojoNpcLine(npc, speechAction)
+            ? getKanojoNpcLine(npc, speechAction, undefined, speechKey)
             : "";
         speech.innerText = line || "Hello!";
     }
@@ -1809,6 +1890,7 @@ function startNpcDialogue(npc) {
 
     activeNpcDialogue = {
         npcUid: target.uid,
+        speechKey: "talk",
     };
 
     renderNpcDialogue();
@@ -1863,6 +1945,7 @@ function greetActiveNpc() {
     if (typeof player !== "undefined" && player) {
         player.lastGreetGameHour = getCurrentGameHour();
     }
+    if (activeNpcDialogue) activeNpcDialogue.speechKey = "greet";
 
     if (typeof logMessage === "function" && gains) {
         logMessage("You greet " + getNpcDisplayName(npc)
@@ -1886,6 +1969,7 @@ function commonChatActiveNpc() {
     }
 
     const gains = applyNpcConversationGains(npc, 0.5);
+    if (activeNpcDialogue) activeNpcDialogue.speechKey = "commonchat";
     if (typeof logMessage === "function" && gains) {
         logMessage("You have a common chat with " + getNpcDisplayName(npc)
             + ". Favor +" + gains.favorGain
