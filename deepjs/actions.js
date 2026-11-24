@@ -2311,7 +2311,8 @@ function clickAction(actionId) {
         return;
     }
 
-    if (typeof applyActionRepetitionBoredom === "function") {
+    if (typeof applyActionRepetitionBoredom === "function"
+        && action.noRepetitionBoredom !== true) {
         applyActionRepetitionBoredom(action.id);
     }
 

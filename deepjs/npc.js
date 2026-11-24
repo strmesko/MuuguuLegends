@@ -49,6 +49,7 @@ const NPC_PRESETS = Object.freeze({
         mood: Object.freeze({ base: 50, variance: 10 }),
         favor: Object.freeze({ base: 0, variance: 0 }),
         foodPreferenceTag: "berry",
+        tags: Object.freeze(["childish"]),
     }),
 });
 
@@ -285,6 +286,7 @@ class Npc extends Character {
         this.angryOmeter = 0;
         this.foodPreferences = generateNpcFoodPreferences(preset);
         this.lastGiftGameHour = null;
+        this.tags = Array.isArray(preset.tags) ? preset.tags.slice() : [];
         this.moodDescription = "Neutral";
         refreshNpcMoodDescription(this);
         this.attack = 1;
@@ -310,6 +312,9 @@ function spawnNpc(typeId, x, y, options) {
     if (!npc) return null;
 
     npcs.push(npc);
+    if (typeof registerNpcPlayAction === "function") {
+        registerNpcPlayAction(npc);
+    }
     return npc;
 }
 
@@ -340,6 +345,189 @@ function getNpcsAtTile(x, y) {
     });
 }
 
+function getNpcTags(npc) {
+    if (!npc || !Array.isArray(npc.tags)) return [];
+    const tags = [];
+    npc.tags.forEach(function (tag) {
+        const value = String(tag || "").trim().toLowerCase();
+        if (value && tags.indexOf(value) === -1) tags.push(value);
+    });
+    return tags;
+}
+
+function hasNpcTag(npc, tag) {
+    const wanted = String(tag || "").trim().toLowerCase();
+    return !!wanted && getNpcTags(npc).indexOf(wanted) !== -1;
+}
+
+function getSocialImpact() {
+    const social = Math.max(1, getNpcCheckLevel("social"));
+    const cha = Math.max(1, getNpcCheckLevel("cha"));
+    return round2(Math.sqrt(social * cha));
+}
+
+function canPlayWithNpc(npc) {
+    return !!npc
+        && hasNpcTag(npc, "childish")
+        && Number(npc.favor) > 50;
+}
+
+function getNpcPlayActionId(npcOrUid) {
+    const uid = npcOrUid && typeof npcOrUid === "object"
+        ? npcOrUid.uid
+        : npcOrUid;
+    return "playwith-" + Number(uid);
+}
+
+function isNpcPlayableByUid(uid) {
+    const npc = getNpcByUid(uid);
+    if (!npc || !canPlayWithNpc(npc)) return false;
+    if (typeof currentTile === "undefined" || !currentTile) return false;
+    if (npc.x !== currentTile.x || npc.y !== currentTile.y) return false;
+    if (typeof isTraveling === "function" && isTraveling()) return false;
+    if (typeof isCombatActive === "function" && isCombatActive()) return false;
+    if (typeof isNpcDialogueActive === "function" && isNpcDialogueActive()) {
+        return false;
+    }
+    return true;
+}
+
+function createNpcPlayAction(npc) {
+    const npcUid = npc.uid;
+    const actionId = getNpcPlayActionId(npc);
+    let progress = 0;
+
+    return {
+        id: actionId,
+        label: "Play with " + npc.name,
+        tags: ["social", "childish"],
+        noRepetitionBoredom: true,
+        description: function () {
+            const impact = getSocialImpact();
+            return "Play with " + npc.name + ". Requires the Childish tag and Favor above 50."
+                + "<br>Every 30 seconds: Favor and Boredom +" + impact
+                + " (Social impact = sqrt(Social * Charisma))."
+                + "<br>Stamina cost: " + impact + " per second."
+                + "<br>This action never causes the repeated-action boredom penalty.";
+        },
+        kind: ACTION_KIND.Timed,
+        initialState: Activity.Idle,
+        startMessage: "You start playing with " + npc.name + ".",
+        stopMessage: "You stop playing with " + npc.name + ".",
+        completeMessage: npc.name + " no longer wants to play.",
+        isVisible: function () {
+            return isNpcPlayableByUid(npcUid);
+        },
+        isComplete: function () {
+            return !isNpcPlayableByUid(npcUid);
+        },
+        isEnabled: function () {
+            return typeof player !== "undefined"
+                && !!player
+                && Number(player.hp) > 0
+                && Number(player.stamina) > 0;
+        },
+        staminaPerSecond: function () {
+            return getSocialImpact();
+        },
+        onStart: function () {
+            progress = 0;
+        },
+        run: function (diff) {
+            const seconds = Math.max(0, Number(diff) || 0);
+            if (seconds <= 0) return;
+
+            progress += seconds;
+            while (progress >= 30) {
+                progress -= 30;
+                const target = getNpcByUid(npcUid);
+                if (!target || !canPlayWithNpc(target)) {
+                    if (typeof actionStates !== "undefined") {
+                        actionStates[actionId] = Activity.Done;
+                    }
+                    return;
+                }
+
+                const impact = getSocialImpact();
+                adjustNpcFavor(target, impact);
+                adjustNpcBoredom(target, impact);
+                refreshNpcMoodDescription(target);
+
+                if (typeof logMessage === "function") {
+                    logMessage("You play with " + target.name
+                        + ". Favor +" + impact + ", boredom +" + impact + ".");
+                }
+                if (typeof isNpcDialogueActive === "function"
+                    && isNpcDialogueActive()
+                    && typeof renderNpcDialogue === "function") {
+                    renderNpcDialogue();
+                }
+                if (typeof updateGUI === "function") updateGUI();
+            }
+        },
+    };
+}
+
+function registerNpcPlayAction(npc) {
+    if (!npc
+        || typeof ACTIONS === "undefined"
+        || typeof ACTIONS_BY_ID === "undefined") {
+        return false;
+    }
+
+    const actionId = getNpcPlayActionId(npc);
+    if (ACTIONS_BY_ID[actionId]) return false;
+
+    const action = createNpcPlayAction(npc);
+    ACTIONS.push(action);
+    ACTIONS_BY_ID[actionId] = action;
+    actionStates[actionId] = Activity.Idle;
+    actionVisibility[actionId] = false;
+    return true;
+}
+
+function unregisterNpcPlayAction(uid) {
+    if (typeof ACTIONS === "undefined" || typeof ACTIONS_BY_ID === "undefined") {
+        return false;
+    }
+
+    const actionId = getNpcPlayActionId(uid);
+    const index = ACTIONS.findIndex(function (action) {
+        return action && action.id === actionId;
+    });
+    if (index !== -1) ACTIONS.splice(index, 1);
+
+    delete ACTIONS_BY_ID[actionId];
+    if (typeof actionStates !== "undefined") delete actionStates[actionId];
+    if (typeof actionVisibility !== "undefined") delete actionVisibility[actionId];
+
+    const button = typeof getActionButton === "function"
+        ? getActionButton(actionId)
+        : document.getElementById("actionbutton-" + actionId);
+    if (button) button.remove();
+    return true;
+}
+
+function clearNpcPlayActions() {
+    if (typeof ACTIONS === "undefined") return;
+    const ids = ACTIONS
+        .filter(function (action) {
+            return action && String(action.id).indexOf("playwith-") === 0;
+        })
+        .map(function (action) { return action.id; });
+    ids.forEach(function (actionId) {
+        const rawUid = String(actionId).slice("playwith-".length);
+        unregisterNpcPlayAction(rawUid);
+    });
+}
+
+function syncNpcPlayActions() {
+    clearNpcPlayActions();
+    npcs.forEach(function (npc) {
+        registerNpcPlayAction(npc);
+    });
+}
+
 function removeNpc(uid) {
     const id = Number(uid);
     const index = npcs.findIndex(function (npc) {
@@ -347,11 +535,13 @@ function removeNpc(uid) {
     });
     if (index === -1) return false;
 
+    unregisterNpcPlayAction(id);
     npcs.splice(index, 1);
     return true;
 }
 
 function clearNpcs() {
+    clearNpcPlayActions();
     npcs = [];
     nextNpcUid = 1;
 }
@@ -433,6 +623,8 @@ function restoreNpcs(savedNpcs) {
         refreshNpcMoodDescription(npc);
         npcs.push(npc);
     });
+
+    syncNpcPlayActions();
 }
 
 function getNpcDisplayName(npc) {
@@ -1230,6 +1422,7 @@ function ensureNpcDialogueOverlay() {
     addStat("npcdialoguehappy", "Happiness");
     addStat("npcdialogueangry", "Angry-O-Meter");
     addStat("npcdialoguefoodpreferences", "Food preferences", true);
+    addStat("npcdialoguetags", "Tags", true);
 
     panel.appendChild(stats);
 
@@ -1452,6 +1645,7 @@ function renderNpcDialogue() {
     const happy = document.getElementById("npcdialoguehappy");
     const angry = document.getElementById("npcdialogueangry");
     const foodPreferences = document.getElementById("npcdialoguefoodpreferences");
+    const npcTags = document.getElementById("npcdialoguetags");
 
     if (playerName) {
         playerName.innerText = (typeof player !== "undefined" && player && player.name)
@@ -1474,6 +1668,14 @@ function renderNpcDialogue() {
     if (foodPreferences) {
         const names = getNpcFoodPreferenceNames(npc);
         foodPreferences.innerText = names.length ? names.join(", ") : "None";
+    }
+    if (npcTags) {
+        const tags = getNpcTags(npc);
+        npcTags.innerText = tags.length
+            ? tags.map(function (tag) {
+                return tag.charAt(0).toUpperCase() + tag.slice(1);
+            }).join(", ")
+            : "None";
     }
 
     const check = getNpcCharismaCheck(npc);
