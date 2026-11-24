@@ -647,18 +647,8 @@ function consumeTalkAction() {
     return true;
 }
 
-function getNpcGreetTarget(tile) {
-    const target = tile
-        || (typeof currentTile !== "undefined" ? currentTile : null);
-    if (!target || typeof getNpcsAtTile !== "function") return null;
-
-    const npcsHere = getNpcsAtTile(target.x, target.y);
-    return npcsHere.length ? npcsHere[0] : null;
-}
-
-function canGreetNpcAtTile(tile) {
-    const target = getNpcGreetTarget(tile);
-    if (!target) return false;
+function canGreetNpc(npc) {
+    if (!npc) return false;
 
     const hour = getCurrentGameHour();
     return !(typeof player !== "undefined"
@@ -667,45 +657,28 @@ function canGreetNpcAtTile(tile) {
         && Number(player.lastGreetGameHour) === hour);
 }
 
-function greetNpcAtTile(tile) {
-    const target = getNpcGreetTarget(tile);
-    if (!target) return false;
+function applyNpcConversationGains(npc, factor) {
+    if (!npc) return null;
 
-    const hour = getCurrentGameHour();
-    if (typeof player !== "undefined"
-        && player
-        && player.lastGreetGameHour != null
-        && Number(player.lastGreetGameHour) === hour) {
-        return false;
+    const multiplier = Math.max(0, Number(factor) || 0);
+    const check = getNpcCharismaCheck(npc);
+    const favorGain = round2(check * multiplier);
+    const moodGain = round2((check / 2) * multiplier);
+
+    adjustNpcFavor(npc, favorGain);
+    if (typeof player !== "undefined" && player
+        && player.social
+        && typeof player.social.addexp === "function") {
+        player.social.addexp(favorGain);
     }
+    adjustNpcBoredom(npc, moodGain);
+    adjustNpcHappy(npc, moodGain);
 
-    const check = getNpcCharismaCheck(target);
-    adjustNpcFavor(target, check);
-
-    if (typeof player !== "undefined" && player) {
-        if (player.social
-            && typeof player.social.addexp === "function") {
-            player.social.addexp(check);
-        }
-        player.lastGreetGameHour = hour;
-    }
-
-    const half = round2(check / 2);
-    adjustNpcBoredom(target, half);
-    adjustNpcHappy(target, half);
-
-    if (typeof logMessage === "function") {
-        logMessage("You greet " + getNpcDisplayName(target)
-            + ". Favor +" + round2(check)
-            + ", boredom +" + half + ", happiness +" + half + ".");
-    }
-    if (typeof renderNpcDialogue === "function"
-        && typeof isNpcDialogueActive === "function"
-        && isNpcDialogueActive()) {
-        renderNpcDialogue();
-    }
-    if (typeof updateGUI === "function") updateGUI();
-    return true;
+    return {
+        check: check,
+        favorGain: favorGain,
+        moodGain: moodGain,
+    };
 }
 
 // Repeating the exact same action bores the NPCs standing on the tile.
@@ -746,14 +719,15 @@ function resetActionRepetitionTracking() {
 
 // --- conversation ---------------------------------------------------------
 
-const NPC_GREET_FAVOR_GAIN = 10;
-const NPC_GREET_MOOD_GAIN = 10;
-const NPC_GREET_REPEAT_MOOD_LOSS = 5;
-
 let activeNpcDialogue = null;
+let activeNpcChooser = null;
 
 function isNpcDialogueActive() {
-    return !!activeNpcDialogue;
+    return !!activeNpcDialogue || !!activeNpcChooser;
+}
+
+function isNpcChooserActive() {
+    return !!activeNpcChooser;
 }
 
 function getActiveNpcDialogueNpc() {
@@ -856,6 +830,14 @@ function ensureNpcDialogueOverlay() {
     greetButton.addEventListener("click", greetActiveNpc);
     actions.appendChild(greetButton);
 
+    const commonChatButton = document.createElement("button");
+    commonChatButton.type = "button";
+    commonChatButton.id = "npcdialoguecommonchat";
+    commonChatButton.className = "combatclosebutton";
+    commonChatButton.innerText = "Common chat";
+    commonChatButton.addEventListener("click", commonChatActiveNpc);
+    actions.appendChild(commonChatButton);
+
     const goodbyeButton = document.createElement("button");
     goodbyeButton.type = "button";
     goodbyeButton.id = "npcdialoguesaygoodbye";
@@ -869,6 +851,132 @@ function ensureNpcDialogueOverlay() {
     parent.appendChild(overlay);
 
     return overlay;
+}
+
+function getNpcChooserCandidates() {
+    if (typeof currentTile === "undefined" || !currentTile) return [];
+    return typeof getNpcsAtTile === "function"
+        ? getNpcsAtTile(currentTile.x, currentTile.y)
+        : [];
+}
+
+function ensureNpcChooserOverlay() {
+    let overlay = document.getElementById("npcchooseroverlay");
+    if (overlay) return overlay;
+
+    const parent = document.getElementById("actionplace") || document.body;
+    overlay = document.createElement("div");
+    overlay.id = "npcchooseroverlay";
+    overlay.className = "combatoverlay npcdialogueoverlay npcchooseroverlay";
+    overlay.style.display = "flex";
+
+    const panel = document.createElement("div");
+    panel.className = "combat-panel npcdialogue-panel";
+
+    const title = document.createElement("div");
+    title.className = "combat-title";
+    title.innerText = "Who do you want to talk to?";
+    panel.appendChild(title);
+
+    const list = document.createElement("div");
+    list.id = "npcchooserlist";
+    list.className = "npcdialogue-npclist";
+    panel.appendChild(list);
+
+    const actions = document.createElement("div");
+    actions.className = "npcdialogue-actions";
+
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.id = "npcchoosercancel";
+    cancelButton.className = "combatclosebutton";
+    cancelButton.innerText = "Cancel";
+    cancelButton.addEventListener("click", closeNpcChooser);
+    actions.appendChild(cancelButton);
+
+    panel.appendChild(actions);
+    overlay.appendChild(panel);
+    parent.appendChild(overlay);
+    return overlay;
+}
+
+function renderNpcChooser() {
+    const overlay = ensureNpcChooserOverlay();
+    overlay.style.display = "flex";
+
+    const list = document.getElementById("npcchooserlist");
+    if (!list) return;
+    list.innerHTML = "";
+
+    const candidates = getNpcChooserCandidates();
+    if (!candidates.length) {
+        closeNpcChooser();
+        return;
+    }
+
+    candidates.forEach(function (npc) {
+        const choice = document.createElement("button");
+        choice.type = "button";
+        choice.className = "npcdialogue-npcchoice";
+
+        const image = document.createElement("img");
+        image.src = npc.image;
+        image.alt = "";
+
+        const info = document.createElement("span");
+        info.className = "npcdialogue-npcchoice-info";
+
+        const name = document.createElement("span");
+        name.className = "npcdialogue-npcchoice-name";
+        name.innerText = getNpcDisplayName(npc);
+
+        const meta = document.createElement("span");
+        meta.className = "npcdialogue-npcchoice-meta";
+        meta.innerText = "Favor " + round2(npc.favor)
+            + " | " + refreshNpcMoodDescription(npc);
+
+        info.appendChild(name);
+        info.appendChild(meta);
+        choice.appendChild(image);
+        choice.appendChild(info);
+        choice.addEventListener("click", function () {
+            closeNpcChooser();
+            startNpcDialogue(npc);
+        });
+        list.appendChild(choice);
+    });
+}
+
+function openNpcChooser(candidates) {
+    if (activeNpcDialogue) return false;
+
+    const list = Array.isArray(candidates)
+        ? candidates
+        : getNpcChooserCandidates();
+    if (!list.length) return false;
+    if (list.length === 1) return startNpcDialogue(list[0]);
+
+    activeNpcChooser = true;
+    renderNpcChooser();
+
+    if (typeof logMessage === "function") {
+        logMessage("Several NPCs are here. Choose who to talk to.");
+    }
+    if (typeof refreshActionButtons === "function") refreshActionButtons();
+    return true;
+}
+
+function closeNpcChooser() {
+    const wasActive = !!activeNpcChooser;
+    activeNpcChooser = null;
+
+    const overlay = document.getElementById("npcchooseroverlay");
+    if (overlay) overlay.remove();
+
+    if (wasActive && typeof refreshActionButtons === "function") {
+        refreshActionButtons();
+    }
+    return wasActive;
 }
 
 function renderNpcDialogue() {
@@ -915,6 +1023,26 @@ function renderNpcDialogue() {
         const names = getNpcFoodPreferenceNames(npc);
         foodPreferences.innerText = names.length ? names.join(", ") : "None";
     }
+
+    const check = getNpcCharismaCheck(npc);
+    const greetButton = document.getElementById("npcdialoguegreet");
+    if (greetButton) {
+        const canGreet = canGreetNpc(npc);
+        greetButton.disabled = !canGreet;
+        greetButton.style.opacity = canGreet ? "" : "0.45";
+        greetButton.title = canGreet
+            ? "Favor +" + round2(check)
+                + ", Social exp +" + round2(check)
+                + ", Boredom/Happiness +" + round2(check / 2) + "."
+            : "Greet can be used once per game hour.";
+    }
+
+    const commonChatButton = document.getElementById("npcdialoguecommonchat");
+    if (commonChatButton) {
+        commonChatButton.title = "Half of Greet: Favor +" + round2(check / 2)
+            + ", Social exp +" + round2(check / 2)
+            + ", Boredom/Happiness +" + round2(check / 4) + ".";
+    }
 }
 
 function captureNpcDialogueResumeActions() {
@@ -930,7 +1058,7 @@ function resumeNpcDialogueActions() {
 }
 
 function startNpcDialogue(npc) {
-    if (activeNpcDialogue) return false;
+    if (activeNpcDialogue || activeNpcChooser) return false;
     if (typeof isCombatActive === "function" && isCombatActive()) return false;
     if (typeof isTraveling === "function" && isTraveling()) {
         if (typeof logMessage === "function") {
@@ -940,12 +1068,18 @@ function startNpcDialogue(npc) {
     }
     if (typeof currentTile === "undefined" || !currentTile) return false;
 
+    const requestedTarget = npc != null;
     let target = npc || null;
     if (target && !(target instanceof Npc)) {
         target = getNpcByUid(target);
     }
     if (!target) {
-        target = getNpcsAtTile(currentTile.x, currentTile.y)[0] || null;
+        if (requestedTarget) return false;
+        const candidates = getNpcsAtTile(currentTile.x, currentTile.y);
+        if (candidates.length > 1) {
+            return openNpcChooser(candidates);
+        }
+        target = candidates[0] || null;
     }
     if (!target || target.x !== currentTile.x || target.y !== currentTile.y) {
         return false;
@@ -966,7 +1100,6 @@ function startNpcDialogue(npc) {
 
     activeNpcDialogue = {
         npcUid: target.uid,
-        greeted: false,
     };
 
     renderNpcDialogue();
@@ -1008,26 +1141,47 @@ function greetActiveNpc() {
         return false;
     }
 
-    const firstGreeting = activeNpcDialogue.greeted !== true;
-    if (firstGreeting) {
-        adjustNpcFavor(npc, NPC_GREET_FAVOR_GAIN);
-        adjustNpcMood(npc, NPC_GREET_MOOD_GAIN);
-        activeNpcDialogue.greeted = true;
+    if (!canGreetNpc(npc)) {
         if (typeof logMessage === "function") {
-            logMessage("You greet " + npc.name + ". Favor +"
-                + NPC_GREET_FAVOR_GAIN + ", mood +" + NPC_GREET_MOOD_GAIN + ".");
+            logMessage("You can greet " + getNpcDisplayName(npc)
+                + " only once per game hour.");
         }
-    } else {
-        adjustNpcMood(npc, -NPC_GREET_REPEAT_MOOD_LOSS);
-        if (typeof logMessage === "function") {
-            logMessage(npc.name + " is tired of repeated greetings. Mood -"
-                + NPC_GREET_REPEAT_MOOD_LOSS + ".");
-        }
+        renderNpcDialogue();
+        return false;
     }
 
-    if (typeof player !== "undefined" && player && player.social
-        && typeof player.social.addexp === "function") {
-        player.social.addexp(firstGreeting ? 5 : 1);
+    const gains = applyNpcConversationGains(npc, 1);
+    if (typeof player !== "undefined" && player) {
+        player.lastGreetGameHour = getCurrentGameHour();
+    }
+
+    if (typeof logMessage === "function" && gains) {
+        logMessage("You greet " + getNpcDisplayName(npc)
+            + ". Favor +" + gains.favorGain
+            + ", boredom +" + gains.moodGain
+            + ", happiness +" + gains.moodGain + ".");
+    }
+
+    renderNpcDialogue();
+    if (typeof updateGUI === "function") updateGUI();
+    return true;
+}
+
+function commonChatActiveNpc() {
+    if (!activeNpcDialogue) return false;
+
+    const npc = getActiveNpcDialogueNpc();
+    if (!npc) {
+        endNpcDialogue();
+        return false;
+    }
+
+    const gains = applyNpcConversationGains(npc, 0.5);
+    if (typeof logMessage === "function" && gains) {
+        logMessage("You have a common chat with " + getNpcDisplayName(npc)
+            + ". Favor +" + gains.favorGain
+            + ", boredom +" + gains.moodGain
+            + ", happiness +" + gains.moodGain + ".");
     }
 
     renderNpcDialogue();

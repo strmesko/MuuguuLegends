@@ -380,7 +380,7 @@ const ACTIONS = [
             const remaining = typeof getRemainingTalkActions === "function"
                 ? getRemainingTalkActions()
                 : max;
-            return "Start a conversation with an NPC on the current tile. All other actions are paused until you say goodbye."
+            return "Start a conversation with an NPC on the current tile. If several NPCs are here, choose who to talk to. All other actions are paused until you say goodbye."
                 + "<br>Maximum Talk actions per game hour: " + max
                 + " (1 + floor(Social / 2): 1 at Social 1, 2 at Social 2, 3 at Social 4, 5 at Social 8, 11 at Social 20)."
                 + "<br>Remaining this hour: " + remaining + ".";
@@ -416,39 +416,6 @@ const ACTIONS = [
         run: function () {
             return typeof startNpcDialogue === "function"
                 ? startNpcDialogue()
-                : false;
-        },
-    },
-    {
-        id: "greet",
-        label: "Greet",
-        tags: ["social"],
-        description: "Greet the NPC on the current tile. Can be used once per in-game hour.<br>CharismaCheck = (Social * Charisma + Autism) / Autism, adjusted by the NPC's mood: Bored/Unhappy -20%, Extremely bored/Sad -50%, Curious/Happy +20%, Extremely curious/Excited +50%.<br>Favor and Social experience increase by CharismaCheck. Boredom and Happiness increase by half of it.",
-        kind: ACTION_KIND.Instant,
-        initialState: Activity.Idle,
-        isVisible: function () {
-            return typeof player !== "undefined"
-                && !!player
-                && typeof getNpcsAtTile === "function"
-                && typeof currentTile !== "undefined"
-                && !!currentTile
-                && getNpcsAtTile(currentTile.x, currentTile.y).length > 0
-                && !(typeof isTraveling === "function" && isTraveling())
-                && !(typeof isCombatActive === "function" && isCombatActive())
-                && !(typeof isNpcDialogueActive === "function"
-                    && isNpcDialogueActive());
-        },
-        isEnabled: function () {
-            return typeof player !== "undefined"
-                && !!player
-                && Number(player.hp) > 0
-                && typeof canGreetNpcAtTile === "function"
-                && canGreetNpcAtTile(currentTile);
-        },
-        unavailableMessage: "You can greet an NPC only once per game hour.",
-        run: function () {
-            return typeof greetNpcAtTile === "function"
-                ? greetNpcAtTile(currentTile)
                 : false;
         },
     },
