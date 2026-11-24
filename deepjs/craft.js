@@ -5269,6 +5269,7 @@ function renderCraftDetails(category) {
         sourceResourceId: isRing ? null : choice,
         potentialBonuses: potentialBonuses,
         properties: previewProperties,
+        tags: getCraftRecipeTags(recipe),
     });
 
     if (recipe.gemBonus === true) {
@@ -6078,6 +6079,7 @@ function performCraft(recipe) {
         sourceResourceId: choice,
         potentialBonuses: potentialBonuses,
         properties: itemProperties,
+        tags: getCraftRecipeTags(recipe),
     });
 
     if (recipe.gemBonus === true) {

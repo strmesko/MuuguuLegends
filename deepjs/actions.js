@@ -420,6 +420,51 @@ const ACTIONS = [
         },
     },
     {
+        id: "gift",
+        label: "Gift",
+        tags: ["social"],
+        description: "Give an item from your inventory to an NPC on the current tile. Favor is based on the item's quality and rarity, doubled for every favorite tag it has. Food is consumed by the NPC and grants its bonuses. Equipment is equipped only if it is better than the NPC's current item; otherwise it is destroyed and Favor is divided by 4. Gemstones are always destroyed. The first gift to an NPC each game hour also raises its Boredom by half of the Favor gained.",
+        kind: ACTION_KIND.Instant,
+        initialState: Activity.Idle,
+        isVisible: function () {
+            return typeof player !== "undefined"
+                && !!player
+                && typeof getNpcsAtTile === "function"
+                && typeof currentTile !== "undefined"
+                && !!currentTile
+                && getNpcsAtTile(currentTile.x, currentTile.y).length > 0
+                && !(typeof isTraveling === "function" && isTraveling())
+                && !(typeof isCombatActive === "function" && isCombatActive())
+                && !(typeof isNpcDialogueActive === "function"
+                    && isNpcDialogueActive());
+        },
+        isEnabled: function () {
+            return typeof player !== "undefined"
+                && !!player
+                && Number(player.hp) > 0
+                && typeof openNpcChooser === "function"
+                && typeof openGiftItemChooser === "function"
+                && typeof getGiftableInventoryItems === "function"
+                && getGiftableInventoryItems().length > 0;
+        },
+        unavailableMessage: "There is no NPC here, or you have no giftable items.",
+        run: function () {
+            if (typeof getNpcsAtTile !== "function"
+                || typeof currentTile === "undefined"
+                || !currentTile) {
+                return false;
+            }
+            const candidates = getNpcsAtTile(currentTile.x, currentTile.y);
+            if (!candidates.length) return false;
+
+            return openNpcChooser(candidates, {
+                title: "Who do you want to give a gift to?",
+                onSelect: openGiftItemChooser,
+                logMessage: "Several NPCs are here. Choose who to give a gift to.",
+            });
+        },
+    },
+    {
         id: "explore",
         label: "Explore",
         description: "Explore the entire tile for further investigate. <br>Full tile exploration reveals neighbour tiles",

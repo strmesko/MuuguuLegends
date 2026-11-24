@@ -3125,6 +3125,11 @@ class ItemInstance {
             && typeof settings.potentialBonuses === "object"
             ? Object.assign({}, settings.potentialBonuses)
             : null;
+        this.tags = (Array.isArray(settings.tags)
+            ? settings.tags
+            : (Array.isArray(definition.tags) ? definition.tags : []))
+            .filter(function (tag) { return typeof tag === "string" && tag; })
+            .slice();
 
         const savedProperties = Array.isArray(settings.properties)
             ? settings.properties.map(function (property) {
@@ -3232,6 +3237,7 @@ function restoreItemInstance(savedItem) {
         sourceResourceId: savedItem.sourceResourceId,
         primaryStat: savedItem.primaryStat,
         potentialBonuses: savedItem.potentialBonuses,
+        tags: savedItem.tags,
     });
 }
 

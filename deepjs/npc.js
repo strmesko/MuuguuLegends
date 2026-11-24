@@ -284,6 +284,7 @@ class Npc extends Character {
         this.happy = 0;
         this.angryOmeter = 0;
         this.foodPreferences = generateNpcFoodPreferences(preset);
+        this.lastGiftGameHour = null;
         this.moodDescription = "Neutral";
         refreshNpcMoodDescription(this);
         this.attack = 1;
@@ -369,6 +370,10 @@ function serializeNpcs() {
             boredom: npc.boredom,
             happy: npc.happy,
             angryOmeter: npc.angryOmeter,
+            lastGiftGameHour: npc.lastGiftGameHour != null
+                && Number.isFinite(Number(npc.lastGiftGameHour))
+                ? Number(npc.lastGiftGameHour)
+                : null,
             foodPreferences: Array.isArray(npc.foodPreferences)
                 ? npc.foodPreferences.slice()
                 : [],
@@ -408,6 +413,12 @@ function restoreNpcs(savedNpcs) {
         if (saved.angryOmeter != null) {
             npc.angryOmeter = clampNpcAngryOmeter(saved.angryOmeter);
         }
+        const savedGiftHour = saved.lastGiftGameHour != null
+            ? Number(saved.lastGiftGameHour)
+            : null;
+        npc.lastGiftGameHour = Number.isFinite(savedGiftHour)
+            ? savedGiftHour
+            : null;
 
         if (Array.isArray(saved.foodPreferences)) {
             const validPreferences = [];
@@ -681,6 +692,404 @@ function applyNpcConversationGains(npc, factor) {
     };
 }
 
+function getGiftItemTags(item) {
+    if (!item) return [];
+
+    const tags = [];
+    const add = function (tag) {
+        if (typeof tag === "string" && tag && tags.indexOf(tag) === -1) {
+            tags.push(tag);
+        }
+    };
+
+    (Array.isArray(item.tags) ? item.tags : []).forEach(add);
+    const definition = item.definition
+        || (item.itemId != null ? ITEM_DEFS[item.itemId] : null);
+    if (definition && Array.isArray(definition.tags)) {
+        definition.tags.forEach(add);
+    }
+    const source = item.sourceResourceId != null
+        ? RESOURCE_DEFS[item.sourceResourceId]
+        : null;
+    if (source && Array.isArray(source.tags)) source.tags.forEach(add);
+    return tags;
+}
+
+function getNpcFavoriteTags(npc) {
+    if (!npc || !Array.isArray(npc.foodPreferences)) return [];
+
+    const tags = [];
+    const add = function (tag) {
+        if (typeof tag === "string" && tag
+            && tag !== RESOURCE_TAGS.Edible
+            && tag !== RESOURCE_TAGS.Seed
+            && tag !== RESOURCE_TAGS.Gemstone
+            && tags.indexOf(tag) === -1) {
+            tags.push(tag);
+        }
+    };
+
+    npc.foodPreferences.forEach(function (resourceId) {
+        const definition = RESOURCE_DEFS[resourceId];
+        if (definition && Array.isArray(definition.tags)) {
+            definition.tags.forEach(add);
+        }
+    });
+    return tags;
+}
+
+function getGiftFavoriteTagCount(npc, item) {
+    const favoriteTags = getNpcFavoriteTags(npc);
+    if (!favoriteTags.length) return 0;
+
+    return getGiftItemTags(item).filter(function (tag) {
+        return favoriteTags.indexOf(tag) !== -1;
+    }).length;
+}
+
+function getGiftFavorValue(npc, item) {
+    if (!item) return 0;
+
+    const quality = Math.max(0, Number(item.quality) || 0);
+    const rarity = typeof getRarityMultiplier === "function"
+        ? getRarityMultiplier(getItemRarityId(item))
+        : 1;
+    const favoriteCount = getGiftFavoriteTagCount(npc, item);
+    return round2(quality * rarity * Math.pow(2, favoriteCount));
+}
+
+function getGiftEquipmentScore(item) {
+    if (!item) return 0;
+
+    let score = 0;
+    if (typeof item.getStats === "function") {
+        const stats = item.getStats();
+        Object.keys(stats || {}).forEach(function (key) {
+            score += Math.abs(Number(stats[key]) || 0);
+        });
+    }
+    (Array.isArray(item.properties) ? item.properties : []).forEach(function (property) {
+        if (!property) return;
+        score += Math.abs(Number(property.value) || 0);
+        score += Math.abs(Number(property.effect) || 0);
+    });
+    return round2(score);
+}
+
+function isGemstoneGift(item) {
+    if (!item) return false;
+    if (getGiftItemTags(item).indexOf(RESOURCE_TAGS.Gemstone) !== -1) {
+        return true;
+    }
+    const source = item.sourceResourceId != null
+        ? RESOURCE_DEFS[item.sourceResourceId]
+        : null;
+    return !!(source && source.gemstone);
+}
+
+function getGiftEquipmentSlots(item) {
+    if (!item || typeof EQUIPMENT_SLOT_IDS === "undefined") return [];
+    return EQUIPMENT_SLOT_IDS.filter(function (slotId) {
+        return typeof canEquipItemToSlot === "function"
+            && canEquipItemToSlot(item, slotId);
+    });
+}
+
+function getBestGiftEquipmentSlot(npc, item) {
+    if (!npc || !npc.equipment) return null;
+
+    const slots = getGiftEquipmentSlots(item);
+    if (!slots.length) return null;
+
+    let bestSlot = null;
+    let bestScore = Infinity;
+    slots.forEach(function (slotId) {
+        const current = npc.equipment[slotId] || null;
+        const currentScore = current ? getGiftEquipmentScore(current) : -1;
+        if (currentScore < bestScore) {
+            bestScore = currentScore;
+            bestSlot = slotId;
+        }
+    });
+
+    if (!bestSlot) return null;
+    const current = npc.equipment[bestSlot] || null;
+    if (current && getGiftEquipmentScore(item) <= getGiftEquipmentScore(current)) {
+        return null;
+    }
+    return bestSlot;
+}
+
+function removeGiftItemFromPlayer(item) {
+    if (!item || typeof player === "undefined" || !player
+        || !Array.isArray(player.equipinventory)) {
+        return false;
+    }
+
+    const inventory = player.equipinventory;
+    const index = inventory.findIndex(function (entry) {
+        return entry === item
+            || (entry && item && entry.instanceId === item.instanceId);
+    });
+    if (index === -1) return false;
+
+    if (Number(item.count) > 1) {
+        item.count = Number(item.count) - 1;
+    } else {
+        inventory[index] = null;
+    }
+    return true;
+}
+
+function applyNpcFoodGift(npc, item) {
+    if (!npc || !item || !item.definition || !item.definition.food) {
+        return { hunger: 0, potential: [] };
+    }
+
+    const base = Number(item.definition.food.hungerRestore) || 0;
+    const hungerRestore = round2(base * (1 + item.effectiveQuality / 10));
+    npc.hunger = Math.max(
+        -100,
+        (Number(npc.hunger) || 0) - hungerRestore
+    );
+
+    const gained = [];
+    const bonuses = item.potentialBonuses || {};
+    Object.keys(bonuses).forEach(function (statName) {
+        const stat = npc[statName];
+        const amount = Number(bonuses[statName]) || 0;
+        if (stat && amount > 0 && typeof increasePotential === "function") {
+            increasePotential(stat, amount);
+            gained.push(statName + " +" + round2(amount));
+        }
+    });
+
+    return { hunger: hungerRestore, potential: gained };
+}
+
+function giveGiftToNpc(npc, item) {
+    if (!npc || !item) return null;
+
+    let favor = getGiftFavorValue(npc, item);
+    const isFood = typeof isConsumableFoodItem === "function"
+        && isConsumableFoodItem(item);
+    const isGem = isGemstoneGift(item);
+    const isEquipment = !isFood && !isGem
+        && getGiftEquipmentSlots(item).length > 0;
+    let equipped = false;
+    let destroyedOld = null;
+
+    if (isFood) {
+        applyNpcFoodGift(npc, item);
+    } else if (isEquipment) {
+        const slotId = getBestGiftEquipmentSlot(npc, item);
+        if (slotId) {
+            destroyedOld = npc.equipment[slotId] || null;
+            npc.equipment[slotId] = item;
+            equipped = true;
+            if (typeof recalculateNpcStats === "function") {
+                recalculateNpcStats(npc);
+            }
+        } else {
+            favor = round2(favor / 4);
+        }
+    }
+
+    removeGiftItemFromPlayer(item);
+    adjustNpcFavor(npc, favor);
+
+    const hour = getCurrentGameHour();
+    let boredomGain = 0;
+    if (npc.lastGiftGameHour == null
+        || Number(npc.lastGiftGameHour) !== hour) {
+        boredomGain = round2(favor / 2);
+        adjustNpcBoredom(npc, boredomGain);
+        npc.lastGiftGameHour = hour;
+    }
+
+    refreshNpcMoodDescription(npc);
+    if (typeof logMessage === "function") {
+        let message = "You give " + item.name + " to "
+            + getNpcDisplayName(npc) + ". Favor +" + favor + ".";
+        if (isFood) message += " The NPC eats it.";
+        if (isGem) message += " The gemstone is consumed.";
+        if (isEquipment && equipped) {
+            message += " The NPC equips it";
+            if (destroyedOld) message += " and discards the old item";
+            message += ".";
+        } else if (isEquipment) {
+            message += " It is worse than the NPC's current equipment and is discarded.";
+        }
+        if (boredomGain > 0) {
+            message += " Boredom +" + boredomGain + ".";
+        }
+        logMessage(message);
+    }
+    if (typeof renderNpcDialogue === "function"
+        && typeof isNpcDialogueActive === "function"
+        && isNpcDialogueActive()) {
+        renderNpcDialogue();
+    }
+    if (typeof renderInventory === "function") renderInventory();
+    if (typeof updateGUI === "function") updateGUI();
+    return { favor: favor, isFood: isFood, isGem: isGem, equipped: equipped };
+}
+
+function getGiftableInventoryItems() {
+    if (typeof player === "undefined"
+        || !player
+        || !Array.isArray(player.equipinventory)) {
+        return [];
+    }
+
+    const entries = [];
+    player.equipinventory.forEach(function (item, index) {
+        if (!item || item.locked === true) return;
+        if (Number(item.count || 1) <= 0) return;
+        entries.push({ index: index, item: item });
+    });
+    return entries;
+}
+
+function ensureGiftChooserOverlay() {
+    let overlay = document.getElementById("giftchooseroverlay");
+    if (overlay) return overlay;
+
+    const parent = document.getElementById("actionplace") || document.body;
+    overlay = document.createElement("div");
+    overlay.id = "giftchooseroverlay";
+    overlay.className = "combatoverlay npcdialogueoverlay giftchooseroverlay";
+    overlay.style.display = "flex";
+
+    const panel = document.createElement("div");
+    panel.className = "combat-panel npcdialogue-panel";
+
+    const title = document.createElement("div");
+    title.className = "combat-title";
+    title.id = "giftchoosertitle";
+    title.innerText = "Choose a gift";
+    panel.appendChild(title);
+
+    const list = document.createElement("div");
+    list.id = "giftchooserlist";
+    list.className = "npcdialogue-npclist giftchooserlist";
+    panel.appendChild(list);
+
+    const actions = document.createElement("div");
+    actions.className = "npcdialogue-actions";
+
+    const cancelButton = document.createElement("button");
+    cancelButton.type = "button";
+    cancelButton.id = "giftchoosercancel";
+    cancelButton.className = "combatclosebutton";
+    cancelButton.innerText = "Cancel";
+    cancelButton.addEventListener("click", closeGiftChooser);
+    actions.appendChild(cancelButton);
+
+    panel.appendChild(actions);
+    overlay.appendChild(panel);
+    parent.appendChild(overlay);
+    return overlay;
+}
+
+function renderGiftChooser() {
+    const state = activeGiftChooser;
+    if (!state || !state.npc) return;
+
+    const npc = state.npc;
+    const overlay = ensureGiftChooserOverlay();
+    overlay.style.display = "flex";
+
+    const title = document.getElementById("giftchoosertitle");
+    if (title) {
+        title.innerText = "Choose a gift for " + getNpcDisplayName(npc);
+    }
+
+    const list = document.getElementById("giftchooserlist");
+    if (!list) return;
+    list.innerHTML = "";
+
+    const entries = getGiftableInventoryItems();
+    if (!entries.length) {
+        closeGiftChooser();
+        if (typeof logMessage === "function") {
+            logMessage("You have no items to give.");
+        }
+        return;
+    }
+
+    entries.forEach(function (entry) {
+        const item = entry.item;
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "npcdialogue-npcchoice giftchooser-item";
+
+        const image = document.createElement("img");
+        image.src = getItemImagePath(getInventoryItemName(item));
+        image.alt = getInventoryItemName(item);
+        button.appendChild(image);
+
+        const info = document.createElement("span");
+        info.className = "npcdialogue-npcchoice-info";
+
+        const name = document.createElement("span");
+        name.className = "npcdialogue-npcchoice-name";
+        name.innerText = getInventoryItemName(item);
+        info.appendChild(name);
+
+        const meta = document.createElement("span");
+        meta.className = "npcdialogue-npcchoice-meta";
+        meta.innerText = "Q" + round2(item.quality)
+            + " | " + item.rarityLabel
+            + " | Favor +" + getGiftFavorValue(npc, item);
+        info.appendChild(meta);
+
+        button.appendChild(info);
+        button.addEventListener("click", function () {
+            closeGiftChooser();
+            giveGiftToNpc(npc, item);
+        });
+        list.appendChild(button);
+    });
+}
+
+function openGiftItemChooser(npc) {
+    if (!npc) return false;
+    if (typeof isCombatActive === "function" && isCombatActive()) {
+        return false;
+    }
+    if (!getGiftableInventoryItems().length) {
+        if (typeof logMessage === "function") {
+            logMessage("You have no items to give.");
+        }
+        return false;
+    }
+
+    activeGiftChooser = { npc: npc };
+    renderGiftChooser();
+    if (typeof refreshActionButtons === "function") refreshActionButtons();
+    return true;
+}
+
+function openGiftActiveNpc() {
+    const npc = getActiveNpcDialogueNpc();
+    if (!npc) return false;
+    return openGiftItemChooser(npc);
+}
+
+function closeGiftChooser() {
+    const wasActive = !!activeGiftChooser;
+    activeGiftChooser = null;
+
+    const overlay = document.getElementById("giftchooseroverlay");
+    if (overlay) overlay.remove();
+
+    if (wasActive && typeof refreshActionButtons === "function") {
+        refreshActionButtons();
+    }
+    return wasActive;
+}
+
 // Repeating the exact same action bores the NPCs standing on the tile.
 // The second consecutive selection costs 50 boredom, the third 100, then the
 // penalty doubles for every further repetition.
@@ -721,13 +1130,18 @@ function resetActionRepetitionTracking() {
 
 let activeNpcDialogue = null;
 let activeNpcChooser = null;
+let activeGiftChooser = null;
 
 function isNpcDialogueActive() {
-    return !!activeNpcDialogue || !!activeNpcChooser;
+    return !!activeNpcDialogue || !!activeNpcChooser || !!activeGiftChooser;
 }
 
 function isNpcChooserActive() {
     return !!activeNpcChooser;
+}
+
+function isGiftChooserActive() {
+    return !!activeGiftChooser;
 }
 
 function getActiveNpcDialogueNpc() {
@@ -838,6 +1252,14 @@ function ensureNpcDialogueOverlay() {
     commonChatButton.addEventListener("click", commonChatActiveNpc);
     actions.appendChild(commonChatButton);
 
+    const giftButton = document.createElement("button");
+    giftButton.type = "button";
+    giftButton.id = "npcdialoguegift";
+    giftButton.className = "combatclosebutton";
+    giftButton.innerText = "Gift";
+    giftButton.addEventListener("click", openGiftActiveNpc);
+    actions.appendChild(giftButton);
+
     const goodbyeButton = document.createElement("button");
     goodbyeButton.type = "button";
     goodbyeButton.id = "npcdialoguesaygoodbye";
@@ -875,6 +1297,7 @@ function ensureNpcChooserOverlay() {
 
     const title = document.createElement("div");
     title.className = "combat-title";
+    title.id = "npcchoosertitle";
     title.innerText = "Who do you want to talk to?";
     panel.appendChild(title);
 
@@ -900,15 +1323,31 @@ function ensureNpcChooserOverlay() {
     return overlay;
 }
 
+function getNpcChooserState() {
+    return activeNpcChooser && typeof activeNpcChooser === "object"
+        ? activeNpcChooser
+        : null;
+}
+
 function renderNpcChooser() {
+    const state = getNpcChooserState();
+    if (!state) return;
+
     const overlay = ensureNpcChooserOverlay();
     overlay.style.display = "flex";
+
+    const title = document.getElementById("npcchoosertitle");
+    if (title) {
+        title.innerText = state.title || "Who do you want to talk to?";
+    }
 
     const list = document.getElementById("npcchooserlist");
     if (!list) return;
     list.innerHTML = "";
 
-    const candidates = getNpcChooserCandidates();
+    const candidates = Array.isArray(state.candidates)
+        ? state.candidates
+        : [];
     if (!candidates.length) {
         closeNpcChooser();
         return;
@@ -940,27 +1379,40 @@ function renderNpcChooser() {
         choice.appendChild(image);
         choice.appendChild(info);
         choice.addEventListener("click", function () {
+            const onSelect = state.onSelect;
             closeNpcChooser();
-            startNpcDialogue(npc);
+            if (typeof onSelect === "function") onSelect(npc);
         });
         list.appendChild(choice);
     });
 }
 
-function openNpcChooser(candidates) {
+function openNpcChooser(candidates, options) {
     if (activeNpcDialogue) return false;
 
     const list = Array.isArray(candidates)
         ? candidates
         : getNpcChooserCandidates();
     if (!list.length) return false;
-    if (list.length === 1) return startNpcDialogue(list[0]);
 
-    activeNpcChooser = true;
+    const settings = options && typeof options === "object" ? options : {};
+    const onSelect = typeof settings.onSelect === "function"
+        ? settings.onSelect
+        : startNpcDialogue;
+    if (list.length === 1) return onSelect(list[0]);
+
+    activeNpcChooser = {
+        candidates: list.slice(),
+        title: settings.title || "Who do you want to talk to?",
+        onSelect: onSelect,
+    };
     renderNpcChooser();
 
-    if (typeof logMessage === "function") {
-        logMessage("Several NPCs are here. Choose who to talk to.");
+    const message = settings.logMessage === undefined
+        ? "Several NPCs are here. Choose who to talk to."
+        : settings.logMessage;
+    if (message && typeof logMessage === "function") {
+        logMessage(message);
     }
     if (typeof refreshActionButtons === "function") refreshActionButtons();
     return true;
