@@ -581,6 +581,9 @@ function createLeafClothingDefinition(id, name, slot, icon, equipSlots, descript
         durability: 10,
         icon: icon,
         stats: Object.freeze({ defence: 1 }),
+        tags: /\bleaf\b/i.test(name)
+            ? Object.freeze(["leaf set"])
+            : undefined,
         description: description || "Just like Adam or Eva. Better than nothing!",
     });
 }

@@ -49,6 +49,9 @@ const NPC_PRESETS = Object.freeze({
         mood: Object.freeze({ base: 50, variance: 10 }),
         favor: Object.freeze({ base: 0, variance: 0 }),
         foodPreferenceTag: "berry",
+        foodPreferenceMin: 5,
+        foodPreferenceMax: 10,
+        favoriteTags: Object.freeze(["leaf set"]),
         tags: Object.freeze(["childish"]),
     }),
 });
@@ -187,8 +190,16 @@ function generateNpcFoodPreferences(preset) {
     const pool = getNpcFoodPreferencePool(preset).slice();
     if (!pool.length) return [];
 
-    const wanted = NPC_FOOD_PREFERENCE_MIN + Math.floor(
-        Math.random() * (NPC_FOOD_PREFERENCE_MAX - NPC_FOOD_PREFERENCE_MIN + 1)
+    const minPreferences = Math.max(1, Math.floor(
+        Number(preset && preset.foodPreferenceMin)
+        || NPC_FOOD_PREFERENCE_MIN
+    ));
+    const maxPreferences = Math.max(minPreferences, Math.floor(
+        Number(preset && preset.foodPreferenceMax)
+        || NPC_FOOD_PREFERENCE_MAX
+    ));
+    const wanted = minPreferences + Math.floor(
+        Math.random() * (maxPreferences - minPreferences + 1)
     );
     const count = Math.min(pool.length, wanted);
 
@@ -287,6 +298,9 @@ class Npc extends Character {
         this.foodPreferences = generateNpcFoodPreferences(preset);
         this.lastGiftGameHour = null;
         this.tags = Array.isArray(preset.tags) ? preset.tags.slice() : [];
+        this.favoriteTags = Array.isArray(preset.favoriteTags)
+            ? preset.favoriteTags.slice()
+            : [];
         this.moodDescription = "Neutral";
         refreshNpcMoodDescription(this);
         this.attack = 1;
@@ -908,7 +922,7 @@ function getGiftItemTags(item) {
 }
 
 function getNpcFavoriteTags(npc) {
-    if (!npc || !Array.isArray(npc.foodPreferences)) return [];
+    if (!npc) return [];
 
     const tags = [];
     const add = function (tag) {
@@ -921,12 +935,18 @@ function getNpcFavoriteTags(npc) {
         }
     };
 
-    npc.foodPreferences.forEach(function (resourceId) {
-        const definition = RESOURCE_DEFS[resourceId];
-        if (definition && Array.isArray(definition.tags)) {
-            definition.tags.forEach(add);
-        }
-    });
+    if (Array.isArray(npc.favoriteTags)) {
+        npc.favoriteTags.forEach(add);
+    }
+
+    if (Array.isArray(npc.foodPreferences)) {
+        npc.foodPreferences.forEach(function (resourceId) {
+            const definition = RESOURCE_DEFS[resourceId];
+            if (definition && Array.isArray(definition.tags)) {
+                definition.tags.forEach(add);
+            }
+        });
+    }
     return tags;
 }
 
@@ -1423,6 +1443,7 @@ function ensureNpcDialogueOverlay() {
     addStat("npcdialogueangry", "Angry-O-Meter");
     addStat("npcdialoguefoodpreferences", "Food preferences", true);
     addStat("npcdialoguetags", "Tags", true);
+    addStat("npcdialoguefavoritetags", "Favorite tags", true);
 
     panel.appendChild(stats);
 
@@ -1646,6 +1667,7 @@ function renderNpcDialogue() {
     const angry = document.getElementById("npcdialogueangry");
     const foodPreferences = document.getElementById("npcdialoguefoodpreferences");
     const npcTags = document.getElementById("npcdialoguetags");
+    const npcFavoriteTags = document.getElementById("npcdialoguefavoritetags");
 
     if (playerName) {
         playerName.innerText = (typeof player !== "undefined" && player && player.name)
@@ -1673,6 +1695,14 @@ function renderNpcDialogue() {
         const tags = getNpcTags(npc);
         npcTags.innerText = tags.length
             ? tags.map(function (tag) {
+                return tag.charAt(0).toUpperCase() + tag.slice(1);
+            }).join(", ")
+            : "None";
+    }
+    if (npcFavoriteTags) {
+        const favoriteTags = getNpcFavoriteTags(npc);
+        npcFavoriteTags.innerText = favoriteTags.length
+            ? favoriteTags.map(function (tag) {
                 return tag.charAt(0).toUpperCase() + tag.slice(1);
             }).join(", ")
             : "None";
