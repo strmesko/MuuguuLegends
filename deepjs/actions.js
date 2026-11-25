@@ -2556,6 +2556,7 @@ function runActiveActions(diff) {
         if (action.kind !== ACTION_KIND.Timed || !isActionActive(action.id)) return;
 
         action.run(diff);
+        if (!isActionActive(action.id)) return;
         consumeActionStamina(action, diff);
 
         if (action.isComplete && action.isComplete()) {

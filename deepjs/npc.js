@@ -428,18 +428,21 @@ function createNpcPlayAction(npc) {
         initialState: Activity.Idle,
         startMessage: "You start playing with " + npc.name + ".",
         stopMessage: "You stop playing with " + npc.name + ".",
-        completeMessage: npc.name + " no longer wants to play.",
+        completeMessage: "You stop playing with " + npc.name + ".",
         isVisible: function () {
             return isNpcPlayableByUid(npcUid);
         },
         isComplete: function () {
-            return !isNpcPlayableByUid(npcUid);
+            if (!isNpcPlayableByUid(npcUid)) return true;
+            return typeof player !== "undefined"
+                && !!player
+                && Number(player.stamina) < getSocialImpact();
         },
         isEnabled: function () {
             return typeof player !== "undefined"
                 && !!player
                 && Number(player.hp) > 0
-                && Number(player.stamina) > 0;
+                && Number(player.stamina) >= getSocialImpact();
         },
         staminaPerSecond: function () {
             return getSocialImpact();
@@ -450,6 +453,24 @@ function createNpcPlayAction(npc) {
         run: function (diff) {
             const seconds = Math.max(0, Number(diff) || 0);
             if (seconds <= 0) return;
+
+            const staminaCost = getSocialImpact();
+            if (typeof player !== "undefined"
+                && player
+                && Number(player.stamina) < staminaCost) {
+                if (typeof logMessage === "function") {
+                    logMessage("You are too tired to play with "
+                        + npc.name + ".");
+                }
+                const currentAction = typeof getAction === "function"
+                    ? getAction(actionId)
+                    : null;
+                if (currentAction
+                    && typeof stopTimedAction === "function") {
+                    stopTimedAction(currentAction);
+                }
+                return;
+            }
 
             progress += seconds;
             while (progress >= 30) {
