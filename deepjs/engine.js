@@ -1462,6 +1462,14 @@ function runSearchProduction(diff) {
     player.exploration.addexp(1 * diff);
 }
 
+function getRestManaRegenPerSecond() {
+    const meditation = Math.max(0, Number(getEffectiveLevel("meditation")) || 0);
+    if (meditation < 10) return 0;
+
+    const soul = Math.max(0, Number(getEffectiveLevel("sou")) || 0);
+    return Math.sqrt(soul * meditation) * 0.1;
+}
+
 function runRestProduction(diff) {
     if (actionStates.rest !== Activity.Active) return;
 
@@ -1473,6 +1481,15 @@ function runRestProduction(diff) {
 
     staminaRegen(restAmount);
     if (player.stamina > player.maxstamina) player.stamina = player.maxstamina;
+
+    const restMana = getRestManaRegenPerSecond() * diff * restMultiplier;
+    if (restMana > 0) {
+        player.mana = Math.min(
+            Number(player.maxmana) || 0,
+            round2((Number(player.mana) || 0) + restMana)
+        );
+    }
+
     player.rest.addexp(restAmount);
     player.vit.addexp(restAmount / 10);
 }

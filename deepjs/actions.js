@@ -1076,17 +1076,30 @@ const ACTIONS = [
         id: "rest",
         tags: ["restoration"],
         label: "Rest",
-        description: "Just doing nothing are not enough. Let's enjoy it to the fullest!",
+        description: function () {
+            const mana = typeof getRestManaRegenPerSecond === "function"
+                ? getRestManaRegenPerSecond()
+                : 0;
+            return "Just doing nothing are not enough. Let's enjoy it to the fullest!"
+                + (mana > 0
+                    ? "<br>Also restores " + round2(mana)
+                        + " mana per second from Soul and Meditation."
+                    : "<br>At Meditation 10, also restores mana based on Soul and Meditation.");
+        },
         kind: ACTION_KIND.Timed,
         initialState: Activity.Done,
         startMessage: "Lets rest",
         stopMessage: "Your rest is over",
         availableMessage: "How about rest?",
         isVisible: function () {
-            return player.stamina < player.maxstamina;
+            const manaNeedsRest = getEffectiveLevel("meditation") >= 10
+                && Number(player.mana) < Number(player.maxmana);
+            return player.stamina < player.maxstamina || manaNeedsRest;
         },
         isComplete: function () {
-            return player.stamina >= player.maxstamina;
+            const manaDone = getEffectiveLevel("meditation") < 10
+                || Number(player.mana) >= Number(player.maxmana);
+            return player.stamina >= player.maxstamina && manaDone;
         },
         completeMessage: "You are rested enough",
         run: runRestProduction,
