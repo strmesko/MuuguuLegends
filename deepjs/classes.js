@@ -2212,6 +2212,30 @@ function getEffectiveLevel(key) {
     return effective;
 }
 
+function getLearnedSkillCount() {
+    if (typeof player === "undefined" || !player) return 0;
+
+    let count = 0;
+    LEARNABLE_SKILL_KEYS.forEach(function (key) {
+        const entry = player[key];
+        if (!entry) return;
+        // Starting skills are level 1 and must not add a bonus. Every
+        // level above that adds 1% to the speed of all actions.
+        count += Math.max(0, Number(entry.lvl) - 1);
+    });
+    return count;
+}
+
+function getActionSkillSpeedMultiplier() {
+    return 1 + getLearnedSkillCount() / PERCENT;
+}
+
+function getGlobalActionSpeedMultiplier() {
+    const speed = Math.max(1, Number(getEffectiveLevel("speed")) || 1);
+    return (speed / STARTING_SPEED_LEVEL)
+        * getActionSkillSpeedMultiplier();
+}
+
 // Sight radius in whole tiles. Never fractional.
 function getSightRange() {
     const perception = Math.max(0, Number(getEffectiveLevel("per")) || 0);

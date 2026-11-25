@@ -1804,6 +1804,9 @@ function getTravelBaseDurationSeconds() {
     // Traveling is applied to the full travel time, so each level takes away
     // exactly 1% of it. Energetic / Snoozy / Sleepy then scale the result.
     return baseDuration * getTravelTimeMultiplier()
+        / (typeof getActionSkillSpeedMultiplier === "function"
+            ? getActionSkillSpeedMultiplier()
+            : 1)
         * getTravelSleepynessMultiplier()
         * (typeof getGameWeatherTravelTimeMultiplier === "function"
             ? getGameWeatherTravelTimeMultiplier()
@@ -2555,7 +2558,10 @@ function runActiveActions(diff) {
     ACTIONS.forEach(function (action) {
         if (action.kind !== ACTION_KIND.Timed || !isActionActive(action.id)) return;
 
-        action.run(diff);
+        const actionSpeedMultiplier = typeof getGlobalActionSpeedMultiplier === "function"
+            ? getGlobalActionSpeedMultiplier()
+            : 1;
+        action.run(diff * actionSpeedMultiplier);
         if (!isActionActive(action.id)) return;
         consumeActionStamina(action, diff);
 

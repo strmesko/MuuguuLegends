@@ -1378,7 +1378,7 @@ function runExploreProduction(diff) {
     if (currentTile.revealed >= EXPLORATION_COMPLETE) return;
 
     const distanceDivisor = 1 + Math.abs(currentTile.x + currentTile.y) / 10;
-    currentTile.revealed = Math.min(EXPLORATION_COMPLETE, currentTile.revealed + EXPLORATION_PROGRESS_RATE * (Math.sqrt(getEffectiveLevel("per") * getEffectiveLevel("exploration")) * (getEffectiveLevel("speed") / PERCENT)) * diff / distanceDivisor * getActionEffectivenessMultiplier("explore"));
+    currentTile.revealed = Math.min(EXPLORATION_COMPLETE, currentTile.revealed + EXPLORATION_PROGRESS_RATE * (Math.sqrt(getEffectiveLevel("per") * getEffectiveLevel("exploration"))) * diff / distanceDivisor * getActionEffectivenessMultiplier("explore"));
     if (currentTile.revealed >= EXPLORATION_COMPLETE && player) {
         player.hasFullyScoutedTile = true;
     }
@@ -1446,7 +1446,7 @@ function runSearchProduction(diff) {
     if (currentTile.revealed <= 0) return;
 
     const distanceDivisor = 1 + Math.abs(currentTile.x + currentTile.y) / 10;
-    const searchPower = (Math.sqrt(getEffectiveLevel("per") * getEffectiveLevel("exploration")) * (getEffectiveLevel("speed") / PERCENT)) * diff / distanceDivisor * getActionEffectivenessMultiplier("search");
+    const searchPower = (Math.sqrt(getEffectiveLevel("per") * getEffectiveLevel("exploration"))) * diff / distanceDivisor * getActionEffectivenessMultiplier("search");
     const searchGain = SEARCH_UNITS_RATE * searchPower;
     const previousMax = Math.max(
         Number(currentTile.maxSearchUnits) || 0,
@@ -1586,7 +1586,7 @@ function getActionEffectiveness(actionId) {
     switch (actionId) {
         case "explore":
         case "search":
-            return Math.sqrt(getEffectiveLevel("per") * getEffectiveLevel("exploration")) * (getEffectiveLevel("speed") / PERCENT) / distanceDivisor;
+            return Math.sqrt(getEffectiveLevel("per") * getEffectiveLevel("exploration")) / distanceDivisor;
         case "research":
             return getEffectiveLevel("int") * getEffectiveLevel("science");
         case "forage":
