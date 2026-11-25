@@ -542,6 +542,305 @@ function syncNpcPlayActions() {
     });
 }
 
+function isNpcFriend(npc) {
+    return !!npc && Number(npc.favor) >= 10000;
+}
+
+function getNpcStatusLabel(npc) {
+    return isNpcFriend(npc) ? "Friend" : "Neutral";
+}
+
+function getNpcEffectiveLevel(npc, key) {
+    if (!npc) return 0;
+
+    const entry = npc[key];
+    let level = entry ? Number(entry.lvl) || 0 : 0;
+    if (typeof getEquippedStatBonus === "function") {
+        level += Number(getEquippedStatBonus(key, npc)) || 0;
+    }
+    if (typeof getEquippedPropertyLevelBonus === "function") {
+        level += Number(getEquippedPropertyLevelBonus(key, npc)) || 0;
+    }
+    return Math.max(0, level);
+}
+
+function serializeNpcProgress(entry) {
+    if (!entry) return null;
+    return {
+        lvl: Number(entry.lvl) || 0,
+        exp: Number(entry.exp) || 0,
+        potential: Number(entry.potential) || 0,
+    };
+}
+
+function restoreNpcProgress(entry, saved) {
+    if (!entry || !saved || typeof saved !== "object") return;
+    if (Number.isFinite(Number(saved.lvl))) entry.lvl = Number(saved.lvl);
+    if (Number.isFinite(Number(saved.exp))) entry.exp = Number(saved.exp);
+    if (Number.isFinite(Number(saved.potential))) {
+        entry.potential = Number(saved.potential);
+    }
+}
+
+function getNpcWorldTile(npc) {
+    if (!npc) return null;
+
+    if (typeof window !== "undefined"
+        && window.mapView
+        && window.mapView.world
+        && typeof window.mapView.world.getTileData === "function") {
+        const raw = window.mapView.world.getTileData(npc.x, npc.y);
+        if (raw && typeof ensureGameplayTileState === "function") {
+            return ensureGameplayTileState(raw, npc.x, npc.y);
+        }
+        if (raw) return raw;
+    }
+
+    if (typeof currentTile !== "undefined" && currentTile
+        && currentTile.x === npc.x && currentTile.y === npc.y) {
+        return currentTile;
+    }
+    return null;
+}
+
+function getNpcForageSpaceInfo(tile, resourceId) {
+    if (!tile || typeof FORAGE_SPACE_DEPENDENCIES === "undefined") return null;
+    const dependencies = FORAGE_SPACE_DEPENDENCIES[resourceId];
+    if (!Array.isArray(dependencies) || !dependencies.length) return null;
+
+    const space = tile.space || {};
+    const totalSpace = Object.keys(space).reduce(function (sum, key) {
+        return sum + (Number(space[key]) || 0);
+    }, 0) || 1000;
+    const amount = dependencies.reduce(function (sum, element) {
+        return sum + (Number(space[element]) || 0);
+    }, 0);
+    return { amount: amount, totalSpace: totalSpace };
+}
+
+function getNpcForageSpaceMultiplier(tile, resourceId) {
+    const info = getNpcForageSpaceInfo(tile, resourceId);
+    if (!info || info.totalSpace <= 0) return 1;
+    return Math.min(1, info.amount / info.totalSpace);
+}
+
+function getNpcForageQuantityMultiplier(tile, resourceId) {
+    const info = getNpcForageSpaceInfo(tile, resourceId);
+    return info ? 1 + info.amount / 1000 : 1;
+}
+
+function getNpcForagePower(npc, tile) {
+    if (!npc || !tile) return 0;
+
+    const land = tile.land || {};
+    const space = tile.space || {};
+    const localLand = Math.max(1,
+        (Number(land.trees) || 0)
+        + (Number(land.grass) || 0)
+        + (Number(space.Bushes) || 0));
+    const explorationFactor = 0.5
+        + getNpcEffectiveLevel(npc, "exploration") / 10;
+    const agi = Math.max(0.01, getNpcEffectiveLevel(npc, "agi"));
+    const forage = Math.max(0.01, getNpcEffectiveLevel(npc, "forage"));
+
+    return Math.pow(agi * 0.9 * forage * explorationFactor, 1 / 3)
+        * (1 + Math.log(localLand) / 10);
+}
+
+function getNpcForageQuality(npc, tile) {
+    return round2(1 + getNpcForagePower(npc, tile));
+}
+
+function getNpcForageAmount(npc, tile, resourceId, profitAmount) {
+    if (!tile) return 0;
+
+    const divisor = Number(FORAGE_AMOUNT_DIVISOR) || 1;
+    const multiplier = getResourceMultiplier(tile, resourceId);
+    const spaceMultiplier = getNpcForageQuantityMultiplier(tile, resourceId);
+    const equipmentMultiplier = typeof getEquippedStatMultiplier === "function"
+        ? getEquippedStatMultiplier("forageQuantity", npc)
+        : 1;
+
+    return (Number(profitAmount) || 0)
+        * multiplier
+        * spaceMultiplier
+        * equipmentMultiplier
+        / divisor;
+}
+
+function npcForageRoll(npc, tile, difficulty, resourceId, profitAmount) {
+    if (!npc || !tile) return false;
+
+    const multiplier = getResourceMultiplier(tile, resourceId);
+    const spaceMultiplier = getNpcForageSpaceMultiplier(tile, resourceId);
+    if (spaceMultiplier <= 0) return false;
+
+    const effectiveDifficulty = (Number(difficulty) || 0) * multiplier;
+    const perception = Math.max(0.01, getNpcEffectiveLevel(npc, "per"));
+    const forage = Math.max(0.01, getNpcEffectiveLevel(npc, "forage"));
+    const luck = Math.max(0, getNpcEffectiveLevel(npc, "luck"));
+    const foragePower = Math.sqrt(perception * forage * (1 + luck * 0.01))
+        * spaceMultiplier;
+    if (foragePower <= 0) return false;
+
+    const baseChance = Math.max(0, Math.min(
+        1,
+        1 - effectiveDifficulty / foragePower
+    ));
+    const findMultiplier = typeof getEquippedStatMultiplier === "function"
+        ? getEquippedStatMultiplier("forageFindChance", npc)
+        : 1;
+    const chance = Math.min(1, baseChance * findMultiplier);
+    if (Math.random() >= chance) return false;
+
+    const amount = getNpcForageAmount(npc, tile, resourceId, profitAmount);
+    if (amount > 0) {
+        addResource(
+            resourceId,
+            amount,
+            getNpcForageQuality(npc, tile)
+        );
+    }
+    return true;
+}
+
+function chooseNpcForageEntry(entries) {
+    if (!Array.isArray(entries) || !entries.length) return null;
+
+    const totalWeight = entries.reduce(function (sum, entry) {
+        return sum + Math.max(0, Number(entry.weight) || 0);
+    }, 0);
+    if (totalWeight <= 0) return null;
+
+    let roll = Math.random() * totalWeight;
+    for (let index = 0; index < entries.length; index += 1) {
+        const entry = entries[index];
+        roll -= Math.max(0, Number(entry.weight) || 0);
+        if (roll <= 0) return entry;
+    }
+    return entries[entries.length - 1];
+}
+
+function npcForageHerbRoll(npc, tile) {
+    if (typeof getEligibleHerbsOnTile !== "function") return false;
+    const herb = chooseNpcForageEntry(getEligibleHerbsOnTile(tile));
+    if (!herb) return false;
+    return npcForageRoll(npc, tile, herb.difficulty, herb.id, herb.amount);
+}
+
+function npcForagePlantRoll(npc, tile) {
+    if (typeof getEligiblePlantsOnTile !== "function") return false;
+    const plant = chooseNpcForageEntry(getEligiblePlantsOnTile(tile));
+    if (!plant) return false;
+    return npcForageRoll(npc, tile, plant.difficulty, plant.id, plant.amount);
+}
+
+function performNpcForageBatch(npc, tile) {
+    if (typeof FORAGE_ROLLS !== "undefined") {
+        FORAGE_ROLLS.forEach(function (entry) {
+            npcForageRoll(npc, tile, entry[0], entry[1], entry[2]);
+        });
+    }
+    npcForageHerbRoll(npc, tile);
+    npcForagePlantRoll(npc, tile);
+}
+
+function performNpcFairyForage(npc) {
+    if (!npc || !isNpcFriend(npc)) return false;
+
+    const tile = getNpcWorldTile(npc);
+    if (!tile) return false;
+    if (!Number.isFinite(Number(tile.hiddenstuff))) tile.hiddenstuff = 0;
+    if (Number(tile.hiddenstuff) <= 0) return false;
+
+    const power = getNpcForagePower(npc, tile);
+    if (power <= 0) return false;
+
+    const gameMinutesPerSecond = Number(GAME_MINUTES_PER_REAL_SECOND) || 1;
+    const durationSeconds = (4 * 60) / gameMinutesPerSecond;
+    const tickSeconds = Number(FORAGE_RESOURCE_TICK_SECONDS) || 10;
+    const maxTicks = Math.max(1, Math.min(
+        240,
+        Math.floor(durationSeconds / tickSeconds)
+    ));
+
+    let remainder = 0;
+    let batchesTotal = 0;
+    let searchUsed = 0;
+
+    for (let tick = 0; tick < maxTicks; tick += 1) {
+        if (Number(tile.hiddenstuff) <= 0) break;
+
+        const tickPower = power * tickSeconds;
+        const used = Math.min(tickPower, Number(tile.hiddenstuff) || 0);
+        if (used <= 0) break;
+
+        tile.hiddenstuff = round2(
+            Math.max(0, (Number(tile.hiddenstuff) || 0) - used)
+        );
+        searchUsed += used;
+        remainder += used;
+
+        const batches = Math.min(
+            Math.floor(remainder),
+            typeof FORAGE_MAX_BATCHES_PER_TICK !== "undefined"
+                ? FORAGE_MAX_BATCHES_PER_TICK
+                : 20
+        );
+        remainder -= batches;
+
+        const expMultiplier = Number(FORAGE_RESOURCE_TICK_EXP_MULTIPLIER) || 1;
+        if (npc.per && typeof npc.per.addexp === "function") {
+            npc.per.addexp((1 + used * 0.1) * expMultiplier);
+        }
+        if (npc.forage && typeof npc.forage.addexp === "function") {
+            npc.forage.addexp((1 + used * 0.5) * expMultiplier);
+        }
+
+        for (let batch = 0; batch < batches; batch += 1) {
+            performNpcForageBatch(npc, tile);
+            batchesTotal += 1;
+        }
+    }
+
+    if (typeof refreshMapCoordinates === "function") {
+        refreshMapCoordinates(true);
+    }
+    if (typeof logMessage === "function") {
+        logMessage(npc.name + " forages for you. Batches: " + batchesTotal
+            + ", search units spent: " + round2(searchUsed) + ".");
+    }
+    if (typeof updateGUI === "function") updateGUI();
+    return batchesTotal > 0;
+}
+
+function processNpcDailyNoon(days) {
+    const dayCount = Math.max(0, Math.floor(Number(days) || 0));
+    if (dayCount <= 0) return 0;
+
+    for (let day = 0; day < dayCount; day += 1) {
+        npcs.forEach(function (npc) {
+            if (!npc) return;
+
+            if (typeof LEARNABLE_SKILL_KEYS !== "undefined") {
+                LEARNABLE_SKILL_KEYS.forEach(function (key) {
+                    if (npc[key] && typeof increasePotential === "function") {
+                        increasePotential(
+                            npc[key],
+                            (Number(MAX_POTENTIAL) || 100) * 0.10
+                        );
+                    }
+                });
+            }
+
+            if (isNpcFriend(npc) && npc.type === NPC_TYPE_IDS.FAIRY) {
+                performNpcFairyForage(npc);
+            }
+        });
+    }
+    return dayCount;
+}
+
 function removeNpc(uid) {
     const id = Number(uid);
     const index = npcs.findIndex(function (npc) {
@@ -581,6 +880,14 @@ function serializeNpcs() {
             foodPreferences: Array.isArray(npc.foodPreferences)
                 ? npc.foodPreferences.slice()
                 : [],
+            stats: CORE_STAT_NAMES.reduce(function (result, name) {
+                result[name] = serializeNpcProgress(npc[name]);
+                return result;
+            }, {}),
+            skills: LEARNABLE_SKILL_KEYS.reduce(function (result, name) {
+                result[name] = serializeNpcProgress(npc[name]);
+                return result;
+            }, {}),
         };
     });
 }
@@ -632,6 +939,16 @@ function restoreNpcs(savedNpcs) {
                 if (validPreferences.indexOf(id) === -1) validPreferences.push(id);
             });
             if (validPreferences.length) npc.foodPreferences = validPreferences;
+        }
+        if (saved.stats && typeof saved.stats === "object") {
+            CORE_STAT_NAMES.forEach(function (name) {
+                restoreNpcProgress(npc[name], saved.stats[name]);
+            });
+        }
+        if (saved.skills && typeof saved.skills === "object") {
+            LEARNABLE_SKILL_KEYS.forEach(function (name) {
+                restoreNpcProgress(npc[name], saved.skills[name]);
+            });
         }
 
         refreshNpcMoodDescription(npc);
@@ -1521,6 +1838,7 @@ function ensureNpcDialogueOverlay() {
     addStat("npcdialoguefavor", "Favor");
     addStat("npcdialoguemood", "Mood");
     addStat("npcdialoguemooddescription", "Mood state");
+    addStat("npcdialoguestatus", "Status", true);
     addStat("npcdialogueboredom", "Boredom");
     addStat("npcdialoguehappy", "Happiness");
     addStat("npcdialogueangry", "Angry-O-Meter");
@@ -1745,6 +2063,7 @@ function renderNpcDialogue() {
     const favor = document.getElementById("npcdialoguefavor");
     const mood = document.getElementById("npcdialoguemood");
     const moodDescription = document.getElementById("npcdialoguemooddescription");
+    const npcStatus = document.getElementById("npcdialoguestatus");
     const boredom = document.getElementById("npcdialogueboredom");
     const happy = document.getElementById("npcdialoguehappy");
     const angry = document.getElementById("npcdialogueangry");
@@ -1765,6 +2084,7 @@ function renderNpcDialogue() {
     if (moodDescription) {
         moodDescription.innerText = refreshNpcMoodDescription(npc);
     }
+    if (npcStatus) npcStatus.innerText = getNpcStatusLabel(npc);
     if (boredom) boredom.innerText = round2(npc.boredom);
     if (happy) happy.innerText = round2(npc.happy);
     if (angry) {
