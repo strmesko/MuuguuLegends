@@ -320,6 +320,12 @@ function refreshUnlockedContent() {
     if (typeof renderBuildingsPanels === "function") renderBuildingsPanels();
     if (typeof renderHousesPanels === "function") renderHousesPanels();
     if (typeof renderFurniturePanels === "function") renderFurniturePanels();
+    if (typeof updateTechnologyVisibility === "function") {
+        updateTechnologyVisibility();
+    }
+    if (typeof refreshTabVisibility === "function") {
+        refreshTabVisibility();
+    }
     if (typeof refreshActionButtons === "function") refreshActionButtons();
 }
 

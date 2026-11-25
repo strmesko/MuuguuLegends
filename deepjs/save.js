@@ -1001,6 +1001,9 @@
             if (typeof renderInventorySlots === "function") renderInventorySlots();
             if (typeof renderEquipmentItems === "function") renderEquipmentItems();
             if (typeof renderBuildPanels === "function") renderBuildPanels();
+            if (typeof refreshUnlockedContent === "function") {
+                refreshUnlockedContent();
+            }
             if (typeof renderGameClock === "function") renderGameClock();
         } finally {
             setLogSuppressed(false);
