@@ -277,6 +277,37 @@ const KANOJO_FAIRY = Object.freeze({
     ]),
 });
 
+function kanojoFriendAddress(index) {
+    return index % 2 === 0 ? "human buddy" : "human bro";
+}
+
+function kanojoFriendCopy(value) {
+    if (Array.isArray(value)) {
+        return Object.freeze(value.map(function (line, index) {
+            return line + " You're my best friend, "
+                + kanojoFriendAddress(index) + "!";
+        }));
+    }
+    if (value && typeof value === "object") {
+        const copy = {};
+        Object.keys(value).forEach(function (key) {
+            copy[key] = kanojoFriendCopy(value[key]);
+        });
+        return Object.freeze(copy);
+    }
+    return value;
+}
+
+const KANOJO_FAIRY_FRIEND = Object.freeze({
+    ...KANOJO_FAIRY,
+    id: "fairy-friend",
+    actionLines: kanojoFriendCopy(KANOJO_FAIRY.actionLines),
+    moodLines: kanojoFriendCopy(KANOJO_FAIRY.moodLines),
+    favorLines: kanojoFriendCopy(KANOJO_FAIRY.favorLines),
+    interactionLines: kanojoFriendCopy(KANOJO_FAIRY.interactionLines),
+    defaultLines: kanojoFriendCopy(KANOJO_FAIRY.defaultLines),
+});
+
 function kanojoPickLine(lines, randomFn) {
     if (!Array.isArray(lines) || !lines.length) return "";
     const random = typeof randomFn === "function" ? randomFn : Math.random;
@@ -313,11 +344,14 @@ function kanojoGetActionKey(actionId) {
 }
 
 function getKanojoFairyLine(actionId, npc, randomFn, interactionId) {
+    const data = npc && Number(npc.favor) >= 10000
+        ? KANOJO_FAIRY_FRIEND
+        : KANOJO_FAIRY;
     if (interactionId
-        && KANOJO_FAIRY.interactionLines
-        && KANOJO_FAIRY.interactionLines[interactionId]) {
+        && data.interactionLines
+        && data.interactionLines[interactionId]) {
         return kanojoPickLine(
-            KANOJO_FAIRY.interactionLines[interactionId],
+            data.interactionLines[interactionId],
             randomFn
         );
     }
@@ -326,20 +360,20 @@ function getKanojoFairyLine(actionId, npc, randomFn, interactionId) {
     const roll = random();
 
     if (actionKey && roll < 0.7) {
-        return kanojoPickLine(KANOJO_FAIRY.actionLines[actionKey], random);
+        return kanojoPickLine(data.actionLines[actionKey], random);
     }
 
     const moodKey = kanojoGetMoodKey(npc);
-    if (KANOJO_FAIRY.moodLines[moodKey] && roll < 0.9) {
-        return kanojoPickLine(KANOJO_FAIRY.moodLines[moodKey], random);
+    if (data.moodLines[moodKey] && roll < 0.9) {
+        return kanojoPickLine(data.moodLines[moodKey], random);
     }
 
     const favorTier = kanojoGetFavorTier(npc);
-    if (KANOJO_FAIRY.favorLines[favorTier]) {
-        return kanojoPickLine(KANOJO_FAIRY.favorLines[favorTier], random);
+    if (data.favorLines[favorTier]) {
+        return kanojoPickLine(data.favorLines[favorTier], random);
     }
 
-    return kanojoPickLine(KANOJO_FAIRY.defaultLines, random);
+    return kanojoPickLine(data.defaultLines, random);
 }
 
 function getKanojoNpcLine(npc, actionId, randomFn, interactionId) {
@@ -353,5 +387,6 @@ function getKanojoNpcStyle(npc) {
 }
 
 window.KANOJO_FAIRY = KANOJO_FAIRY;
+window.KANOJO_FAIRY_FRIEND = KANOJO_FAIRY_FRIEND;
 window.getKanojoNpcLine = getKanojoNpcLine;
 window.getKanojoNpcStyle = getKanojoNpcStyle;
