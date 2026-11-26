@@ -101,6 +101,42 @@ function performFocus() {
     return true;
 }
 
+function performFocusBatch(uses) {
+    const count = Math.floor(Number(uses) || 0);
+    if (count <= 0 || !isFocusAvailable()) return false;
+
+    const power = getFocusSkipSeconds();
+    const manaCost = getFocusSkipManaCost();
+    const totalCost = round2(manaCost * count);
+    const totalTime = round2(power * count);
+    const manaBefore = Number(player.mana) || 0;
+    const spend = typeof spendPlayerMana === "function"
+        ? spendPlayerMana(totalCost)
+        : {
+            before: manaBefore,
+            after: round2(Math.max(0, manaBefore - totalCost)),
+            spent: round2(Math.max(0, Math.min(manaBefore, totalCost))),
+            damage: 0,
+        };
+    player.mana = spend.after;
+
+    if (spend.spent > 0 && player.wizardy) {
+        player.wizardy.addexp(spend.spent);
+    }
+    if (power > 0 && player.focus) {
+        if (typeof createSkillBar === "function") createSkillBar("focus");
+        player.focus.addexp(Math.max(1, round2(power)) * count);
+    }
+
+    logMessage("You focus " + count + " times and skip "
+        + totalTime + " seconds. Mana spent: "
+        + round2(spend.spent) + ".");
+    if (typeof simulateTimePassage === "function") {
+        simulateTimePassage(totalTime, { skipManaRegen: true });
+    }
+    return true;
+}
+
 let autoFocusManaRunning = false;
 
 // Lazy basics level 7: spend mana through Focus when the next second of
@@ -129,28 +165,28 @@ function tryAutoFocusMana() {
     }
 
     autoFocusManaRunning = true;
-    let uses = 0;
     try {
+        const focusCost = typeof getFocusSkipManaCost === "function"
+            ? getFocusSkipManaCost()
+            : 0;
+        if (!(focusCost > 0)) return false;
+
+        let uses = 0;
+        let simulatedMana = Number(player.mana) || 0;
         while (uses < 50 && isFocusAvailable()) {
-            const current = Number(player.mana) || 0;
             const currentRegen = typeof getManaRegenPerSecond === "function"
                 ? getManaRegenPerSecond()
                 : 0;
-            if (current + currentRegen < maxMana) break;
-            if (typeof getFocusSkipManaCost === "function"
-                && current < getFocusSkipManaCost()) {
-                break;
-            }
-
-            const manaBefore = current;
-            if (!performFocus()) break;
+            if (simulatedMana + currentRegen < maxMana) break;
+            if (simulatedMana < focusCost) break;
+            simulatedMana -= focusCost;
             uses += 1;
-            if ((Number(player.mana) || 0) >= manaBefore) break;
         }
+        if (uses <= 0) return false;
+        return performFocusBatch(uses);
     } finally {
         autoFocusManaRunning = false;
     }
-    return uses > 0;
 }
 
 function canMove() {
