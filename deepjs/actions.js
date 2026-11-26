@@ -1317,6 +1317,9 @@ let dayDreamUnlocked = false;
 let researchUnlocked = false;
 let activeResearchTechnology = null;
 let ResearchLeft = 0;
+// Set when the player manually stops Research. Automatic behavior must not
+// immediately start it again; selecting a technology clears the block.
+let researchAutoStartBlocked = false;
 const MAX_RESEARCH_QUEUE = 2;
 const researchQueue = [];
 // Every non-restoration timed action the player starts is remembered here,
@@ -1561,18 +1564,60 @@ function updateActionButton(actionId) {
     button.setAttribute("aria-pressed", state === "active" ? "true" : "false");
 }
 
-function normalizePreviousTimedActionIds(ids, legacyId) {
+function normalizePreviousTimedActionIds(ids, legacyId, maxSlots) {
     const source = ids !== undefined ? ids : legacyId;
+    const limit = Math.max(1, Math.floor(Number(maxSlots) || getMaxActionSlots()));
 
     if (Array.isArray(source)) {
-        return source.filter(function (actionId, index) {
+        const normalized = source.filter(function (actionId, index) {
             return typeof actionId === "string"
                 && actionId
                 && source.indexOf(actionId) === index;
         });
+        return normalized.slice(-limit);
     }
 
-    return typeof source === "string" && source ? [source] : [];
+    return typeof source === "string" && source
+        ? [source].slice(-limit)
+        : [];
+}
+
+function getMaxActionSlots() {
+    const value = Math.floor(Number(
+        typeof maxActions !== "undefined" ? maxActions : 1
+    ) || 1);
+    return Math.max(1, value);
+}
+
+function capPreviousTimedActionIds() {
+    if (!Array.isArray(previousTimedActionIds)) {
+        previousTimedActionIds = [];
+        return;
+    }
+    const max = getMaxActionSlots();
+    if (previousTimedActionIds.length > max) {
+        previousTimedActionIds = previousTimedActionIds.slice(-max);
+    }
+}
+
+function rememberPreviousTimedAction(actionId) {
+    if (!actionId) return;
+    previousTimedActionIds = previousTimedActionIds.filter(function (id) {
+        return id !== actionId;
+    });
+    previousTimedActionIds.push(actionId);
+    capPreviousTimedActionIds();
+}
+
+function forgetPreviousTimedAction(actionId) {
+    if (!actionId) return;
+    if (typeof isActionManagedByEnabledHabit === "function"
+        && isActionManagedByEnabledHabit(actionId)) {
+        return;
+    }
+    previousTimedActionIds = previousTimedActionIds.filter(function (id) {
+        return id !== actionId;
+    });
 }
 
 function hasActionTag(action, tag) {
@@ -1589,6 +1634,10 @@ function isRestorationAction(action) {
 
 function shouldRememberPreviousTimedAction(action) {
     if (!action || isRestorationAction(action)) return false;
+    if (typeof isActionManagedByEnabledHabit === "function"
+        && isActionManagedByEnabledHabit(action.id)) {
+        return false;
+    }
     // Lazy basics 5+ starts daydreaming itself whenever the character is idle.
     // Do not also feed it into the level 2 resume list.
     if (action.id === "daydream" && LAZY_BASICS_TECHNOLOGY.level >= 5) return false;
@@ -1602,7 +1651,7 @@ function shouldRememberPreviousTimedAction(action) {
     return true;
 }
 
-function startTimedAction(action) {
+function startTimedAction(action, options) {
     if (typeof isCombatActive === "function" && isCombatActive()) {
         logMessage("You cannot start actions during combat.");
         return false;
@@ -1627,21 +1676,14 @@ function startTimedAction(action) {
     actionStates[action.id] = Activity.Active;
     // Restoration actions are recovery, never something to auto-resume.
     // Remember every started action so several can be resumed together.
-    if (shouldRememberPreviousTimedAction(action)
-        && previousTimedActionIds.indexOf(action.id) === -1) {
-        previousTimedActionIds.push(action.id);
+    if ((!options || options.remember !== false)
+        && shouldRememberPreviousTimedAction(action)) {
+        rememberPreviousTimedAction(action.id);
     }
     actionsCount -= 1;
     updateActionButton(action.id);
     if (action.id !== "focus") updateActionButton("focus");
 
-    // Harvest the yummies outranks ordinary work. Starting any other timed
-    // action while fruit or nut trees are ready immediately hands control to
-    // Trees Harvest, except for rest/sleep, travel and combat guards.
-    if (action.id !== "treesharvest"
-        && typeof startTreeHarvestIfEnabled === "function") {
-        startTreeHarvestIfEnabled();
-    }
     return true;
 }
 
@@ -1675,7 +1717,7 @@ function startSearchAfterExploration() {
     if (actionsCount <= 0) return;
 
     refreshActionButtons();
-    startTimedAction(searchAction);
+    startTimedAction(searchAction, { remember: false });
 }
 
 function startForageAfterSearch() {
@@ -1688,7 +1730,7 @@ function startForageAfterSearch() {
     if (actionsCount <= 0) return;
 
     refreshActionButtons();
-    startTimedAction(forageAction);
+    startTimedAction(forageAction, { remember: false });
 }
 
 function startTreeHarvestIfEnabled() {
@@ -1704,32 +1746,17 @@ function startTreeHarvestIfEnabled() {
     if (!isActionVisible(treeHarvestAction)) return false;
     if (treeHarvestAction.isComplete && treeHarvestAction.isComplete()) return false;
 
-    // Harvest the yummies has priority over ordinary timed actions. Rest and
-    // sleep are recovery and must keep running; travel and combat already
-    // return above.
+    // Rest and sleep are recovery and must keep running.
     const activeTimedActions = ACTIONS.filter(function (action) {
         return action.kind === ACTION_KIND.Timed && isActionActive(action.id);
     });
     const hasRestoration = activeTimedActions.some(isRestorationAction);
     if (hasRestoration) return false;
 
-    if (activeTimedActions.length) {
-        treeHarvestResumeActionIds = activeTimedActions
-            .filter(function (action) {
-                return !isRestorationAction(action);
-            })
-            .map(function (action) {
-                return action.id;
-            });
-        stopActiveTimedActions();
-    } else {
-        treeHarvestResumeActionIds = [];
-    }
-
     if (actionsCount <= 0) return false;
 
     refreshActionButtons();
-    return startTimedAction(treeHarvestAction);
+    return startTimedAction(treeHarvestAction, { remember: false });
 }
 
 function startDayDreamIfIdle() {
@@ -1747,7 +1774,7 @@ function startDayDreamIfIdle() {
     if (busy) return;
 
     refreshActionButtons();
-    startTimedAction(dayDreamAction);
+    startTimedAction(dayDreamAction, { remember: false });
 }
 
 function resumeTreeHarvestPreviousActions() {
@@ -1780,28 +1807,34 @@ function resumePreviousTimedActions() {    if (LAZY_BASICS_TECHNOLOGY.level < 2)
             return actionId !== "daydream";
         });
     }
-    if (typeof isHarvestTreesAutomationEnabled === "function"
-        && isHarvestTreesAutomationEnabled()) {
+    // Actions already owned by an enabled habit are handled by their own
+    // priority tier and must not be resumed as ordinary saved actions.
+    if (typeof isActionManagedByEnabledHabit === "function") {
         previousTimedActionIds = previousTimedActionIds.filter(function (actionId) {
-            return actionId !== "treesharvest";
+            return !isActionManagedByEnabledHabit(actionId);
         });
     }
+    capPreviousTimedActionIds();
+
+    const candidates = previousTimedActionIds.filter(function (actionId) {
+        if (actionsCount <= 0) return false;
+        const previousAction = getAction(actionId);
+        if (!previousAction || isRestorationAction(previousAction)) return false;
+        if (previousAction.kind !== ACTION_KIND.Timed) return false;
+        if (isActionActive(previousAction.id)) return false;
+        if (!isActionVisible(previousAction)) return false;
+        if (previousAction.isComplete && previousAction.isComplete()) return false;
+        return true;
+    });
+    if (!candidates.length) return 0;
 
     refreshActionButtons();
     let resumed = 0;
-
-    // Snapshot the list: starting an action remembers it again.
-    previousTimedActionIds.slice().forEach(function (actionId) {
+    candidates.forEach(function (actionId) {
         if (actionsCount <= 0) return;
-
         const previousAction = getAction(actionId);
-        if (!previousAction || isRestorationAction(previousAction)) return;
-        if (previousAction.kind !== ACTION_KIND.Timed) return;
-        if (isActionActive(previousAction.id)) return;
-        if (!isActionVisible(previousAction)) return;
-        if (previousAction.isComplete && previousAction.isComplete()) return;
-
-        if (startTimedAction(previousAction)) resumed += 1;
+        if (!previousAction) return;
+        if (startTimedAction(previousAction, { remember: false })) resumed += 1;
     });
 
     return resumed;
@@ -1853,6 +1886,10 @@ function stopActiveTimedActions() {
 function toggleTimedAction(action) {
     if (isActionActive(action.id)) {
         stopTimedAction(action);
+        forgetPreviousTimedAction(action.id);
+        if (action.id === "research") {
+            researchAutoStartBlocked = true;
+        }
     } else if (isActionVisible(action)) {
         if (LAZY_BASICS_TECHNOLOGY.level >= 6 && actionsCount <= 0) {
             stopActiveTimedActions();
@@ -2498,6 +2535,7 @@ function refreshActionButtons(silent) {
     });
 
     updateTravelOverlay();
+    if (typeof updateBehaviorSummary === "function") updateBehaviorSummary();
 }
 
 function clearActionButtons() {
@@ -2542,23 +2580,19 @@ function updateTechnologyButtons() {
 }
 
 function tryActivateAutoRest() {
-    if (LAZY_BASICS_TECHNOLOGY.level < 1) return;
-    if (!isHabitEnabled("autoRest")) return;
-    if (player.stamina > MIN_STAMINA_TO_FORAGE) return;
-    if (player.stamina >= player.maxstamina) return;
+    if (LAZY_BASICS_TECHNOLOGY.level < 1) return false;
+    if (!isHabitEnabled("autoRest")) return false;
+    if (player.stamina > MIN_STAMINA_TO_FORAGE) return false;
+    if (player.stamina >= player.maxstamina) return false;
 
     const restAction = getAction("rest");
-    if (!restAction || isActionActive("rest")) return;
-    if (!isActionVisible(restAction)) return;
-    if (actionsCount <= 0) return;
-
-    const busy = ACTIONS.some(function (action) {
-        return action.kind === ACTION_KIND.Timed && isActionActive(action.id);
-    });
-    if (busy) return;
+    if (!restAction || isActionActive("rest")) return false;
+    if (!isActionVisible(restAction)) return false;
+    if (actionsCount <= 0) return false;
+    if (isActionActive("sleep")) return false;
 
     refreshActionButtons();
-    startTimedAction(restAction);
+    return startTimedAction(restAction, { remember: false });
 }
 
 function beginResearch(technology) {
@@ -2623,6 +2657,7 @@ function tryStartResearch(technology) {
         return action.kind === ACTION_KIND.Timed && isActionActive(action.id);
     });
     const canAutoSwitch = hasActiveTimedAction
+        && actionsCount <= 0
         && researchQueue.length === 0
         && COZY_SCIENCE_TECHNOLOGY.level >= 1
         && isHabitEnabled("cozyScienceAutoResearch");
@@ -2645,8 +2680,9 @@ function tryStartResearch(technology) {
     }
 
     beginResearch(technology);
+    researchAutoStartBlocked = false;
     refreshActionButtons();
-    startTimedAction(getAction("research"));
+    return startTimedAction(getAction("research"), { remember: false });
 }
 
 function updateDayDreamUnlock(diff) {
@@ -2684,18 +2720,14 @@ function runActiveActions(diff) {
         if (action.isComplete && action.isComplete()) {
             if (action.completeMessage) logMessage(action.completeMessage);
             finishAction(action.id);
-            // Every restoration action (rest or sleep) should hand control
-            // back to the action that was interrupted, not only Rest.
-            if (isRestorationAction(action)) resumePreviousTimedActions();
-            if (action.id === "treesharvest") resumeTreeHarvestPreviousActions();
             if (action.id === "explore") startSearchAfterExploration();
             if (action.id === "search") startForageAfterSearch();
-            startTreeHarvestIfEnabled();
-            startDayDreamIfIdle();
         }
     });
 
-    startTreeHarvestIfEnabled();
+    if (typeof runPlayerBehavior === "function") {
+        runPlayerBehavior("active-actions");
+    }
 }
 
 // Above 900 sleepyness the character may doze off against their will.

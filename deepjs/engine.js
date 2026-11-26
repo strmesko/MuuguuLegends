@@ -1430,8 +1430,10 @@ function runPhotosynthesisHunger(diff) {
     if (player.hunger <= 0) player.autoEatActive = false;
 }
 
-let quartermisterAutoHabitId = null;
-let quartermisterPreviousActionIds = [];
+// Quartermaster habits are tracked per habit id. Several habits can share the
+// same action (Sticks and Leaves both use Forage), so stopping one habit must
+// not stop an action another active habit still needs.
+const quartermisterAutoStates = {};
 
 function getQuartermisterAutoAction(habit) {
     return habit && typeof getAction === "function"
@@ -1439,74 +1441,65 @@ function getQuartermisterAutoAction(habit) {
         : null;
 }
 
+function isQuartermisterActionNeeded(habit) {
+    if (!habit) return false;
+    if (getQuartermisterTarget(habit.id) <= 0) return false;
+    if (getQuartermisterResourceAmount(habit) > getQuartermisterTarget(habit.id)) {
+        return false;
+    }
+    return isQuartermisterActionAvailable(habit);
+}
+
+function isQuartermisterActionNeededByOtherHabit(actionId, exceptHabitId) {
+    return getQuartermisterHabits().some(function (habit) {
+        if (habit.id === exceptHabitId) return false;
+        if (habit.actionId !== actionId) return false;
+        return isQuartermisterActionNeeded(habit);
+    });
+}
+
 function startQuartermisterAutoAction(habit) {
-    if (!habit || quartermisterAutoHabitId) return false;
+    if (!habit || quartermisterAutoStates[habit.id]) return false;
     if (typeof isCombatActive === "function" && isCombatActive()) return false;
     if (typeof isTraveling === "function" && isTraveling()) return false;
     if (typeof isNpcDialogueActive === "function"
         && isNpcDialogueActive()) return false;
-    if (typeof actionsCount !== "undefined" && actionsCount <= 0) return false;
 
     const action = getQuartermisterAutoAction(habit);
     if (!action || !isQuartermisterActionAvailable(habit)) return false;
 
-    const previous = [];
-    ACTIONS.forEach(function (activeAction) {
-        if (activeAction.kind !== ACTION_KIND.Timed) return;
-        if (!isActionActive(activeAction.id)) return;
-        if (activeAction.id === action.id) return;
-        if (typeof isRestorationAction === "function"
-            && isRestorationAction(activeAction)) {
-            return;
-        }
-        previous.push(activeAction.id);
-        if (typeof stopTimedAction === "function") {
-            stopTimedAction(activeAction);
-        }
-    });
-    quartermisterPreviousActionIds = previous;
-
-    if (typeof startTimedAction === "function" && startTimedAction(action)) {
-        quartermisterAutoHabitId = habit.id;
+    // The action may already be running for another Quartermaster habit
+    // (Sticks and Leaves both use Forage). Register this habit as an owner
+    // only when the action is already managed; a manually started action is
+    // left alone and is taken over after it stops.
+    if (isActionActive(action.id)) {
+        const managed = getQuartermisterHabits().some(function (entry) {
+            return quartermisterAutoStates[entry.id]
+                && entry.actionId === action.id;
+        });
+        if (managed) quartermisterAutoStates[habit.id] = true;
         return true;
     }
 
-    const saved = quartermisterPreviousActionIds.slice();
-    quartermisterPreviousActionIds = [];
-    saved.forEach(function (actionId) {
-        if (actionsCount <= 0) return;
-        const previousAction = getAction(actionId);
-        if (!previousAction || previousAction.kind !== ACTION_KIND.Timed) return;
-        if (!isActionVisible(previousAction)) return;
-        if (previousAction.isComplete && previousAction.isComplete()) return;
-        startTimedAction(previousAction);
-    });
+    if (typeof actionsCount !== "undefined" && actionsCount <= 0) return false;
+
+    if (typeof startTimedAction === "function"
+        && startTimedAction(action, { remember: false })) {
+        quartermisterAutoStates[habit.id] = true;
+        return true;
+    }
     return false;
 }
 
-function stopQuartermisterAutoAction() {
-    const autoHabitId = quartermisterAutoHabitId;
-    quartermisterAutoHabitId = null;
-
-    if (autoHabitId) {
-        const habit = getQuartermisterHabit(autoHabitId);
-        const action = getQuartermisterAutoAction(habit);
-        if (action && isActionActive(action.id)
-            && typeof stopTimedAction === "function") {
-            stopTimedAction(action);
-        }
+function stopQuartermisterAutoAction(habitId) {
+    delete quartermisterAutoStates[habitId];
+    const habit = getQuartermisterHabit(habitId);
+    const action = getQuartermisterAutoAction(habit);
+    if (!action || !isActionActive(action.id)) return;
+    if (isQuartermisterActionNeededByOtherHabit(action.id, habitId)) return;
+    if (typeof stopTimedAction === "function") {
+        stopTimedAction(action);
     }
-
-    const previous = quartermisterPreviousActionIds.slice();
-    quartermisterPreviousActionIds = [];
-    previous.forEach(function (actionId) {
-        if (typeof actionsCount !== "undefined" && actionsCount <= 0) return;
-        const action = getAction(actionId);
-        if (!action || action.kind !== ACTION_KIND.Timed) return;
-        if (!isActionVisible(action)) return;
-        if (action.isComplete && action.isComplete()) return;
-        startTimedAction(action);
-    });
 }
 
 function updateQuartermisterAutomation(diff) {
@@ -1527,18 +1520,17 @@ function updateQuartermisterAutomation(diff) {
         updateQuartermisterStatusLabels();
     }
 
-    if (quartermisterAutoHabitId) {
-        const habit = getQuartermisterHabit(quartermisterAutoHabitId);
-        if (!habit
-            || getQuartermisterTarget(habit.id) <= 0
-            || getQuartermisterResourceAmount(habit)
-                > getQuartermisterTarget(habit.id)
-            || !isQuartermisterActionAvailable(habit)) {
-            stopQuartermisterAutoAction();
+    // Drop states whose action was stopped or whose target is satisfied.
+    Object.keys(quartermisterAutoStates).forEach(function (habitId) {
+        const habit = getQuartermisterHabit(habitId);
+        const action = getQuartermisterAutoAction(habit);
+        if (!habit || !action || !isActionActive(action.id)
+            || !isQuartermisterActionNeeded(habit)) {
+            stopQuartermisterAutoAction(habitId);
         }
-        return;
-    }
+    });
 
+    // Rest and sleep are recovery and must keep running.
     const resting = ACTIONS.some(function (action) {
         return action.kind === ACTION_KIND.Timed
             && isActionActive(action.id)
@@ -1547,14 +1539,14 @@ function updateQuartermisterAutomation(diff) {
     });
     if (resting) return;
 
+    // Fill every free action slot with the first needed resources. Habits that
+    // share an already running action are registered without a new slot.
     const habits = getQuartermisterHabits();
     for (let index = 0; index < habits.length; index += 1) {
         const habit = habits[index];
-        const target = getQuartermisterTarget(habit.id);
-        if (target <= 0) continue;
-        if (getQuartermisterResourceAmount(habit) > target) continue;
-        if (!isQuartermisterActionAvailable(habit)) continue;
-        if (startQuartermisterAutoAction(habit)) return;
+        if (quartermisterAutoStates[habit.id]) continue;
+        if (!isQuartermisterActionNeeded(habit)) continue;
+        startQuartermisterAutoAction(habit);
     }
 }
 
@@ -1591,9 +1583,6 @@ function productionLoop(diff, options) {
     }
     runTravelProduction(diff);
     runActiveActions(diff);
-    if (typeof updateQuartermisterAutomation === "function") {
-        updateQuartermisterAutomation(diff);
-    }
     if (typeof updateAssPoison === "function") updateAssPoison(diff);
     if (typeof updateCombat === "function") updateCombat(diff);
     if (typeof checkPlayerDeath === "function") {
@@ -1608,7 +1597,9 @@ function productionLoop(diff, options) {
     if (typeof flushPendingFocusSkipTime === "function") {
         flushPendingFocusSkipTime();
     }
-    tryActivateAutoRest();
+    if (typeof runPlayerBehavior === "function") {
+        runPlayerBehavior("tick");
+    }
 }
 
 // Fast-forwards the whole simulation by `seconds`. Used by instant actions

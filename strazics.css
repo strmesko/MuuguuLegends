@@ -509,6 +509,15 @@ body{font-size:max(6px,1em);}
   .habititem:first-child {
     border-top: none;
   }
+  .habitbehaviorpriority,
+  .habitbehaviorsaved {
+    padding: 4px 6px;
+    font: max(6px, 0.65em) "SimSun";
+    color: #1f5f2a;
+    border-top: 1px dashed #a3e3b4;
+    line-height: 1.4;
+    word-break: break-word;
+  }
   .habitswitch {
     display: flex;
     align-items: center;
@@ -3175,6 +3184,11 @@ body.theme-dark .habitcategorytitle,
 body.theme-dark .equipheader,
 body.theme-dark .equipgrouptitle {
     background-color: #2a3a2a;
+    color: #cfe8cf;
+    border-color: #4b5d4b;
+}
+body.theme-dark .habitbehaviorpriority,
+body.theme-dark .habitbehaviorsaved {
     color: #cfe8cf;
     border-color: #4b5d4b;
 }

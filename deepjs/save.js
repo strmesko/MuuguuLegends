@@ -145,12 +145,14 @@
             numberFormat: numberFormat,
             actionStates: Object.assign({}, actionStates),
             actionVisibility: Object.assign({}, actionVisibility),
-            previousTimedActionIds: previousTimedActionIds.slice(),
+            previousTimedActionIds: previousTimedActionIds
+                .slice(-getMaxActionSlots()),
             activeTravel: activeTravel ? Object.assign({}, activeTravel) : null,
             dayDreamUnlocked: dayDreamUnlocked,
             researchUnlocked: researchUnlocked,
             activeResearchTechnology: activeResearchTechnology ? activeResearchTechnology.name : null,
             ResearchLeft: ResearchLeft,
+            researchAutoStartBlocked: researchAutoStartBlocked === true,
             researchQueue: researchQueue.map(function (technology) { return technology.name; }),
             technologies: collectTechnologyData(),
             searchOpened: searchOpened,
@@ -324,12 +326,13 @@
             numberFormat: saveData.numberFormat ?? "standard",
             actionStates: normalizeActionStates(saveData),
             actionVisibility: saveData.actionVisibility ?? {},
-            previousTimedActionIds: normalizePreviousTimedActionIds(saveData.previousTimedActionIds, saveData.previousTimedActionId),
+            previousTimedActionIds: normalizePreviousTimedActionIds(saveData.previousTimedActionIds, saveData.previousTimedActionId, saveData.maxActions),
             activeTravel: saveData.activeTravel ?? null,
             dayDreamUnlocked: saveData.dayDreamUnlocked ?? false,
             researchUnlocked: saveData.researchUnlocked ?? false,
             activeResearchTechnology: saveData.activeResearchTechnology ?? null,
             ResearchLeft: saveData.ResearchLeft ?? null,
+            researchAutoStartBlocked: saveData.researchAutoStartBlocked === true,
             researchQueue: saveData.researchQueue ?? [],
             technologies: saveData.technologies ?? [],
             searchOpened: saveData.searchOpened ?? saveData.searchopened,
@@ -547,7 +550,8 @@
         researchUnlocked = saved.researchUnlocked === true;
         previousTimedActionIds = normalizePreviousTimedActionIds(
             saved.previousTimedActionIds,
-            saved.previousTimedActionId
+            saved.previousTimedActionId,
+            saved.maxActions
         ).map(function (actionId) {
             return actionId === "meditate" ? "focus" : actionId;
         });
@@ -575,6 +579,7 @@
         }
         activeResearchTechnology = getTechnologyByName(saved.activeResearchTechnology);
         ResearchLeft = saved.ResearchLeft ?? (activeResearchTechnology ? activeResearchTechnology.getRequiredResearch() : 0);
+        researchAutoStartBlocked = saved.researchAutoStartBlocked === true;
         researchQueue.length = 0;
         (saved.researchQueue || []).forEach(function (technologyName) {
             const technology = getTechnologyByName(technologyName);

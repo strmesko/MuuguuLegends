@@ -90,6 +90,12 @@
     habitharvesttheyummies.onclick = function(){
         tryStartResearch(HARVEST_THE_YUMMIES_TECHNOLOGY);
     };
+    const habitquartermister = document.getElementById('habitquartermister');
+    if (habitquartermister) {
+        habitquartermister.onclick = function(){
+            tryStartResearch(QUARTERMISTER_TECHNOLOGY);
+        };
+    }
     habitfaunabully.onclick = function(){
         tryStartResearch(FAUNA_BULLY_TECHNOLOGY);
     };

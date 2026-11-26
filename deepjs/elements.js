@@ -1646,9 +1646,13 @@ function renderStatusIcons() {
     createChildElement('button', 'habit-skill', DIET_BASICS_TECHNOLOGY.name, 'habitdietbasics', 'habitdietbasicsnode', DIET_BASICS_TECHNOLOGY.getDescription());
     decorateResearchNode('habitdietbasics', 'fa-cutlery', DIET_BASICS_TECHNOLOGY);
     createChildElement('ul', 'habit-children', '', 'habitdietbasicschildren', 'habitdietbasicsnode', '');
-    createChildElement('li', 'habit-node', '', 'habitharvesttheyummiesnode', 'habitdietbasicschildren', '');
+    createChildElement('li', 'habit-node open', '', 'habitharvesttheyummiesnode', 'habitdietbasicschildren', '');
     createChildElement('button', 'habit-skill', HARVEST_THE_YUMMIES_TECHNOLOGY.name, 'habitharvesttheyummies', 'habitharvesttheyummiesnode', HARVEST_THE_YUMMIES_TECHNOLOGY.getDescription());
     decorateResearchNode('habitharvesttheyummies', 'fa-tree', HARVEST_THE_YUMMIES_TECHNOLOGY);
+    createChildElement('ul', 'habit-children', '', 'habitharvesttheyummieschildren', 'habitharvesttheyummiesnode', '');
+    createChildElement('li', 'habit-node open', '', 'habitquartermisternode', 'habitharvesttheyummieschildren', '');
+    createChildElement('button', 'habit-skill', QUARTERMISTER_TECHNOLOGY.name, 'habitquartermister', 'habitquartermisternode', QUARTERMISTER_TECHNOLOGY.getDescription());
+    decorateResearchNode('habitquartermister', 'fa-clipboard', QUARTERMISTER_TECHNOLOGY);
     createChildElement('li', 'habit-node open', '', 'habitfaunabullynode', 'habitdietbasicschildren', '');
     createChildElement('button', 'habit-skill', FAUNA_BULLY_TECHNOLOGY.name, 'habitfaunabully', 'habitfaunabullynode', FAUNA_BULLY_TECHNOLOGY.getDescription());
     decorateResearchNode('habitfaunabully', 'fa-hand-rock-o', FAUNA_BULLY_TECHNOLOGY);
@@ -1734,6 +1738,7 @@ function renderStatusIcons() {
             if (input) input.value = String(getQuartermisterTarget(habit.id));
         });
         updateQuartermisterStatusLabels();
+        if (typeof updateBehaviorSummary === "function") updateBehaviorSummary();
     }
 
     function updateQuartermisterStatusLabels() {
@@ -1779,6 +1784,27 @@ function renderStatusIcons() {
             content.appendChild(container);
         }
         container.innerHTML = '';
+
+        const behaviorCategory = document.createElement('div');
+        behaviorCategory.className = 'habitcategory habitbehavior';
+        behaviorCategory.id = 'habitbehavior';
+
+        const behaviorTitle = document.createElement('div');
+        behaviorTitle.className = 'habitcategorytitle';
+        behaviorTitle.innerText = 'Automatic behavior';
+        behaviorCategory.appendChild(behaviorTitle);
+
+        const behaviorPriority = document.createElement('div');
+        behaviorPriority.className = 'habitbehaviorpriority';
+        behaviorPriority.id = 'habitbehaviorpriority';
+        behaviorCategory.appendChild(behaviorPriority);
+
+        const behaviorSaved = document.createElement('div');
+        behaviorSaved.className = 'habitbehaviorsaved';
+        behaviorSaved.id = 'habitbehaviorsaved';
+        behaviorCategory.appendChild(behaviorSaved);
+
+        container.appendChild(behaviorCategory);
 
         HABIT_CATEGORIES.forEach(function (category) {
             const categoryElement = document.createElement('div');
