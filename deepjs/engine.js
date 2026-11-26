@@ -830,6 +830,9 @@ function updateAutoHungerEating() {
             const feastMultiplier = typeof getFeastModifier === "function"
                 ? 1 + getFeastModifier(currentTile) / 100
                 : 1;
+            const quality = typeof getResourceQuality === "function"
+                ? getResourceQuality(resourceId)
+                : (Number(stack.quality) || 1);
             increasePotential(
                 boundStat,
                 consumed * (1 + quality / 10)
