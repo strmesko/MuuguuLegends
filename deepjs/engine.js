@@ -1266,12 +1266,13 @@ function updateSkillGUI(skillName, lvl, exp, description, potential) {
     // when something equipped actually affects this stat or skill.
     const clothingBonuses = getEquippedPropertyTooltipHtml(skillKey);
     const potentialValue = Math.max(0, Number(potential) || 0);
-    const potentialOverflow = Math.max(0, potentialValue - MAX_POTENTIAL);
-    const potentialLabel = potentialOverflow > 0
-        ? round2(potentialValue) + "% (+" + round2(potentialOverflow) + "% above 100%)"
-        : round2(potentialValue) + "%";
+    const currentPotential = round2(potentialValue);
+    const maxPotential = round2(getMaxPotential());
+    const minPotential = round2(getMinPotential());
+    const potentialLabel = currentPotential + "% / " + maxPotential + "%";
     const tooltip = description + "<br> LVL:" + lvl + " EXP remain:" + round2(exp)
         + "<br>Potential: " + potentialLabel
+        + "<br>Minimum potential: " + minPotential + "%"
         + (clothingBonuses ? "<br>" + clothingBonuses : "");
     document.getElementById('skillsplace'+skillKey).setAttribute('data-tooltip', tooltip);
 // $('#skillsbar' + skillname).contents()[0].nodeValue = skillname + " LVL:" + lvl + " EXP remain:" + exp;
