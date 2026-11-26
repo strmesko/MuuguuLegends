@@ -142,6 +142,33 @@ let autoFocusManaRunning = false;
 // Lazy basics level 7: spend mana through Focus when the next second of
 // regeneration would otherwise overflow the mana bar. Repeats while the
 // condition still holds and Focus remains available.
+function hasActiveGatheringActionForAutoFocus() {
+    if (typeof ACTIONS === "undefined"
+        || typeof actionStates === "undefined"
+        || typeof Activity === "undefined") {
+        return false;
+    }
+
+    const gatheringActionIds = [
+        "forage",
+        "mining",
+        "dig",
+        "treesharvest",
+        "harvestcrops",
+        "cuttree",
+        "improvecrops",
+        "improvetrees",
+        "fish",
+    ];
+    return ACTIONS.some(function (action) {
+        return action
+            && actionStates[action.id] === Activity.Active
+            && gatheringActionIds.indexOf(action.id) !== -1;
+    });
+}
+
+// Auto-focus can skip multiple seconds at once. During gathering actions this
+// multiplies the simulated work and can freeze large saves, so skip it there.
 function tryAutoFocusMana() {
     if (autoFocusManaRunning) return false;
     if (typeof isHabitEnabled !== "function"
@@ -152,6 +179,7 @@ function tryAutoFocusMana() {
         return false;
     }
     if (typeof player === "undefined" || !player) return false;
+    if (hasActiveGatheringActionForAutoFocus()) return false;
 
     const maxMana = Number(player.maxmana) || 0;
     if (maxMana <= 0) return false;
