@@ -71,13 +71,42 @@ function refreshNumberFormatDisplay() {
     if (typeof updateHabitSettings === "function") updateHabitSettings();
 }
 
-function updateGUI() {
+const HEAVY_GUI_INTERVAL_ACTIVE_MS = 2000;
+const HEAVY_GUI_INTERVAL_IDLE_MS = 500;
+let lastHeavyGuiUpdate = 0;
+
+function hasActiveTimedActionForGui() {
+    if (typeof ACTIONS === "undefined"
+        || typeof actionStates === "undefined"
+        || typeof Activity === "undefined"
+        || typeof ACTION_KIND === "undefined") {
+        return false;
+    }
+    return ACTIONS.some(function (action) {
+        return action.kind === ACTION_KIND.Timed
+            && actionStates[action.id] === Activity.Active;
+    });
+}
+
+function updateGUI(forceHeavy) {
     calculateStats();
     updateCharacterHeader();
     updateStatusBars();
     updateMenuStatus();
     if (typeof renderGameClock === "function") renderGameClock();
     updateCoreStatsGUI();
+    updateLearnedSkillsGUI();
+
+    const now = Date.now();
+    const heavyInterval = hasActiveTimedActionForGui()
+        ? HEAVY_GUI_INTERVAL_ACTIVE_MS
+        : HEAVY_GUI_INTERVAL_IDLE_MS;
+    if (forceHeavy !== true
+        && now - lastHeavyGuiUpdate < heavyInterval) {
+        return;
+    }
+
+    lastHeavyGuiUpdate = now;
     if (typeof updateCharacterPowerGUI === "function") updateCharacterPowerGUI();
     renderResources();
     if (typeof refreshCraftAvailability === "function") refreshCraftAvailability();
@@ -85,7 +114,6 @@ function updateGUI() {
     if (typeof refreshImproveAvailability === "function") refreshImproveAvailability();
     renderStatusIcons();
     removeStaleTooltips();
-    updateLearnedSkillsGUI();
     if (typeof refreshTabVisibility === "function") refreshTabVisibility();
 }
 
