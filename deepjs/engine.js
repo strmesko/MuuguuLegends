@@ -2944,6 +2944,7 @@ function getForageAmount(resourceId, profitAmount) {
 }
 
 const HYBRID_EXACT_ROLL_LIMIT = 24;
+const HYBRID_OFFLINE_ROLL_THRESHOLD = 10000;
 
 function randomNormalValue() {
     let u = 0;
@@ -2953,9 +2954,16 @@ function randomNormalValue() {
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
 }
 
+function getOfflineExpectedCount(trials, chance) {
+    return Math.max(0, Math.min(trials, Math.round(trials * chance)));
+}
+
 function sampleBinomialCount(trials, chance) {
     if (!(trials > 0) || !(chance > 0)) return 0;
     if (chance >= 1) return trials;
+    if (trials > HYBRID_OFFLINE_ROLL_THRESHOLD) {
+        return getOfflineExpectedCount(trials, chance);
+    }
     if (trials <= HYBRID_EXACT_ROLL_LIMIT) {
         let successes = 0;
         for (let attempt = 0; attempt < trials; attempt++) {
@@ -3041,6 +3049,15 @@ function resolveIntervalResourceRolls(seconds, entries) {
     entries.forEach(function (entry) {
         if (!(entry.chancePerSecond > 0)) return;
         const chance = 1 - Math.pow(1 - entry.chancePerSecond, duration);
+        if (duration > HYBRID_OFFLINE_ROLL_THRESHOLD) {
+            const expectedAmount = round2(
+                entry.amountPerSecond * duration * chance
+            );
+            if (expectedAmount > 0) {
+                entry.add(expectedAmount, entry.quality);
+            }
+            return;
+        }
         if (Math.random() >= chance) return;
         const amount = entry.amountPerSecond * duration;
         if (amount > 0) entry.add(amount, entry.quality);
