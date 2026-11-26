@@ -3,10 +3,11 @@ const EXPERIENCE_LEVEL_STEP = 10;
 const EXPERIENCE_LEVEL_MULTIPLIER = 1.1;
 const CHARACTER_EXP_LEVEL_STEP = 10;
 const CHARACTER_EXP_LEVEL_MULTIPLIER = 1.01;
-// 100% is the baseline potential scale. The actual maximum is dynamic and
-// depends on the "My skills needs potental" technology.
+// 100% is the baseline maximum potential scale. The actual maximum is dynamic
+// and depends on the "My skills needs potental" technology. Minimum potential
+// starts at 5 and grows with NotSoWorthless research.
 const MAX_POTENTIAL = 100;
-const MIN_POTENTIAL = 100;
+const MIN_POTENTIAL = 5;
 const MIN_POTENTIAL_BONUS_PER_LEVEL = 1;
 const STAT_POTENTIAL_DECAY = 0.90;
 const SKILL_POTENTIAL_DECAY = 0.95;
