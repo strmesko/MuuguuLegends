@@ -689,12 +689,22 @@ function endAutoCookLogBatch() {
 
     if (dishCount > 1) {
         logMessage("You cook and ate " + dishCount + " dishes");
+    } else {
+        entries.forEach(function (entry) {
+            logMessage(entry.text, entry.options || undefined);
+        });
+    }
+
+    if (dishCount <= 0) return;
+    if (typeof isOfflineSimulationRunning === "function"
+        && isOfflineSimulationRunning()) {
         return;
     }
 
-    entries.forEach(function (entry) {
-        logMessage(entry.text, entry.options || undefined);
-    });
+    // The per-dish renders were skipped during the batch; refresh once now.
+    if (typeof renderResources === "function") renderResources();
+    if (typeof renderInventorySlots === "function") renderInventorySlots();
+    if (typeof renderCraftPanels === "function") renderCraftPanels();
 }
 
 function updateAutoHungerEating() {
@@ -718,6 +728,9 @@ function updateAutoHungerEating() {
 
     let excludedId = null;
     let safety = 0;
+    const autoCookPlan = typeof createAutoCookPlan === "function"
+        ? createAutoCookPlan()
+        : null;
     const autoCookLogging = typeof beginAutoCookLogBatch === "function";
     if (autoCookLogging) beginAutoCookLogBatch();
 
@@ -742,25 +755,32 @@ function updateAutoHungerEating() {
             // cooking is impossible (no power, ingredients or free slot), the
             // loop falls back to raw edible resources below.
             if (DIET_BASICS_TECHNOLOGY.level >= 4
-                && typeof autoCookDietFood === "function"
-                && autoCookDietFood()) {
-                if (typeof noteAutoCookDish === "function") {
-                    noteAutoCookDish();
-                }
+                && typeof autoCookDietFood === "function") {
                 const batchTarget = typeof getAutoCookBatchTarget === "function"
                     ? getAutoCookBatchTarget(hunger)
                     : 1;
-                for (let batch = 1; batch < batchTarget; batch++) {
-                    if (typeof hasFreeInventorySlot === "function"
-                        && !hasFreeInventorySlot()) {
-                        break;
-                    }
-                    if (!autoCookDietFood()) break;
+                if (autoCookPlan) autoCookPlan.targetDishes = batchTarget;
+                if (autoCookDietFood(autoCookPlan)) {
                     if (typeof noteAutoCookDish === "function") {
                         noteAutoCookDish();
                     }
+                    for (let batch = 1; batch < batchTarget; batch++) {
+                        if (typeof hasFreeInventorySlot === "function"
+                            && !hasFreeInventorySlot()) {
+                            break;
+                        }
+                        if (autoCookPlan) {
+                            autoCookPlan.targetDishes = Math.max(
+                                1, batchTarget - batch
+                            );
+                        }
+                        if (!autoCookDietFood(autoCookPlan)) break;
+                        if (typeof noteAutoCookDish === "function") {
+                            noteAutoCookDish();
+                        }
+                    }
+                    continue;
                 }
-                continue;
             }
         }
 

@@ -5652,15 +5652,37 @@ function getAutoCookResourceSnapshot() {
     return remaining;
 }
 
-function pickAutoCookResource(candidates, amount, remaining, priorityStat) {
+function pickAutoCookResource(candidates, amount, remaining, priorityStat, targetDishes) {
     const available = candidates.filter(function (resourceId) {
         return (remaining[resourceId] || 0) >= amount;
     });
     if (!available.length) return null;
 
     let pool = available;
+    // For a hunger spike the batch tries to cook the same recipe with the same
+    // resources. Prefer a resource that can cover the whole batch, then fall
+    // back to the resource that covers the most dishes.
+    const wanted = Math.max(1, Math.floor(Number(targetDishes) || 1));
+    if (wanted > 1) {
+        const enough = available.filter(function (resourceId) {
+            return (remaining[resourceId] || 0) >= amount * wanted;
+        });
+        if (enough.length) {
+            pool = enough;
+        } else {
+            let bestCoverage = 0;
+            available.forEach(function (resourceId) {
+                const coverage = Math.floor((remaining[resourceId] || 0) / amount);
+                if (coverage > bestCoverage) bestCoverage = coverage;
+            });
+            pool = available.filter(function (resourceId) {
+                return Math.floor((remaining[resourceId] || 0) / amount) === bestCoverage;
+            });
+        }
+    }
+
     if (priorityStat && typeof getFoodStatBinding === "function") {
-        const preferred = available.filter(function (resourceId) {
+        const preferred = pool.filter(function (resourceId) {
             return getFoodStatBinding(resourceId) === priorityStat;
         });
         if (preferred.length) pool = preferred;
@@ -5671,14 +5693,31 @@ function pickAutoCookResource(candidates, amount, remaining, priorityStat) {
     return chosen;
 }
 
+function takeReusableAutoCookResource(candidates, amount, remaining, preferredId) {
+    const resourceId = Number(preferredId);
+    if (!Number.isFinite(resourceId)
+        || candidates.indexOf(resourceId) === -1
+        || (remaining[resourceId] || 0) < amount) {
+        return undefined;
+    }
+    remaining[resourceId] = Math.max(0, (remaining[resourceId] || 0) - amount);
+    return resourceId;
+}
+
 // DietBasics 4: random dish and no bonus ingredients.
 // DietBasics 5: every cooking-granted bonus slot is filled when possible.
 // DietBasics 6: main and bonus ingredients prefer the priority stat.
-function buildAutoCookChoices(recipe, level, priorityStat) {
+// options.targetDishes: how many dishes the current hunger spike needs.
+// options.reuse: previously chosen resource ids, so a batch keeps one recipe
+// and the same ingredients.
+function buildAutoCookChoices(recipe, level, priorityStat, options) {
     // Only edible results are auto-cooked: raw dough and pasta are ingredients.
     const resultDefinition = recipe && getItemDefinition(recipe.itemId);
     if (!resultDefinition || !resultDefinition.food) return null;
 
+    const settings = options || {};
+    const targetDishes = Math.max(1, Math.floor(Number(settings.targetDishes) || 1));
+    const reuse = settings.reuse || null;
     const choiceIds = getCraftChoiceResourceIds(recipe);
     const choiceAmount = Math.max(1, Number(recipe.choiceAmount) || 1);
     const bonusAmount = Math.max(1, Number(recipe.bonusChoiceAmount) || 1);
@@ -5687,50 +5726,90 @@ function buildAutoCookChoices(recipe, level, priorityStat) {
             || isHabitEnabled("dietAutoCookExtras"));
     const bonusCount = extrasEnabled ? getAutoCookBonusSlotCount(recipe) : 0;
     const remaining = getAutoCookResourceSnapshot();
+    const neededPerDish = Object.create(null);
     const ingredientPriority = level >= 6 ? priorityStat : null;
+
+    function addNeeded(resourceId, amount) {
+        if (resourceId == null) return;
+        const id = Number(resourceId);
+        if (!Number.isFinite(id)) return;
+        neededPerDish[id] = (neededPerDish[id] || 0) + amount;
+    }
+
+    (Array.isArray(recipe.resources) ? recipe.resources : []).forEach(function (entry) {
+        addNeeded(entry.resourceId, Math.max(1, Number(entry.amount) || 1));
+    });
 
     let choiceResourceId = null;
     if (choiceIds.length) {
-        choiceResourceId = pickAutoCookResource(
-            choiceIds,
-            choiceAmount,
-            remaining,
-            ingredientPriority
-        );
+        const reused = reuse
+            ? takeReusableAutoCookResource(
+                choiceIds, choiceAmount, remaining, reuse.choiceResourceId
+            )
+            : undefined;
+        choiceResourceId = reused !== undefined
+            ? reused
+            : pickAutoCookResource(
+                choiceIds,
+                choiceAmount,
+                remaining,
+                ingredientPriority,
+                targetDishes
+            );
         if (choiceResourceId == null) return null;
+        addNeeded(choiceResourceId, choiceAmount);
     }
 
     // Mandatory ingredient slots (salads, soup) are filled the same way.
     const slotChoices = {};
+    const reuseSlots = reuse && reuse.slotChoices ? reuse.slotChoices : {};
     const slots = getCraftChoiceSlots(recipe);
     for (let index = 0; index < slots.length; index++) {
         const slot = slots[index];
         const amount = Math.max(1, Number(slot.amount) || 1);
-        const picked = pickAutoCookResource(
+        const reused = takeReusableAutoCookResource(
             slot.resourceIds,
             amount,
             remaining,
-            ingredientPriority
+            reuseSlots[slot.id]
         );
+        const picked = reused !== undefined
+            ? reused
+            : pickAutoCookResource(
+                slot.resourceIds,
+                amount,
+                remaining,
+                ingredientPriority,
+                targetDishes
+            );
         if (picked == null) return null;
         slotChoices[slot.id] = picked;
+        addNeeded(picked, amount);
     }
 
     // Inventory ingredient: use whatever is already in the bag. A mandatory
     // one may be crafted just in time at DietBasics level 7.
     let itemInstanceId = null;
+    let itemCapacity = Infinity;
     const itemChoice = getCraftItemChoice(recipe);
     if (itemChoice) {
         const items = getCraftItemChoices(recipe);
         if (items.length) {
             const picked = items[Math.floor(Math.random() * items.length)];
             itemInstanceId = picked.instanceId;
+            itemCapacity = items.length;
         } else if (itemChoice.optional !== true && level < 7) {
             return null;
+        } else if (itemChoice.optional !== true) {
+            // Level 7 can pre-craft the ingredient, so allow the batch to try.
+            itemCapacity = targetDishes;
         }
     }
 
     const bonusResourceIds = [];
+    const reuseBonus = reuse && Array.isArray(reuse.bonusResourceIds)
+        ? reuse.bonusResourceIds
+        : [];
     const bonusCandidateIds = getCraftBonusResourceIds(recipe);
     for (let index = 0; index < bonusCount; index++) {
         if (level < 5 || !bonusCandidateIds.length) {
@@ -5738,13 +5817,31 @@ function buildAutoCookChoices(recipe, level, priorityStat) {
             continue;
         }
 
-        const bonusResourceId = pickAutoCookResource(
+        const preferredBonus = index < reuseBonus.length
+            ? reuseBonus[index]
+            : undefined;
+        if (preferredBonus === null) {
+            bonusResourceIds.push(null);
+            continue;
+        }
+
+        const reused = takeReusableAutoCookResource(
             bonusCandidateIds,
             bonusAmount,
             remaining,
-            ingredientPriority
+            preferredBonus
         );
+        const bonusResourceId = reused !== undefined
+            ? reused
+            : pickAutoCookResource(
+                bonusCandidateIds,
+                bonusAmount,
+                remaining,
+                ingredientPriority,
+                targetDishes
+            );
         bonusResourceIds.push(bonusResourceId == null ? null : bonusResourceId);
+        if (bonusResourceId != null) addNeeded(bonusResourceId, bonusAmount);
     }
 
     const sauceInstanceIds = [];
@@ -5764,12 +5861,28 @@ function buildAutoCookChoices(recipe, level, priorityStat) {
         }
     }
 
+    // How many dishes the same recipe and ingredients can support.
+    let resourceCapacity = Infinity;
+    Object.keys(neededPerDish).forEach(function (resourceId) {
+        const perDish = neededPerDish[resourceId];
+        if (!(perDish > 0)) return;
+        const available = getResourceAmount(Number(resourceId));
+        resourceCapacity = Math.min(
+            resourceCapacity,
+            Math.floor(available / perDish)
+        );
+    });
+
     return {
         choiceResourceId: choiceResourceId,
         bonusResourceIds: bonusResourceIds,
         slotChoices: slotChoices,
         itemInstanceId: itemInstanceId,
         sauceInstanceIds: sauceInstanceIds,
+        capacity: Math.max(0, Math.min(
+            Number.isFinite(resourceCapacity) ? resourceCapacity : targetDishes,
+            itemCapacity
+        )),
     };
 }
 
@@ -5806,8 +5919,8 @@ function canAffordCraftIngredients(recipe, ingredientRecipe) {
     });
 }
 
-function tryAutoCookRecipe(recipe, level, priorityStat) {
-    const choices = buildAutoCookChoices(recipe, level, priorityStat);
+function tryAutoCookRecipe(recipe, level, priorityStat, presetChoices) {
+    const choices = presetChoices || buildAutoCookChoices(recipe, level, priorityStat);
     if (!choices) return false;
 
     const previousChoice = selectedCraftChoiceByRecipe[recipe.id];
@@ -6017,7 +6130,16 @@ function getAutoCookBatchTarget(hungerValue) {
     ));
 }
 
-function autoCookDietFood() {
+function createAutoCookPlan(targetDishes) {
+    return {
+        targetDishes: Math.max(1, Math.floor(Number(targetDishes) || 1)),
+        recipe: null,
+        reuse: null,
+        capacity: 0,
+    };
+}
+
+function autoCookDietFood(plan) {
     if (typeof DIET_BASICS_TECHNOLOGY === "undefined"
         || DIET_BASICS_TECHNOLOGY.level < 4) {
         return false;
@@ -6028,6 +6150,29 @@ function autoCookDietFood() {
     const priorityStat = level >= 6 && typeof getDietPriorityStat === "function"
         ? getDietPriorityStat()
         : null;
+    const batchTarget = Math.max(1, Math.floor(
+        Number(plan && plan.targetDishes) || 1
+    ));
+
+    // Keep cooking the same recipe with the same resource picks for the rest
+    // of the hunger spike while its stock lasts.
+    if (plan && plan.recipe && plan.capacity > 0) {
+        const choices = buildAutoCookChoices(plan.recipe, level, priorityStat, {
+            targetDishes: Math.min(batchTarget, plan.capacity),
+            reuse: plan.reuse,
+        });
+        if (choices
+            && tryAutoCookRecipe(plan.recipe, level, priorityStat, choices)) {
+            plan.capacity -= 1;
+            plan.reuse = {
+                choiceResourceId: choices.choiceResourceId,
+                slotChoices: Object.assign({}, choices.slotChoices),
+                bonusResourceIds: choices.bonusResourceIds.slice(),
+            };
+            return true;
+        }
+        plan.capacity = 0;
+    }
 
     let recipes = filterAutoCookRecipesByCategory(getAutoCookRecipes());
 
@@ -6055,10 +6200,68 @@ function autoCookDietFood() {
         if (usefulRecipes.length) recipes = usefulRecipes;
     }
 
-    for (let index = 0; index < recipes.length; index++) {
-        if (tryAutoCookRecipe(recipes[index], level, priorityStat)) {
-            return true;
+    const candidates = [];
+    recipes.forEach(function (recipe) {
+        if (typeof isCraftRecipeUnlocked === "function"
+            && !isCraftRecipeUnlocked(recipe)) {
+            return;
         }
+        if (typeof getCraftSkill === "function" && !getCraftSkill(recipe)) return;
+        if (typeof hasCraftToolPower === "function"
+            && !hasCraftToolPower(recipe)) {
+            return;
+        }
+        if (typeof canMeetCraftStationRequirements === "function"
+            && !canMeetCraftStationRequirements(recipe)) {
+            return;
+        }
+        if (recipe.requiresCookingPower === true
+            && typeof getCraftCookingPower === "function"
+            && getCraftCookingPower() <= 0) {
+            return;
+        }
+
+        const itemChoice = getCraftItemChoice(recipe);
+        if (itemChoice && itemChoice.optional !== true
+            && !getCraftItemChoices(recipe).length) {
+            if (level < 7 || !getAutoCookPreCraftRecipe(recipe)) return;
+        }
+
+        const choices = buildAutoCookChoices(recipe, level, priorityStat, {
+            targetDishes: batchTarget,
+        });
+        if (!choices || choices.capacity <= 0) return;
+        candidates.push({
+            recipe: recipe,
+            choices: choices,
+            capacity: choices.capacity,
+        });
+    });
+
+    // Prefer a recipe whose resources cover the whole requested batch.
+    // Otherwise use the recipe that covers the most dishes.
+    const enough = candidates.filter(function (entry) {
+        return entry.capacity >= batchTarget;
+    });
+    const pool = enough.length ? enough : candidates.slice().sort(
+        function (left, right) { return right.capacity - left.capacity; }
+    );
+
+    for (let index = 0; index < pool.length; index++) {
+        const entry = pool[index];
+        if (!tryAutoCookRecipe(entry.recipe, level, priorityStat, entry.choices)) {
+            continue;
+        }
+        if (plan) {
+            plan.recipe = entry.recipe;
+            plan.reuse = {
+                choiceResourceId: entry.choices.choiceResourceId,
+                slotChoices: Object.assign({}, entry.choices.slotChoices),
+                bonusResourceIds: entry.choices.bonusResourceIds.slice(),
+            };
+            plan.capacity = Math.max(0, entry.capacity - 1);
+        }
+        return true;
     }
     return false;
 }
@@ -6229,19 +6432,15 @@ function performCraft(recipe) {
         logMessage(craftLogText, craftLogOptions);
     }
 
-    if (typeof renderResources === "function"
-        && !(typeof isOfflineSimulationRunning === "function"
-            && isOfflineSimulationRunning())) {
-        renderResources();
-    }
-    if (typeof renderInventorySlots === "function"
-        && !(typeof isOfflineSimulationRunning === "function"
-            && isOfflineSimulationRunning())) {
-        renderInventorySlots();
-    }
-
-    if (typeof isOfflineSimulationRunning !== "function"
-        || !isOfflineSimulationRunning()) {
+    // Auto-cook batches and offline simulation refresh the UI once at the end
+    // instead of re-rendering every recipe/craft row for each dish.
+    const skipCraftUI = (typeof isAutoCookLogBatchActive === "function"
+            && isAutoCookLogBatchActive())
+        || (typeof isOfflineSimulationRunning === "function"
+            && isOfflineSimulationRunning());
+    if (!skipCraftUI) {
+        if (typeof renderResources === "function") renderResources();
+        if (typeof renderInventorySlots === "function") renderInventorySlots();
         renderCraftPanels();
     }
     return true;
