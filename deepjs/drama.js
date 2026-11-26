@@ -28,10 +28,6 @@ function clampDramaMeter(value) {
     return Math.max(0, Math.min(DRAMA_METER_MAX, number));
 }
 
-function getDramaMeter() {
-    return DramaMeter;
-}
-
 function setDramaMeter(value) {
     DramaMeter = clampDramaMeter(value);
     return DramaMeter;

@@ -325,11 +325,6 @@ function getContentUnlockTechnology(technologyKey) {
     return CONTENT_UNLOCK_TECHNOLOGIES[technologyKey] || null;
 }
 
-function getContentUnlockLevel(contentType, contentId) {
-    const requirement = getContentUnlockRequirement(contentType, contentId);
-    return requirement ? Math.max(0, Number(requirement.level) || 0) : 0;
-}
-
 function isContentUnlocked(contentType, contentId) {
     const requirement = getContentUnlockRequirement(contentType, contentId);
     if (!requirement) return true;
@@ -397,10 +392,6 @@ function getNumberFormat() {
     return NUMBER_FORMAT_OPTIONS.some(function (option) {
         return option.value === numberFormat;
     }) ? numberFormat : "standard";
-}
-
-function trimFormattedNumber(value) {
-    return value.replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
 }
 
 function formatSuffixNumber(value) {

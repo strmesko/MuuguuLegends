@@ -1469,12 +1469,6 @@
         });
     }
 
-    function getPageSection(page) {
-        return SECTIONS.find(function (section) {
-            return section.id === page.section;
-        }) || { id: page.section, title: page.section };
-    }
-
     function renderSidebar() {
         if (!sidebar) return;
         const query = searchInput ? searchInput.value.trim().toLowerCase() : "";

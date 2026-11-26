@@ -1325,9 +1325,6 @@ const researchQueue = [];
 // Every non-restoration timed action the player starts is remembered here,
 // so Lazy basics level 2 can resume all of them after rest or sleep.
 let previousTimedActionIds = [];
-// Actions that were interrupted by an automatic Trees Harvest. They are
-// resumed when that harvest finishes; restoration actions are never included.
-let treeHarvestResumeActionIds = [];
 let activeTravel = null;
 
 function getResearchQueueLimit() {
@@ -1775,26 +1772,6 @@ function startDayDreamIfIdle() {
 
     refreshActionButtons();
     startTimedAction(dayDreamAction, { remember: false });
-}
-
-function resumeTreeHarvestPreviousActions() {
-    const actionIds = treeHarvestResumeActionIds.slice();
-    treeHarvestResumeActionIds = [];
-    if (!actionIds.length) return 0;
-
-    refreshActionButtons();
-    let resumed = 0;
-    actionIds.forEach(function (actionId) {
-        if (actionsCount <= 0) return;
-        const action = getAction(actionId);
-        if (!action || isRestorationAction(action)) return;
-        if (action.kind !== ACTION_KIND.Timed) return;
-        if (isActionActive(action.id)) return;
-        if (!isActionVisible(action)) return;
-        if (action.isComplete && action.isComplete()) return;
-        if (startTimedAction(action)) resumed += 1;
-    });
-    return resumed;
 }
 
 function resumePreviousTimedActions() {    if (LAZY_BASICS_TECHNOLOGY.level < 2) return 0;

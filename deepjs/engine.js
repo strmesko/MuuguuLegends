@@ -173,12 +173,6 @@ function getActiveSleepynessStatuses() {
     });
 }
 
-function getActiveSleepynessDebuffs() {
-    return getActiveSleepynessStatuses().filter(function (status) {
-        return status.kind === "debuff";
-    });
-}
-
 // Energetic / Snoozy / Sleepy modify gameplay by a few plain fractions.
 // Active statuses are summed, so both Snoozy and Sleepy count at 950.
 function getSleepynessEffectTotals() {
@@ -3336,30 +3330,6 @@ function getEligibleHerbsOnTile(tile) {
     });
 }
 
-// One herb roll per forage tick. All currently eligible herbs compete by
-// weight, so biome and temperature decide the local herb pool.
-function forageHerbRoll() {
-    const herbs = getEligibleHerbsOnTile();
-    if (!herbs.length) return;
-
-    const totalWeight = herbs.reduce(function (sum, herb) {
-        return sum + Math.max(0, Number(herb.weight) || 0);
-    }, 0);
-    if (totalWeight <= 0) return;
-
-    let roll = Math.random() * totalWeight;
-    let chosen = herbs[herbs.length - 1];
-    for (let index = 0; index < herbs.length; index++) {
-        roll -= Math.max(0, Number(herbs[index].weight) || 0);
-        if (roll <= 0) {
-            chosen = herbs[index];
-            break;
-        }
-    }
-
-    forageRoll(chosen.difficulty, chosen.id, chosen.amount);
-}
-
 // Vegetables and crops follow the same climate rules as herbs: biome,
 // temperature and (when restricted) humidity.
 function isPlantAvailableOnTile(plant, tile) {
@@ -3397,29 +3367,6 @@ function getEligiblePlantsOnTile(tile, kind) {
     });
 }
 
-// One vegetable/crop roll per forage tick. All climate-appropriate plants
-// compete by weight, so the local biome and weather decide what can be found.
-function foragePlantRoll() {
-    const plants = getEligiblePlantsOnTile();
-    if (!plants.length) return;
-
-    const totalWeight = plants.reduce(function (sum, plant) {
-        return sum + Math.max(0, Number(plant.weight) || 0);
-    }, 0);
-    if (totalWeight <= 0) return;
-
-    let roll = Math.random() * totalWeight;
-    let chosen = plants[plants.length - 1];
-    for (let index = 0; index < plants.length; index++) {
-        roll -= Math.max(0, Number(plants[index].weight) || 0);
-        if (roll <= 0) {
-            chosen = plants[index];
-            break;
-        }
-    }
-
-    forageRoll(chosen.difficulty, chosen.id, chosen.amount);
-}
 // Quality of a freshly gathered resource batch. Uses the same forage power
 // that drives processing speed, not the per-resource roll power, so quality
 // depends on the player and the tile and not on which resource was rolled.
@@ -3427,31 +3374,6 @@ function getForageResourceQuality() {
     return applyWellFedActionQuality(1 + getForagePower());
 }
 
-function forageRoll(difficulty, resourceId, profitAmount){
-    const multiplier = getResourceMultiplier(currentTile, resourceId);
-    const spaceMultiplier = getForageSpaceMultiplier(resourceId);
-    if (spaceMultiplier <= 0) return;
-
-    const effectiveDifficulty = difficulty * multiplier;
-    const foragePower = Math.pow(
-        (getEffectiveLevel("per") * getEffectiveLevel("forage")) * (1 + getEffectiveLevel("luck") * 0.01),
-        1 / 2
-    ) * spaceMultiplier;
-    const baseChance = foragePower > 0
-        ? Math.max(0, Math.min(1, 1 - effectiveDifficulty / foragePower))
-        : 0;
-
-    // Equipment find-chance bonus is applied last, to the finished base chance.
-    const chance = Math.min(1, baseChance * getEquippedStatMultiplier("forageFindChance"));
-
-    if (Math.random() < chance) {
-        addResource(
-            resourceId,
-            getForageAmount(resourceId, profitAmount),
-            getForageResourceQuality()
-        );
-    }
-}
 // --- Trees Harvest action ------------------------------------------------
 // One random fruit or nut tree on the current tile is harvested for a minute.
 // The tile stores only counts, so `harvestedTrees[species]` marks how many of

@@ -2445,33 +2445,6 @@ function getItemToolPowers(item) {
     });
 }
 
-// Legacy accessor: the first tool power of an item. Tools with several powers
-// expose all of them through getItemToolPowers().
-function getItemToolPower(item) {
-    const toolPowers = getItemToolPowers(item);
-    return toolPowers.length > 0 ? toolPowers[0] : null;
-}
-
-// Highest equipped tool power for one action type (cutting, chopping, smash,
-// mining or digging). Only the best tool counts: holding two shovels does not
-// stack their power.
-function getEquippedToolPower(type, targetPlayer) {
-    const character = targetPlayer || (typeof player !== "undefined" ? player : null);
-    if (!character || !character.equipment) return 0;
-
-    let best = 0;
-
-    Object.keys(character.equipment).forEach(function (slotId) {
-        getItemToolPowers(character.equipment[slotId]).forEach(function (toolPower) {
-            if (toolPower.type !== type) return;
-            if (toolPower.power > best) best = toolPower.power;
-        });
-    });
-
-    if (best <= 0) return 0;
-    return roundItemNumber(best * getEquippedToolPowerMultiplier(type, targetPlayer));
-}
-
 // AllToolsPowerMult and ToolPowerX are multiplicative. ToolPowerX only affects
 // its own power type (the type is encoded in the property key).
 function getEquippedToolPowerMultiplier(type, targetPlayer) {

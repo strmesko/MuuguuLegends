@@ -618,9 +618,6 @@ if (typeof updateAscensionMultiplierDisplay === 'function') {
         ? getHerbDefinition(resource.id)
         : null;
     }
-    function isHerbResourceEntry(resource){
-      return getHerbDefinitionForResource(resource) !== null;
-    }
     function isEdibleHerbResource(resource){
       const herb = getHerbDefinitionForResource(resource);
       return !!herb && typeof HERB_USE !== 'undefined' && herb.use === HERB_USE.Edible;

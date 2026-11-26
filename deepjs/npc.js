@@ -56,18 +56,12 @@ const NPC_PRESETS = Object.freeze({
     }),
 });
 
-const NPC_PRESET_IDS = Object.freeze(Object.keys(NPC_PRESETS));
-
 let npcs = [];
 let nextNpcUid = 1;
 
 function getNpcPreset(typeId) {
     const id = String(typeId || "");
     return NPC_PRESETS[id] || null;
-}
-
-function getNpcPresetIds() {
-    return NPC_PRESET_IDS.slice();
 }
 
 function getNpcLevelForTile(x, y) {
@@ -862,18 +856,6 @@ function processNpcDailyNoon(days) {
     return dayCount;
 }
 
-function removeNpc(uid) {
-    const id = Number(uid);
-    const index = npcs.findIndex(function (npc) {
-        return npc.uid === id;
-    });
-    if (index === -1) return false;
-
-    unregisterNpcPlayAction(id);
-    npcs.splice(index, 1);
-    return true;
-}
-
 function clearNpcs() {
     clearNpcPlayActions();
     npcs = [];
@@ -984,34 +966,9 @@ function getNpcDisplayName(npc) {
     return npc.name + " Lv " + npc.lvl;
 }
 
-function setNpcMood(npc, value) {
-    if (!npc) return false;
-    npc.mood = clampNpcMood(value);
-    return true;
-}
-
-function adjustNpcMood(npc, delta) {
-    if (!npc) return false;
-    npc.mood = clampNpcMood(npc.mood + (Number(delta) || 0));
-    return true;
-}
-
-function setNpcFavor(npc, value) {
-    if (!npc) return false;
-    npc.favor = normalizeNpcFavor(value);
-    return true;
-}
-
 function adjustNpcFavor(npc, delta) {
     if (!npc) return false;
     npc.favor = normalizeNpcFavor(npc.favor + (Number(delta) || 0));
-    return true;
-}
-
-function setNpcBoredom(npc, value) {
-    if (!npc) return false;
-    npc.boredom = normalizeNpcBoredom(value);
-    refreshNpcMoodDescription(npc);
     return true;
 }
 
@@ -1022,31 +979,10 @@ function adjustNpcBoredom(npc, delta) {
     return true;
 }
 
-function setNpcHappy(npc, value) {
-    if (!npc) return false;
-    npc.happy = normalizeNpcHappy(value);
-    refreshNpcMoodDescription(npc);
-    return true;
-}
-
 function adjustNpcHappy(npc, delta) {
     if (!npc) return false;
     npc.happy = normalizeNpcHappy(npc.happy + (Number(delta) || 0));
     refreshNpcMoodDescription(npc);
-    return true;
-}
-
-function setNpcAngryOmeter(npc, value) {
-    if (!npc) return false;
-    npc.angryOmeter = clampNpcAngryOmeter(value);
-    return true;
-}
-
-function adjustNpcAngryOmeter(npc, delta) {
-    if (!npc) return false;
-    npc.angryOmeter = clampNpcAngryOmeter(
-        npc.angryOmeter + (Number(delta) || 0)
-    );
     return true;
 }
 
@@ -1674,11 +1610,6 @@ function applyActionRepetitionBoredom(actionId) {
     return penalty;
 }
 
-function resetActionRepetitionTracking() {
-    lastSelectedActionId = null;
-    consecutiveActionSelections = 0;
-}
-
 function escapeNpcLogText(value) {
     return String(value == null ? "" : value)
         .replace(/&/g, "&amp;")
@@ -1762,14 +1693,6 @@ let activeGiftChooser = null;
 
 function isNpcDialogueActive() {
     return !!activeNpcDialogue || !!activeNpcChooser || !!activeGiftChooser;
-}
-
-function isNpcChooserActive() {
-    return !!activeNpcChooser;
-}
-
-function isGiftChooserActive() {
-    return !!activeGiftChooser;
 }
 
 function getActiveNpcDialogueNpc() {

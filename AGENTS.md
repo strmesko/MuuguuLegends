@@ -11,7 +11,7 @@
 - `node_modules/`, `retardship-backup/`, `.exe`/`.dll` files and `SESSION_CONTEXT_*.md` are ignored/local tooling or history. Do not treat them as game source.
 - `retardship-backup/` is a backup. Do not edit it unless explicitly asked.
 - `SESSION_CONTEXT_*.md` files are historical session notes. Verify against code before trusting them.
-- `Kanojo/` is an empty/local untracked folder, not part of the game.
+- `Kanojo/Fairy/fairy.js` is tracked and loaded by `index.html`; it provides Fairy dialogue data used by `deepjs/npc.js`.
 
 ## Project map
 
@@ -38,6 +38,7 @@
 │  ├─ elements.js             runtime-generated UI: tabs, panels, buttons, visibility
 │  ├─ engine.js               production loops, skills, harvests, mining, GUI updates
 │  ├─ actions.js              ACTIONS list, timed/instant actions, action gating
+│  ├─ behavior.js             unified automatic action priority and saved-action buffer
 │  ├─ combat.js               mobs, combat state, combat formulas and panel
 │  ├─ npc.js                  NPC presets/instances, mood/favor, dialogue UI
 │  ├─ worldgen.js             Perlin noise, tile/world generation
@@ -49,12 +50,16 @@
 │  ├─ cheat.js                debug-gated cheat menu
 │  ├─ tips.js                 bottom tip ticker
 │  └─ wiki.js                 generated in-game mini-wiki
+├─ Kanojo/
+│  └─ Fairy/
+│     └─ fairy.js             Fairy dialogue data loaded by index.html
+├─ muguu.png                  favicon
 └─ images/
    ├─ Buildings/
    ├─ combat/
    ├─ inv/
    ├─ NPC/
-   ├─ science/
+   ├─ science/               includes Habits/Quartermister 32x32 icon
    └─ tiles/
 ```
 
@@ -73,7 +78,7 @@ Open `http://127.0.0.1:8124/index.html`. If the helper is unavailable, any stati
 There is no test suite. The only automated check is syntax:
 
 ```powershell
-Get-ChildItem -Path deepjs\*.js,main.js,tabselector.js | ForEach-Object { node --check $_.FullName }
+Get-ChildItem -Path deepjs\*.js,main.js,tabselector.js,Kanojo\Fairy\fairy.js | ForEach-Object { node --check $_.FullName }
 ```
 
 UI, rendering, saves, and gameplay must be verified in a browser. Map changes should be checked in actual Firefox 160.0 x86 as well as Chrome.
@@ -108,7 +113,9 @@ deepjs/elements.js
 tabselector.js
 deepjs/engine.js
 deepjs/actions.js
+deepjs/behavior.js
 deepjs/combat.js
+Kanojo/Fairy/fairy.js
 deepjs/npc.js
 main.js
 deepjs/worldgen.js
@@ -138,8 +145,9 @@ New JS files must be added to `index.html` at the correct point; there are no im
 - `tabselector.js`: global tab switching (`actionTab`, `craftSubTab`, `researchSubTab`) plus scrollable tab-bar helpers. Main, Craft, Research and Build bars get `<`/`>` arrows only when they overflow. Resources and Stats & Skills are deliberately excluded.
 - `deepjs/engine.js`: production loops, auto-eat, smelting, burn actions, learned skill bars, harvesting, farm/tree crop improvement, mining gemstone drops.
 - `deepjs/actions.js`: `ACTIONS` list, instant/timed/toggle actions, action points, stamina and combat/dialogue gating.
+- `deepjs/behavior.js`: unified automatic action priority (`Sleep` → `Rest` → `Harvest trees` → `Quartermaster` → `Research` → `Saved actions` → `Daydream`), saved-action slot cap and manual-cancel handling.
 - `deepjs/combat.js`: mob definitions, combat state, attack timers, formulas and the combat panel. `updateCombat(diff)` is called from the production loop.
-- `deepjs/npc.js`: NPC model and presets (Fairy), player-like stats/skills, tile coordinates, mood/favor, conversation overlay and `Talk to NPC` dialogue behavior.
+- `deepjs/npc.js`: NPC model and presets (Fairy), player-like stats/skills, tile coordinates, mood/favor, conversation overlay and `Talk to NPC` dialogue behavior. Fairy-specific lines come from `Kanojo/Fairy/fairy.js`.
 - `deepjs/worldgen.js`: Perlin noise and world/tile generation.
 - `deepjs/mapview.js`: canvas map. The CPU-backed context (`alpha: false`, `willReadFrequently: true`, integer DPR) is intentional for 32-bit Firefox; do not simplify it without testing actual Firefox.
 - `deepjs/buttonactions.js`: static button wiring not handled by generated UI.
@@ -154,6 +162,8 @@ New JS files must be added to `index.html` at the correct point; there are no im
 ## Conventions and gotchas
 
 - User-facing replies are in Russian.
+- Automatic action selection is centralized in `deepjs/behavior.js`; add new automatic starts there instead of calling `startTimedAction` from unrelated systems.
+- Saved action IDs (`previousTimedActionIds`) are capped to `maxActions`; manually cancelled non-habit actions are removed from that buffer.
 - Building improvement fallback: 10% of construction WorkPoints plus 1 of each required resource; material-less buildings improve through WorkPoints only.
 - Icon conventions: inventory icons are 14x14 under `images/inv/...`; science/research icons are 32x32 under `images/science/...`.
 - Some IDs and definitions are generated at runtime (metal variants, pots, research nodes, gemstones, tree buildings). Search by function or constant name, not only literal IDs.

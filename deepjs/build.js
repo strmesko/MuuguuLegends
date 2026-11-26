@@ -1223,10 +1223,6 @@ function getCurrentGameDayIndex() {
     return Math.floor(Number(gameTime.totalMinutes) / GAME_MINUTES_PER_DAY);
 }
 
-function getMapleExtractorYield(building) {
-    return Math.max(0, round2(getBuildingQualityValue(building)));
-}
-
 function processMapleExtractors(tile, dayIndex) {
     const target = tile || (typeof currentTile !== "undefined" ? currentTile : null);
     if (!target || !Array.isArray(target.buildings)) return 0;
@@ -1472,12 +1468,6 @@ function getBuildingActionId(building) {
     return "build:" + building.uid;
 }
 
-function getBuildingByUid(uid) {
-    return buildings.find(function (building) {
-        return building.uid === uid;
-    }) || null;
-}
-
 function isBuildingOnCurrentTile(building) {
     return !!building
         && !!currentTile
@@ -1489,10 +1479,6 @@ function isUnfinishedBuildingOnCurrentTile(building) {
     return isBuildingOnCurrentTile(building)
         && !building.completed
         && building.workPoints > 0;
-}
-
-function getHubBuildingList() {
-    return buildings;
 }
 
 function getCurrentTileBuildings() {

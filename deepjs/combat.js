@@ -877,11 +877,6 @@ function createMobCombatant(mobId, level, prefixes) {
     };
 }
 
-function getMobPrefix(id) {
-    const key = String(id || "").toLowerCase();
-    return MOB_PREFIXES[key] || null;
-}
-
 function normalizeMobPrefixes(prefixes) {
     if (!prefixes) return [];
 

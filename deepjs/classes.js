@@ -1016,9 +1016,6 @@ const HERB_RESOURCE_IDS = Object.freeze(HERB_DEFS.map(function (herb) {
 const HERB_EDIBLE_RESOURCE_IDS = Object.freeze(HERB_DEFS
     .filter(function (herb) { return herb.use === HERB_USE.Edible; })
     .map(function (herb) { return herb.id; }));
-const HERB_MEDICAL_RESOURCE_IDS = Object.freeze(HERB_DEFS
-    .filter(function (herb) { return herb.use === HERB_USE.Medical; })
-    .map(function (herb) { return herb.id; }));
 const HERB_SPICE_RESOURCE_IDS = Object.freeze(HERB_DEFS
     .filter(function (herb) { return herb.use === HERB_USE.Spice; })
     .map(function (herb) { return herb.id; }));
@@ -1403,10 +1400,6 @@ Object.freeze(OIL_RESOURCE_IDS);
 Object.freeze(OIL_RESOURCE_IDS_BY_SOURCE);
 Object.freeze(OIL_SOURCE_RESOURCE_IDS);
 
-function isOilResource(resourceId) {
-    return OIL_RESOURCE_IDS.indexOf(Number(resourceId)) !== -1;
-}
-
 function getOilResourceIdForSource(sourceId) {
     return OIL_RESOURCE_IDS_BY_SOURCE[Number(sourceId)] || null;
 }
@@ -1498,10 +1491,6 @@ SPICE_DEFINITIONS.forEach(function (entry, index) {
 Object.freeze(SPICE_RESOURCE_IDS);
 Object.freeze(SPICE_RESOURCE_IDS_BY_KEY);
 
-function isSpiceResource(resourceId) {
-    return SPICE_RESOURCE_IDS.indexOf(Number(resourceId)) !== -1;
-}
-
 function getSpiceResourceId(key) {
     return SPICE_RESOURCE_IDS_BY_KEY[String(key)] || null;
 }
@@ -1538,14 +1527,6 @@ if (typeof FISH_DEFINITIONS !== "undefined") {
 
 Object.freeze(FISH_RESOURCE_IDS);
 Object.freeze(FISH_RESOURCE_IDS_BY_NAME);
-
-function isFishResource(resourceId) {
-    return FISH_RESOURCE_IDS.indexOf(Number(resourceId)) !== -1;
-}
-
-function getFishResourceIdByName(name) {
-    return FISH_RESOURCE_IDS_BY_NAME[String(name)] || null;
-}
 
 // Gemstones are raw, inedible resources shown under Raw resources -> Gemstones.
 // Every variety has its own rarity and item grade. The actual ItemDefs-style
@@ -1651,10 +1632,6 @@ GEMSTONE_DEFINITIONS.forEach(function (entry, index) {
 Object.freeze(GEMSTONE_RESOURCE_IDS);
 Object.freeze(GEMSTONE_RESOURCE_IDS_BY_NAME);
 
-function isGemstoneResource(resourceId) {
-    return GEMSTONE_RESOURCE_IDS.indexOf(Number(resourceId)) !== -1;
-}
-
 function getGemstoneResourceIdByName(name) {
     return GEMSTONE_RESOURCE_IDS_BY_NAME[String(name)] || null;
 }
@@ -1670,12 +1647,6 @@ function isVegetableResource(resourceId) {
 
 function isCropResource(resourceId) {
     return CROP_RESOURCE_IDS.indexOf(Number(resourceId)) !== -1;
-}
-
-function isSeedResource(resourceId) {
-    return isCropResource(resourceId)
-        && typeof hasResourceTag === "function"
-        && hasResourceTag(resourceId, RESOURCE_TAGS.Seed);
 }
 
 function isFlourResource(resourceId) {
@@ -2069,10 +2040,6 @@ const TREE_HARVEST_RESOURCES = Object.freeze({
 // Chosen by the world generator to decide whether a generic Tree becomes a
 // named fruit or nut tree.
 const TREE_SPECIES_REPLACEMENT_CHANCE = 0.4;
-
-function getTreeSpeciesByName(name) {
-    return TREE_SPECIES_BY_LOWER.get(String(name).toLowerCase()) || null;
-}
 
 function isTreeSpaceElement(name) {
     const lower = String(name).toLowerCase();
@@ -2567,16 +2534,7 @@ function increaseAllPotentials(percent) {
         if (player && player[skillName]) increasePotential(player[skillName], amount);
     });
 }
-function addStatLevels(statNames, amount) {
-    statNames.forEach(function (statName) {
-        const stat = player && player[statName];
-        if (!stat) return;
 
-        for (let level = 0; level < amount; level++) {
-            levelUpExperienceEntry(stat, STAT_EXPERIENCE_OPTIONS);
-        }
-    });
-}
 class Technology {
     constructor(name, description, requiredResearch, buttonId, requirements, rewards, maxLevel, levelDescriptions, onComplete)
     {
