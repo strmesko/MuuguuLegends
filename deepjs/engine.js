@@ -714,6 +714,19 @@ function updateAutoHungerEating() {
                 if (typeof noteAutoCookDish === "function") {
                     noteAutoCookDish();
                 }
+                const batchTarget = typeof getAutoCookBatchTarget === "function"
+                    ? getAutoCookBatchTarget(hunger)
+                    : 1;
+                for (let batch = 1; batch < batchTarget; batch++) {
+                    if (typeof hasFreeInventorySlot === "function"
+                        && !hasFreeInventorySlot()) {
+                        break;
+                    }
+                    if (!autoCookDietFood()) break;
+                    if (typeof noteAutoCookDish === "function") {
+                        noteAutoCookDish();
+                    }
+                }
                 continue;
             }
         }

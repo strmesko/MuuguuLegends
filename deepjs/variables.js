@@ -54,7 +54,7 @@ const DIET_BASICS_TECHNOLOGY = new Technology(
             && player.autism.lvl >= 5;
     },
     null,
-    8,
+    9,
     [
         "Unlocks the automatic eating threshold in Habits.",
         "Allows choosing a priority stat; food bound to it is eaten first.",
@@ -64,6 +64,7 @@ const DIET_BASICS_TECHNOLOGY = new Technology(
         "During auto-cooking, chooses ingredients bound to the priority stat.",
         "Before auto-cooking, crafts missing ingredient items (such as flat bread) and includes their cost when deciding whether the dish is affordable.",
         "Allows restricting auto-cooking to one cuisine category in Habits.",
+        "Auto-cooking takes MaxPotential into account: it prefers dishes whose potential bonuses can still raise stats and avoids wasting bonuses on stats that are already at maximum potential.",
     ]
 );
 const FAUNA_BULLY_TECHNOLOGY = new Technology(

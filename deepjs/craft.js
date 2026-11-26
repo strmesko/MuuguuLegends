@@ -5943,6 +5943,80 @@ function filterAutoCookRecipesByCategory(recipes) {
     });
 }
 
+function getAutoCookPotentialScore(recipe) {
+    if (!recipe
+        || typeof getCraftPotentialBonuses !== "function"
+        || typeof getMaxPotential !== "function") {
+        return 0;
+    }
+
+    let bonuses = null;
+    try {
+        bonuses = getCraftPotentialBonuses(recipe, 1, "Common");
+    } catch (error) {
+        bonuses = null;
+    }
+    if (!bonuses) return 0;
+
+    const maxPotential = getMaxPotential();
+    let score = 0;
+    Object.keys(bonuses).forEach(function (statName) {
+        const entry = typeof player !== "undefined" && player
+            ? player[statName]
+            : null;
+        if (!entry) return;
+        const current = Number(entry.potential) || 0;
+        const deficit = Math.max(0, maxPotential - current);
+        if (deficit > 0) {
+            score += Math.min(deficit, Number(bonuses[statName]) || 0);
+        }
+    });
+    return score;
+}
+
+function getAutoCookBatchTarget(hungerValue) {
+    const hunger = Number.isFinite(Number(hungerValue))
+        ? Number(hungerValue)
+        : (typeof getHungerValue === "function" ? getHungerValue() : 0);
+    if (!(hunger > 0)) return 1;
+
+    let restorePerDish = 1;
+    if (typeof getAutoCookRecipes === "function"
+        && typeof ITEM_DEFS !== "undefined") {
+        const recipes = typeof filterAutoCookRecipesByCategory === "function"
+            ? filterAutoCookRecipesByCategory(getAutoCookRecipes())
+            : getAutoCookRecipes();
+        recipes.forEach(function (recipe) {
+            const definition = ITEM_DEFS[recipe.itemId];
+            const restore = definition
+                && definition.food
+                && Number(definition.food.hungerRestore);
+            if (Number.isFinite(restore) && restore > restorePerDish) {
+                restorePerDish = restore;
+            }
+        });
+    }
+
+    let freeSlots = 1;
+    if (typeof player !== "undefined"
+        && player
+        && Array.isArray(player.equipinventory)) {
+        const slotCount = typeof getEffectiveInventorySlots === "function"
+            ? Math.min(player.equipinventory.length, getEffectiveInventorySlots())
+            : player.equipinventory.length;
+        freeSlots = 0;
+        for (let index = 0; index < slotCount; index++) {
+            if (!player.equipinventory[index]) freeSlots += 1;
+        }
+    }
+
+    return Math.max(1, Math.min(
+        20,
+        freeSlots,
+        Math.ceil(hunger / restorePerDish)
+    ));
+}
+
 function autoCookDietFood() {
     if (typeof DIET_BASICS_TECHNOLOGY === "undefined"
         || DIET_BASICS_TECHNOLOGY.level < 4) {
@@ -5955,7 +6029,7 @@ function autoCookDietFood() {
         ? getDietPriorityStat()
         : null;
 
-    const recipes = filterAutoCookRecipesByCategory(getAutoCookRecipes());
+    let recipes = filterAutoCookRecipesByCategory(getAutoCookRecipes());
 
     // Random dish order: every attempt starts with a random available meal.
     for (let index = recipes.length - 1; index > 0; index--) {
@@ -5963,6 +6037,22 @@ function autoCookDietFood() {
         const temporary = recipes[index];
         recipes[index] = recipes[swapIndex];
         recipes[swapIndex] = temporary;
+    }
+
+    if (level >= 9 && typeof getAutoCookPotentialScore === "function") {
+        const scoredRecipes = recipes.map(function (recipe) {
+            return {
+                recipe: recipe,
+                score: getAutoCookPotentialScore(recipe),
+            };
+        });
+        scoredRecipes.sort(function (left, right) {
+            return right.score - left.score;
+        });
+        const usefulRecipes = scoredRecipes
+            .filter(function (entry) { return entry.score > 0; })
+            .map(function (entry) { return entry.recipe; });
+        if (usefulRecipes.length) recipes = usefulRecipes;
     }
 
     for (let index = 0; index < recipes.length; index++) {
