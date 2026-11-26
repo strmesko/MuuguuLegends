@@ -241,6 +241,11 @@ const HUNGER_TIERS = Object.freeze([
     },
 ]);
 
+// When a large deferred time span is simulated, restoring the full stamina/HP
+// amount would add a big hunger spike and force a slow auto-cook batch. The
+// flag lets that one simulation restore stamina/HP without the hunger cost.
+let regenHungerSuppressed = false;
+
 function getHungerMax() {
     const vit = Math.max(0, Number(getEffectiveLevel("vit")) || 0);
     const sou = Math.max(0, Number(getEffectiveLevel("sou")) || 0);
@@ -1541,10 +1546,17 @@ function productionLoop(diff, options) {
     // spending so future mana costs feed hunger automatically.
     const manaBefore = Number(player.mana) || 0;
     const skipManaRegen = !!(options && options.skipManaRegen);
+    const skipRegenHunger = !!(options && options.skipRegenHunger);
 
     runHearthfireProduction(diff);
-    staminaRegen(diff);
-    hpRegen(diff);
+    const previousRegenHungerSuppressed = regenHungerSuppressed;
+    regenHungerSuppressed = skipRegenHunger;
+    try {
+        staminaRegen(diff);
+        hpRegen(diff);
+    } finally {
+        regenHungerSuppressed = previousRegenHungerSuppressed;
+    }
     if (!skipManaRegen) {
         if (typeof tryAutoFocusMana === "function") tryAutoFocusMana();
         manaRegen(diff);
@@ -1570,6 +1582,9 @@ function productionLoop(diff, options) {
         trackHungerSpending("mana", manaBefore - manaAfter);
     }
 
+    if (typeof flushPendingFocusSkipTime === "function") {
+        flushPendingFocusSkipTime();
+    }
     tryActivateAutoRest();
 }
 
@@ -4927,7 +4942,7 @@ function staminaRegen(timeAmount){
         
     }
     player.stamina = round2(player.stamina);
-    if (restored > 0) {
+    if (restored > 0 && !regenHungerSuppressed) {
         addHunger(round2(
             restored
             * HUNGER_PER_STAMINA_REGEN
@@ -4958,7 +4973,7 @@ function hpRegen(timeAmount){
         
     }
     player.hp = round2(player.hp);
-    if (healed > 0) {
+    if (healed > 0 && !regenHungerSuppressed) {
         addHunger(round2(
             healed
             * HUNGER_PER_HP_REGEN

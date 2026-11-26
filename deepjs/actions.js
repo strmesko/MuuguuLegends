@@ -131,17 +131,23 @@ function performFocusBatch(uses) {
     logMessage("You focus " + count + " times and skip "
         + totalTime + " seconds. Mana spent: "
         + round2(spend.spent) + ".");
-    if (typeof simulateTimePassage === "function") {
+    if (typeof hasActiveGatheringActionForAutoFocus === "function"
+        && hasActiveGatheringActionForAutoFocus()) {
+        pendingFocusSkipTime += totalTime;
+    } else if (typeof simulateTimePassage === "function") {
         simulateTimePassage(totalTime, { skipManaRegen: true });
     }
     return true;
 }
 
 let autoFocusManaRunning = false;
+let pendingFocusSkipTime = 0;
+let flushingFocusSkip = false;
+// Upper bound for deferred Focus skip time. Keeps the single flush after a
+// gathering action short even if the action runs for a long time.
+const AUTO_FOCUS_MAX_PENDING_SKIP_SECONDS = 60;
 
-// Lazy basics level 7: spend mana through Focus when the next second of
-// regeneration would otherwise overflow the mana bar. Repeats while the
-// condition still holds and Focus remains available.
+// Gathering actions whose auto-focus skip time is deferred.
 function hasActiveGatheringActionForAutoFocus() {
     if (typeof ACTIONS === "undefined"
         || typeof actionStates === "undefined"
@@ -167,10 +173,41 @@ function hasActiveGatheringActionForAutoFocus() {
     });
 }
 
-// Auto-focus can skip multiple seconds at once. During gathering actions this
-// multiplies the simulated work and can freeze large saves, so skip it there.
+function flushPendingFocusSkipTime() {
+    if (flushingFocusSkip || pendingFocusSkipTime <= 0) return false;
+    if (typeof hasActiveGatheringActionForAutoFocus === "function"
+        && hasActiveGatheringActionForAutoFocus()) {
+        return false;
+    }
+
+    const total = pendingFocusSkipTime;
+    pendingFocusSkipTime = 0;
+    flushingFocusSkip = true;
+    try {
+        if (typeof simulateTimePassage === "function") {
+            simulateTimePassage(total, {
+                skipManaRegen: true,
+                // The deferred span can be many seconds. Restore stamina/HP as
+                // usual but skip the hunger it would add, otherwise a slow
+                // auto-cook batch runs during this single flush.
+                skipRegenHunger: true,
+            });
+        }
+    } finally {
+        flushingFocusSkip = false;
+    }
+    return true;
+}
+
+// Auto-focus skips several seconds at once. During gathering actions the skip
+// time is accumulated in `pendingFocusSkipTime` and simulated once afterwards,
+// so the action loop is not stalled on every tick.
 function tryAutoFocusMana() {
-    if (autoFocusManaRunning) return false;
+    if (autoFocusManaRunning || flushingFocusSkip) return false;
+    // While a gathering action is active the skipped time is deferred. Stop
+    // queueing more once the pending span reaches the cap so the single
+    // deferred simulation does not grow without bound.
+    if (pendingFocusSkipTime >= AUTO_FOCUS_MAX_PENDING_SKIP_SECONDS) return false;
     if (typeof isHabitEnabled !== "function"
         || !isHabitEnabled("autoFocusMana")) {
         return false;
@@ -179,7 +216,6 @@ function tryAutoFocusMana() {
         return false;
     }
     if (typeof player === "undefined" || !player) return false;
-    if (hasActiveGatheringActionForAutoFocus()) return false;
 
     const maxMana = Number(player.maxmana) || 0;
     if (maxMana <= 0) return false;
