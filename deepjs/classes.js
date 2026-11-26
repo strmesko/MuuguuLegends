@@ -2076,7 +2076,7 @@ function getResourceMultiplier(tile, resourceId) {
 const PERCENT = 100;
 const CORE_STAT_COUNT = 10;
 const CORE_STAT_NAMES = ["str", "agi", "vit", "per", "int", "ins", "sou", "cha", "luck", "speed"];
-const LEARNABLE_SKILL_KEYS = ["exploration", "forage", "rest", "focus", "meditation", "wizardy", "alchemy", "masonry", "pottery", "regeneration", "autism", "science", "traveling", "dreammastery", "survival", "ropemaking", "tailoring", "fishing", "carpentry", "architecture", "gardening", "farming", "social", "jewerly", "digging", "lumberjack", "mining", "smithing", "cooking", "milling", "tactics", "anatomy", "dodging", "bullseye", "axechopping", "swordsswingin", "knifesstabbing", "spearsspooning", "brawlbaps", "hammerscrushworks", "dodgedancing", "critomancy", "spiritspeak", "digestomancy"];
+const LEARNABLE_SKILL_KEYS = ["exploration", "forage", "rest", "focus", "meditation", "wizardy", "alchemy", "masonry", "pottery", "regeneration", "autism", "science", "traveling", "dreammastery", "survival", "ropemaking", "tailoring", "fishing", "carpentry", "architecture", "gardening", "farming", "social", "jewerly", "digging", "lumberjack", "mining", "smithing", "cooking", "milling", "tactics", "anatomy", "dodging", "bullseye", "axechopping", "swordsswingin", "knifesstabbing", "spearsspooning", "brawlbaps", "hammerscrushworks", "dodgedancing", "critomancy", "spiritspeak", "digestomancy", "manaspanking"];
 
 // Every edible resource is bound to one core stat for the whole playthrough.
 // The binding is rolled once when a new game starts and is stored in saves.
@@ -2448,6 +2448,7 @@ class Character {
         this.spiritspeak = new Skill("Spirit speak", "The art of asking the spirits for help. Heals sqrt(Soul + Spirit speak) HP in combat at triple the mana cost.");
         this.digestomancy = new Skill("Digestomancy", "The art of getting more out of every meal. Divides hunger gain by (1 + level * 0.05) / (level * 0.05) and gains 1 exp per hunger point actually added.");
         this.wizardy = new Skill("Wizardy", "The art of channeling spent mana into arcane understanding.");
+        this.manaspanking = new Skill("ManaSpanking", "The art of surviving mana debt. Reduces negative mana damage by (level * 0.06) / (1 + level * 0.06).");
         this.alchemy = new Skill("Alchemy", "The art of mixing minerals, ash and water into useful compounds.");
         this.masonry = new Skill("Masonry", "The art of raising durable stone structures from rocks, mortar and timber.");
         this.pottery = new Skill("Pottery", "The art of shaping clay into sturdy walls, vessels and other fired goods.");

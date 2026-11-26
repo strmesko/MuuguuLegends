@@ -43,6 +43,7 @@ const LEARNED_SKILLS = [
     { barId: 'skillsplacecritomancy', key: 'critomancy', label: 'Critomancy', descriptionKey: 'critomancy' },
     { barId: 'skillsplacespiritspeak', key: 'spiritspeak', label: 'Spirit speak', descriptionKey: 'spiritspeak' },
     { barId: 'skillsplacedigestomancy', key: 'digestomancy', label: 'Digestomancy', descriptionKey: 'digestomancy' },
+    { barId: 'skillsplacemanaspanking', key: 'manaspanking', label: 'ManaSpanking', descriptionKey: 'manaspanking' },
 ];
 
 function updateCharacterHeader() {
@@ -401,7 +402,13 @@ function trackHungerSpending(resource, amount) {
     if (!Number.isFinite(numeric) || numeric <= 0) return;
 
     const key = resource === "mana" ? "mana" : "stamina";
-    const total = (hungerSpendRemainders[key] || 0) + numeric;
+    let spending = numeric;
+    if (key === "stamina"
+        && typeof getActiveHungerTier === "function") {
+        const tier = getActiveHungerTier();
+        if (tier && tier.id === "starving") spending *= 4;
+    }
+    const total = (hungerSpendRemainders[key] || 0) + spending;
     const points = Math.floor(total / HUNGER_POINTS_PER_SPEND);
 
     hungerSpendRemainders[key] = total - points * HUNGER_POINTS_PER_SPEND;
@@ -4488,6 +4495,10 @@ function staminaRegen(timeAmount){
 }
 
 function hpRegen(timeAmount){
+    if (typeof getActiveHungerTier === "function") {
+        const hungerTier = getActiveHungerTier();
+        if (hungerTier && hungerTier.id === "starving") return;
+    }
     var regenAmount = round2(Math.pow((getEffectiveLevel("vit") * getEffectiveLevel("regeneration") * (getEffectiveLevel("sou")* 0.01))/5, 1/2) * timeAmount * getSleepRegenMultiplier() * getGlobalPropertyMultiplier("hpregen") * getHearthfireRegenMultiplier() * getHungerRegenMultiplier() * getWellFedRegenMultiplier());
     let healed = 0;
     if (player.hp == player.maxhp) {}
@@ -4513,6 +4524,62 @@ function hpRegen(timeAmount){
         ));
     }
 }
+function getManaSpankingReduction() {
+    const level = Math.max(0, Number(getEffectiveLevel("manaspanking")) || 0);
+    const factor = level * 0.06;
+    return factor / (1 + factor);
+}
+
+function applyManaOverspendDamage(beforeMana, afterMana) {
+    const beforeNegative = Math.max(0, -(Number(beforeMana) || 0));
+    const afterNegative = Math.max(0, -(Number(afterMana) || 0));
+    const overspend = Math.max(0, afterNegative - beforeNegative);
+    if (overspend <= 0) return 0;
+
+    const damage = round2(
+        overspend * (1 - getManaSpankingReduction())
+    );
+    if (damage <= 0) return 0;
+
+    if (player) {
+        player.hp = round2(Math.max(
+            0,
+            (Number(player.hp) || 0) - damage
+        ));
+        if (player.manaspanking
+            && typeof player.manaspanking.addexp === "function") {
+            player.manaspanking.addexp(damage);
+        }
+        if (player.int && typeof player.int.addexp === "function") {
+            player.int.addexp(damage / 20);
+        }
+        if (player.sou && typeof player.sou.addexp === "function") {
+            player.sou.addexp(damage / 20);
+        }
+    }
+
+    if (typeof logMessage === "function") {
+        logMessage("Mana overspend tears through you for "
+            + damage + " damage.");
+    }
+    return damage;
+}
+
+function spendPlayerMana(amount) {
+    if (typeof player === "undefined" || !player) {
+        return { before: 0, after: 0, spent: 0, damage: 0 };
+    }
+
+    const before = Number(player.mana) || 0;
+    const cost = Math.max(0, Number(amount) || 0);
+    const after = round2(before - cost);
+    player.mana = after;
+    const damage = applyManaOverspendDamage(before, after);
+    const spent = Math.max(0, Math.min(before, cost));
+
+    return { before: before, after: after, spent: spent, damage: damage };
+}
+
 function getManaRegenPerSecond() {
     return Math.pow((getEffectiveLevel("int") * getEffectiveLevel("meditation") * (getEffectiveLevel("sou") * 0.01)), 1 / 2)
         * getSleepRegenMultiplier()

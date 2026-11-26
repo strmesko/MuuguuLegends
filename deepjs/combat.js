@@ -1137,13 +1137,11 @@ function renderCombatSkillButtons() {
 
     const cooldownMs = Math.max(0, Number(activeCombat.spiritSpeakCooldownMs) || 0);
     const cost = getSpiritSpeakManaCost();
-    const mana = Math.max(0, Number(player && player.mana) || 0);
     const hp = Math.max(0, Number(player && player.hp) || 0);
     const maxHp = Math.max(0, Number(player && player.maxhp) || 0);
 
     button.disabled = activeCombat.finished
         || cooldownMs > 0
-        || mana < cost
         || hp <= 0
         || hp >= maxHp;
     button.innerText = cooldownMs > 0
@@ -1163,16 +1161,20 @@ function castSpiritSpeak() {
     if (cooldownMs > 0) return false;
 
     const cost = getSpiritSpeakManaCost();
-    const mana = Math.max(0, Number(player.mana) || 0);
-    if (mana < cost) return false;
-
     const maxHp = Math.max(0, Number(player.maxhp) || 0);
     const before = Math.max(0, Number(player.hp) || 0);
     if (before <= 0 || before >= maxHp) return false;
 
     player.hp = Math.min(maxHp, roundCombatDamage(before + getSpiritSpeakHeal()));
     const healed = roundCombatDamage(player.hp - before);
-    player.mana = roundCombatDamage(Math.max(0, mana - cost));
+    const spend = typeof spendPlayerMana === "function"
+        ? spendPlayerMana(cost)
+        : {
+            after: roundCombatDamage(
+                Math.max(0, (Number(player.mana) || 0) - cost)
+            ),
+        };
+    player.mana = spend.after;
 
     if (activeCombat.player) {
         activeCombat.player.hp = player.hp;

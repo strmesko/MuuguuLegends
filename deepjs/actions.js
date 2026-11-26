@@ -69,14 +69,17 @@ function performFocus() {
 
     const power = getFocusSkipSeconds();
     const manaCost = getFocusSkipManaCost();
-    if (!(Number(player.mana) >= manaCost)) {
-        logMessage("Not enough mana to Focus.");
-        return false;
-    }
-
     const manaBefore = Number(player.mana) || 0;
-    player.mana = round2(Math.max(0, manaBefore - manaCost));
-    const manaSpent = round2(Math.max(0, manaBefore - Number(player.mana)));
+    const spend = typeof spendPlayerMana === "function"
+        ? spendPlayerMana(manaCost)
+        : {
+            before: manaBefore,
+            after: round2(Math.max(0, manaBefore - manaCost)),
+            spent: round2(Math.max(0, Math.min(manaBefore, manaCost))),
+            damage: 0,
+        };
+    player.mana = spend.after;
+    const manaSpent = spend.spent;
     // Every point of mana actually spent while focusing becomes Wizardy exp.
     if (manaSpent > 0 && player.wizardy) player.wizardy.addexp(manaSpent);
     // The Focus action trains its matching skill as well. At least one point
