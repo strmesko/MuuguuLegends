@@ -2943,27 +2943,230 @@ function getForageAmount(resourceId, profitAmount) {
     return baseAmount * itemAmountMultiplier / FORAGE_AMOUNT_DIVISOR;
 }
 
-function forage(amount){
-    logMessage('foragerolls' + amount);
-    while (amount > 0){
-        if (player.stamina > MIN_STAMINA_TO_FORAGE){
-            for (const [difficulty, resourceId, profitAmount] of FORAGE_ROLLS) {
-                forageRoll(difficulty, resourceId, profitAmount);
-            }
-            forageHerbRoll();
-            foragePlantRoll();
-            amount -= 1;
-            logMessage('berrydice X'+ amount);
-            const staminaBefore = player.stamina;
-            player.stamina = Math.max(0, player.stamina - FORAGE_STAMINA_COST * getActionEffectiveness("forage"));
-            trackHungerSpending("stamina", staminaBefore - player.stamina);
-        } else {
-            clickAction("forage");
-            logMessage('you are too tired and cannot forage anymore');
-            amount = 0;
+const HYBRID_EXACT_ROLL_LIMIT = 24;
 
+function randomNormalValue() {
+    let u = 0;
+    let v = 0;
+    while (u === 0) u = Math.random();
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+function sampleBinomialCount(trials, chance) {
+    if (!(trials > 0) || !(chance > 0)) return 0;
+    if (chance >= 1) return trials;
+    if (trials <= HYBRID_EXACT_ROLL_LIMIT) {
+        let successes = 0;
+        for (let attempt = 0; attempt < trials; attempt++) {
+            if (Math.random() < chance) successes += 1;
         }
+        return successes;
     }
+
+    const mean = trials * chance;
+    const variance = trials * chance * (1 - chance);
+    if (variance <= 0) return Math.round(mean);
+    return Math.max(
+        0,
+        Math.min(trials, Math.round(mean + Math.sqrt(variance) * randomNormalValue()))
+    );
+}
+
+function resolveHybridResourceRolls(attempts, entries) {
+    const count = Math.max(0, Math.floor(Number(attempts) || 0));
+    if (count <= 0 || !Array.isArray(entries) || !entries.length) return;
+
+    if (count <= HYBRID_EXACT_ROLL_LIMIT) {
+        for (let attempt = 0; attempt < count; attempt++) {
+            entries.forEach(function (entry) {
+                if (entry.chance > 0 && Math.random() < entry.chance) {
+                    entry.add(entry.amount, entry.quality);
+                }
+            });
+        }
+        return;
+    }
+
+    entries.forEach(function (entry) {
+        if (!(entry.chance > 0)) return;
+        const successes = sampleBinomialCount(count, entry.chance);
+        if (successes > 0) {
+            entry.add(successes * entry.amount, entry.quality);
+        }
+    });
+}
+
+function resolveWeightedResourceRolls(attempts, entries) {
+    const count = Math.max(0, Math.floor(Number(attempts) || 0));
+    if (count <= 0 || !Array.isArray(entries) || !entries.length) return;
+
+    const totalWeight = entries.reduce(function (sum, entry) {
+        return sum + Math.max(0, Number(entry.weight) || 0);
+    }, 0);
+    if (totalWeight <= 0) return;
+
+    if (count <= HYBRID_EXACT_ROLL_LIMIT) {
+        for (let attempt = 0; attempt < count; attempt++) {
+            let roll = Math.random() * totalWeight;
+            let chosen = entries[entries.length - 1];
+            for (let index = 0; index < entries.length; index++) {
+                roll -= Math.max(0, Number(entries[index].weight) || 0);
+                if (roll <= 0) {
+                    chosen = entries[index];
+                    break;
+                }
+            }
+            if (chosen.chance > 0 && Math.random() < chosen.chance) {
+                chosen.add(chosen.amount, chosen.quality);
+            }
+        }
+        return;
+    }
+
+    entries.forEach(function (entry) {
+        const chance = (Math.max(0, Number(entry.weight) || 0) / totalWeight)
+            * entry.chance;
+        const successes = sampleBinomialCount(count, chance);
+        if (successes > 0) {
+            entry.add(successes * entry.amount, entry.quality);
+        }
+    });
+}
+
+function resolveIntervalResourceRolls(seconds, entries) {
+    const duration = Math.max(0, Number(seconds) || 0);
+    if (duration <= 0 || !Array.isArray(entries)) return;
+
+    entries.forEach(function (entry) {
+        if (!(entry.chancePerSecond > 0)) return;
+        const chance = 1 - Math.pow(1 - entry.chancePerSecond, duration);
+        if (Math.random() >= chance) return;
+        const amount = entry.amountPerSecond * duration;
+        if (amount > 0) entry.add(amount, entry.quality);
+    });
+}
+
+function getForageRollData(difficulty, resourceId, profitAmount, quality, findMultiplier) {
+    const multiplier = getResourceMultiplier(currentTile, resourceId);
+    const spaceMultiplier = getForageSpaceMultiplier(resourceId);
+    if (spaceMultiplier <= 0) return null;
+
+    const effectiveDifficulty = difficulty * multiplier;
+    const foragePower = Math.sqrt(
+        (getEffectiveLevel("per") * getEffectiveLevel("forage"))
+        * (1 + getEffectiveLevel("luck") * 0.01)
+    ) * spaceMultiplier;
+    const baseChance = foragePower > 0
+        ? Math.max(0, Math.min(1, 1 - effectiveDifficulty / foragePower))
+        : 0;
+    const chance = Math.min(1, baseChance * findMultiplier);
+    if (chance <= 0) return null;
+
+    return {
+        chance: chance,
+        amount: getForageAmount(resourceId, profitAmount),
+    };
+}
+
+function buildForageStaticEntries(quality, findMultiplier) {
+    const entries = [];
+    FORAGE_ROLLS.forEach(function (roll) {
+        const difficulty = roll[0];
+        const resourceId = roll[1];
+        const profitAmount = roll[2];
+        const data = getForageRollData(
+            difficulty,
+            resourceId,
+            profitAmount,
+            quality,
+            findMultiplier
+        );
+        if (!data) return;
+        entries.push({
+            chance: data.chance,
+            amount: data.amount,
+            quality: quality,
+            add: function (amount, batchQuality) {
+                addResource(resourceId, amount, batchQuality);
+            },
+        });
+    });
+    return entries;
+}
+
+function buildForageWeightedEntries(defs, quality, findMultiplier) {
+    const entries = [];
+    (Array.isArray(defs) ? defs : []).forEach(function (def) {
+        const weight = Math.max(0, Number(def.weight) || 0);
+        if (weight <= 0) return;
+        const data = getForageRollData(
+            def.difficulty,
+            def.id,
+            def.amount,
+            quality,
+            findMultiplier
+        );
+        if (!data) return;
+        entries.push({
+            weight: weight,
+            chance: data.chance,
+            amount: data.amount,
+            quality: quality,
+            add: function (amount, batchQuality) {
+                addResource(def.id, amount, batchQuality);
+            },
+        });
+    });
+    return entries;
+}
+
+function forage(amount){
+    const batches = Math.max(0, Math.floor(Number(amount) || 0));
+    if (batches <= 0) return;
+
+    const staminaCost = FORAGE_STAMINA_COST * getActionEffectiveness("forage");
+    const maxBatches = staminaCost > 0
+        ? Math.floor(Math.max(
+            0,
+            player.stamina - MIN_STAMINA_TO_FORAGE
+        ) / staminaCost)
+        : batches;
+    const actualBatches = Math.min(batches, maxBatches);
+    if (actualBatches <= 0) {
+        clickAction("forage");
+        return;
+    }
+
+    const staminaBefore = player.stamina;
+    player.stamina = Math.max(0, player.stamina - actualBatches * staminaCost);
+    trackHungerSpending("stamina", staminaBefore - player.stamina);
+
+    const quality = getForageResourceQuality();
+    const findMultiplier = getEquippedStatMultiplier("forageFindChance");
+
+    resolveHybridResourceRolls(
+        actualBatches,
+        buildForageStaticEntries(quality, findMultiplier)
+    );
+    resolveWeightedResourceRolls(
+        actualBatches,
+        buildForageWeightedEntries(
+            getEligibleHerbsOnTile(),
+            quality,
+            findMultiplier
+        )
+    );
+    resolveWeightedResourceRolls(
+        actualBatches,
+        buildForageWeightedEntries(
+            getEligiblePlantsOnTile(),
+            quality,
+            findMultiplier
+        )
+    );
+
+    if (actualBatches < batches) clickAction("forage");
 }
 
 // A herb can be foraged only on a tile with a matching biome and tile
@@ -3103,24 +3306,13 @@ function forageRoll(difficulty, resourceId, profitAmount){
 
     // Equipment find-chance bonus is applied last, to the finished base chance.
     const chance = Math.min(1, baseChance * getEquippedStatMultiplier("forageFindChance"));
-    const roll = Math.random();
 
-    if (roll < chance) {
+    if (Math.random() < chance) {
         addResource(
             resourceId,
             getForageAmount(resourceId, profitAmount),
             getForageResourceQuality()
         );
-        const isNamedPlant = (typeof isHerbResource === "function"
-            && isHerbResource(resourceId))
-            || (typeof isVegetableResource === "function"
-                && isVegetableResource(resourceId))
-            || (typeof isCropResource === "function"
-                && isCropResource(resourceId));
-        logMessage(isNamedPlant
-            ? "You gather " + RESOURCE_DEFS[resourceId].name + "."
-            : "whoa berry");
-        logMessage(round2(roll * 100) + "% < " + round2(chance * 100) + "%");
     }
 }
 // --- Trees Harvest action ------------------------------------------------
@@ -3998,22 +4190,27 @@ function getDigResourceChance(difficulty, power) {
 }
 
 function rollDigResources(power, seconds, quality, foundTotals) {
+    const entries = [];
     DIG_RESOURCE_ROLLS.forEach(function (roll) {
         const spaceMultiplier = getDigSpaceMultiplier(roll.resourceId);
         if (spaceMultiplier <= 0) return;
 
-        const chancePerSecond = getDigResourceChance(roll.difficulty, power)
-            * spaceMultiplier;
-        const chance = 1 - Math.pow(1 - chancePerSecond, seconds);
-        if (Math.random() >= chance) return;
-
-        const amount = round2(roll.amount * seconds);
-        if (amount <= 0) return;
-
-        addResource(roll.resourceId, amount, quality);
-        foundTotals[roll.resourceId] =
-            (foundTotals[roll.resourceId] || 0) + amount;
+        entries.push({
+            chancePerSecond: getDigResourceChance(roll.difficulty, power)
+                * spaceMultiplier,
+            amountPerSecond: roll.amount,
+            quality: quality,
+            add: function (amount) {
+                const rounded = round2(amount);
+                if (rounded <= 0) return;
+                addResource(roll.resourceId, rounded, quality);
+                foundTotals[roll.resourceId] =
+                    (foundTotals[roll.resourceId] || 0) + rounded;
+            }
+        });
     });
+
+    resolveIntervalResourceRolls(seconds, entries);
 }
 
 function runExtractionProduction(diff, config) {
@@ -4280,6 +4477,7 @@ function rollMiningResources(power, seconds, quality, foundTotals, yieldMultipli
     const multiplier = Number.isFinite(yieldMultiplier) && yieldMultiplier > 0
         ? yieldMultiplier
         : 1;
+    const entries = [];
 
     MINING_RESOURCE_ROLLS.forEach(function (roll) {
         const spaceMultiplier = getMiningSpaceMultiplier(roll.resourceId);
@@ -4287,22 +4485,27 @@ function rollMiningResources(power, seconds, quality, foundTotals, yieldMultipli
 
         const chancePerSecond = getMiningResourceChance(roll.difficulty, power)
             * spaceMultiplier;
-        const chance = 1 - Math.pow(1 - chancePerSecond, seconds);
-        if (Math.random() >= chance) return;
+        if (chancePerSecond <= 0) return;
 
-        const amount = round2(roll.amount * seconds * multiplier);
-        if (amount <= 0) return;
-
-        if (roll.resourceId === RESOURCE_IDS.ROCKS) {
-            addMiningRockOrSpecial(amount, quality, foundTotals);
-            return;
-        }
-
-        addResource(roll.resourceId, amount, quality);
-        foundTotals[roll.resourceId] =
-            (foundTotals[roll.resourceId] || 0) + amount;
+        entries.push({
+            chancePerSecond: chancePerSecond,
+            amountPerSecond: roll.amount * multiplier,
+            quality: quality,
+            add: function (rawAmount) {
+                const amount = round2(rawAmount);
+                if (amount <= 0) return;
+                if (roll.resourceId === RESOURCE_IDS.ROCKS) {
+                    addMiningRockOrSpecial(amount, quality, foundTotals);
+                    return;
+                }
+                addResource(roll.resourceId, amount, quality);
+                foundTotals[roll.resourceId] =
+                    (foundTotals[roll.resourceId] || 0) + amount;
+            },
+        });
     });
 
+    resolveIntervalResourceRolls(seconds, entries);
     rollMiningGem(seconds, quality, foundTotals);
 }
 
