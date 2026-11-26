@@ -239,7 +239,35 @@ const BUILDINGS_TECHNOLOGY = new Technology(
     }
 );
 
-const TECHNOLOGIES = [LAZY_BASICS_TECHNOLOGY, COZY_SCIENCE_TECHNOLOGY, DIET_BASICS_TECHNOLOGY, HARVEST_THE_YUMMIES_TECHNOLOGY, SCIENTIFIC_PLANS_TECHNOLOGY, SKILL_POTENTIAL_TECHNOLOGY, NOT_SO_WORTHLESS_TECHNOLOGY, SURVIVAL_101_TECHNOLOGY, BUILDINGS_TECHNOLOGY];
+const QUARTERMISTER_TECHNOLOGY = new Technology(
+    "Quartermister",
+    "Automate gathering and processing of basic resources. Each level adds a new resource target in Habits.<br>Requires: Harvest the yummies level 1, Autism level 15 (+5 per level)",
+    100000,
+    "habitquartermister",
+    function (technology) {
+        return HARVEST_THE_YUMMIES_TECHNOLOGY.level >= 1
+            && player.autism.lvl >= 15 + 5 * technology.level;
+    },
+    null,
+    8,
+    [
+        "Unlocks Manage Resources in Habits. Sticks target uses Forage.",
+        "Adds Leaves target. Uses Forage.",
+        "Adds Stones target. Uses Mining.",
+        "Adds Fibers target. Uses Make fibers.",
+        "Adds Shafts target. Uses Make shafts.",
+        "Adds Handles target. Uses Make handles.",
+        "Adds Planks target. Uses Make planks.",
+        "Adds Wooden beams target. Uses Make wooden beams.",
+    ],
+    function () {
+        if (typeof updateHabitVisibility === "function") updateHabitVisibility();
+        if (typeof updateHabitSettings === "function") updateHabitSettings();
+        if (typeof refreshActionButtons === "function") refreshActionButtons();
+    }
+);
+
+const TECHNOLOGIES = [LAZY_BASICS_TECHNOLOGY, COZY_SCIENCE_TECHNOLOGY, DIET_BASICS_TECHNOLOGY, HARVEST_THE_YUMMIES_TECHNOLOGY, QUARTERMISTER_TECHNOLOGY, SCIENTIFIC_PLANS_TECHNOLOGY, SKILL_POTENTIAL_TECHNOLOGY, NOT_SO_WORTHLESS_TECHNOLOGY, SURVIVAL_101_TECHNOLOGY, BUILDINGS_TECHNOLOGY];
 
 // --- unified content unlocks ------------------------------------------------
 // Every gated crafting recipe, building and action declares its technology
@@ -325,6 +353,12 @@ function refreshUnlockedContent() {
     }
     if (typeof refreshTabVisibility === "function") {
         refreshTabVisibility();
+    }
+    if (typeof updateHabitVisibility === "function") {
+        updateHabitVisibility();
+    }
+    if (typeof updateHabitSettings === "function") {
+        updateHabitSettings();
     }
     if (typeof refreshActionButtons === "function") refreshActionButtons();
 }
@@ -803,6 +837,100 @@ var HABIT_CATEGORIES = [
             },
         ],
     },
+    {
+        id: "manageResources",
+        name: "Manage Resources",
+        habits: [
+            {
+                id: "manageSticks",
+                name: "Sticks:",
+                description: "Quartermister level 1: use Forage automatically while Sticks are at or below this value.",
+                requiredTechnology: "quartermister",
+                requiredLevel: 1,
+                control: "number",
+                focusCost: 1,
+                resourceId: RESOURCE_IDS.STICKS,
+                actionId: "forage",
+            },
+            {
+                id: "manageLeaves",
+                name: "Leaves:",
+                description: "Quartermister level 2: use Forage automatically while Leaves are at or below this value.",
+                requiredTechnology: "quartermister",
+                requiredLevel: 2,
+                control: "number",
+                focusCost: 1,
+                resourceId: RESOURCE_IDS.LEAVES,
+                actionId: "forage",
+            },
+            {
+                id: "manageStones",
+                name: "Stones:",
+                description: "Quartermister level 3: use Mining automatically while Stones are at or below this value.",
+                requiredTechnology: "quartermister",
+                requiredLevel: 3,
+                control: "number",
+                focusCost: 1,
+                resourceId: RESOURCE_IDS.ROCKS,
+                actionId: "mining",
+            },
+            {
+                id: "manageFibers",
+                name: "Fibers:",
+                description: "Quartermister level 4: use Make fibers automatically while Fibers are at or below this value.",
+                requiredTechnology: "quartermister",
+                requiredLevel: 4,
+                control: "number",
+                focusCost: 1,
+                resourceId: RESOURCE_IDS.FIBERS,
+                actionId: "makefibers",
+            },
+            {
+                id: "manageShafts",
+                name: "Shafts:",
+                description: "Quartermister level 5: use Make shafts automatically while Shafts are at or below this value.",
+                requiredTechnology: "quartermister",
+                requiredLevel: 5,
+                control: "number",
+                focusCost: 1,
+                resourceId: RESOURCE_IDS.SHAFTS,
+                actionId: "makeshafts",
+            },
+            {
+                id: "manageHandles",
+                name: "Handles:",
+                description: "Quartermister level 6: use Make handles automatically while Handles are at or below this value.",
+                requiredTechnology: "quartermister",
+                requiredLevel: 6,
+                control: "number",
+                focusCost: 1,
+                resourceId: RESOURCE_IDS.HANDLES,
+                actionId: "makehandles",
+            },
+            {
+                id: "managePlanks",
+                name: "Planks:",
+                description: "Quartermister level 7: use Make planks automatically while Planks are at or below this value.",
+                requiredTechnology: "quartermister",
+                requiredLevel: 7,
+                control: "number",
+                focusCost: 1,
+                resourceId: RESOURCE_IDS.WOODEN_PLANK,
+                actionId: "makeplanks",
+            },
+            {
+                id: "manageWoodenBeams",
+                name: "Wooden beams:",
+                description: "Quartermister level 8: use Make wooden beams automatically while Wooden beams are at or below this value.",
+                requiredTechnology: "quartermister",
+                requiredLevel: 8,
+                control: "number",
+                focusCost: 1,
+                resourceId: RESOURCE_IDS.WOODEN_BEAMS,
+                actionId: "makewoodenbeams",
+            },
+        ],
+    },
 ];
 
 var habitToggles = {};
@@ -815,6 +943,70 @@ HABIT_CATEGORIES.forEach(function (category) {
 
 function isHabitEnabled(habitId) {
     return habitToggles[habitId] !== false;
+}
+
+function getQuartermisterHabits() {
+    const category = HABIT_CATEGORIES.find(function (entry) {
+        return entry.id === "manageResources";
+    });
+    return category ? category.habits.slice() : [];
+}
+
+function getQuartermisterHabit(habitId) {
+    return getQuartermisterHabits().find(function (habit) {
+        return habit.id === habitId;
+    }) || null;
+}
+
+function getQuartermisterTarget(habitId) {
+    if (typeof player === "undefined" || !player) return 0;
+    if (!player.quartermisterTargets
+        || typeof player.quartermisterTargets !== "object") {
+        return 0;
+    }
+    const value = Math.floor(Number(player.quartermisterTargets[habitId]) || 0);
+    return value > 0 ? value : 0;
+}
+
+function setQuartermisterTarget(habitId, value) {
+    if (typeof player === "undefined" || !player) return false;
+    if (!player.quartermisterTargets
+        || typeof player.quartermisterTargets !== "object") {
+        player.quartermisterTargets = {};
+    }
+    player.quartermisterTargets[habitId] = Math.max(
+        0,
+        Math.floor(Number(value) || 0)
+    );
+    return true;
+}
+
+function getQuartermisterResourceAmount(habit) {
+    if (!habit) return 0;
+    if (typeof getResourceAmount === "function") {
+        return Number(getResourceAmount(habit.resourceId)) || 0;
+    }
+    const stack = typeof resources !== "undefined"
+        ? resources[habit.resourceId]
+        : null;
+    return stack ? Number(stack.amount) || 0 : 0;
+}
+
+function isQuartermisterActionAvailable(habit) {
+    if (!habit) return false;
+    const action = typeof getAction === "function"
+        ? getAction(habit.actionId)
+        : null;
+    if (!action) return false;
+    if (typeof isActionVisible === "function"
+        && !isActionVisible(action)) {
+        return false;
+    }
+    if (typeof action.isEnabled === "function"
+        && !action.isEnabled()) {
+        return false;
+    }
+    return true;
 }
 
 function updateFocusPointsDisplay() {

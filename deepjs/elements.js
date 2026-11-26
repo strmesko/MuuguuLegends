@@ -1505,6 +1505,9 @@ function renderStatusIcons() {
         if (habit.requiredTechnology === "faunaBully") {
             return typeof FAUNA_BULLY_TECHNOLOGY === "undefined" ? null : FAUNA_BULLY_TECHNOLOGY;
         }
+        if (habit.requiredTechnology === "quartermister") {
+            return typeof QUARTERMISTER_TECHNOLOGY === "undefined" ? null : QUARTERMISTER_TECHNOLOGY;
+        }
         return typeof LAZY_BASICS_TECHNOLOGY === "undefined" ? null : LAZY_BASICS_TECHNOLOGY;
     }
 
@@ -1530,6 +1533,22 @@ function renderStatusIcons() {
         if (autoCookCategory) {
             autoCookCategory.value = getDietAutoCookCategory() || '';
         }
+
+        getQuartermisterHabits().forEach(function (habit) {
+            const input = document.getElementById('habitsetting-' + habit.id);
+            if (input) input.value = String(getQuartermisterTarget(habit.id));
+        });
+        updateQuartermisterStatusLabels();
+    }
+
+    function updateQuartermisterStatusLabels() {
+        getQuartermisterHabits().forEach(function (habit) {
+            const status = document.getElementById('habitsettingvalue-' + habit.id);
+            if (!status) return;
+            status.innerText = isQuartermisterActionAvailable(habit)
+                ? "1 FP"
+                : "Action is not available";
+        });
     }
 
     function updateHabitVisibility(){
@@ -1583,6 +1602,65 @@ function renderStatusIcons() {
                 const item = document.createElement('li');
                 item.className = 'habititem' + (habit.control ? ' habititem-setting' : '');
                 item.id = 'habititem-' + habit.id;
+
+                if (habit.control === 'number') {
+                    const setting = document.createElement('label');
+                    setting.className = 'habitsetting';
+                    setting.setAttribute('data-tooltip', habit.description);
+
+                    const name = document.createElement('span');
+                    name.className = 'habitname';
+                    name.innerText = habit.name;
+
+                    const input = document.createElement('input');
+                    input.type = 'number';
+                    input.className = 'habitrange habitnumber';
+                    input.id = 'habitsetting-' + habit.id;
+                    input.min = '0';
+                    input.step = '1';
+                    input.value = String(getQuartermisterTarget(habit.id));
+
+                    const valueLabel = document.createElement('span');
+                    valueLabel.className = 'habitrangevalue quartermisterstatus';
+                    valueLabel.id = 'habitsettingvalue-' + habit.id;
+                    valueLabel.innerText = isQuartermisterActionAvailable(habit)
+                        ? '1 FP'
+                        : 'Action is not available';
+
+                    input.addEventListener('change', function () {
+                        const previous = getQuartermisterTarget(habit.id);
+                        const next = Math.max(0, Math.floor(Number(input.value) || 0));
+
+                        if (next > 0 && previous <= 0) {
+                            if (focusPoints < 1) {
+                                input.value = String(previous);
+                                if (typeof logMessage === 'function') {
+                                    logMessage('Not enough focus points to enable '
+                                        + habit.name + ' (1 FP required).');
+                                }
+                                return;
+                            }
+                            focusPoints -= 1;
+                            updateFocusPointsDisplay();
+                        } else if (next === 0 && previous > 0) {
+                            focusPoints += 1;
+                            updateFocusPointsDisplay();
+                        }
+
+                        setQuartermisterTarget(habit.id, next);
+                        input.value = String(next);
+                        valueLabel.innerText = isQuartermisterActionAvailable(habit)
+                            ? '1 FP'
+                            : 'Action is not available';
+                    });
+
+                    setting.appendChild(name);
+                    setting.appendChild(input);
+                    setting.appendChild(valueLabel);
+                    item.appendChild(setting);
+                    list.appendChild(item);
+                    return;
+                }
 
                 if (habit.control === 'range') {
                     const setting = document.createElement('label');

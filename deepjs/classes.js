@@ -2489,6 +2489,7 @@ class Character {
         this.equipment = createEmptyEquipment();
         this.sleepyness = 0;
         this.lastGreetGameHour = null;
+        this.quartermisterTargets = {};
         this.lastTalkGameHour = null;
         this.talkActionsUsed = 0;
     }

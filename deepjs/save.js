@@ -405,6 +405,11 @@
         restoredPlayer.lastGreetGameHour = Number.isFinite(savedGreetHour)
             ? savedGreetHour
             : null;
+        restoredPlayer.quartermisterTargets = savedPlayer
+            && savedPlayer.quartermisterTargets
+            && typeof savedPlayer.quartermisterTargets === "object"
+            ? Object.assign({}, savedPlayer.quartermisterTargets)
+            : {};
         // Talk action charges were added with Social conversation limits.
         const savedTalkHour = savedPlayer
             && savedPlayer.lastTalkGameHour != null
