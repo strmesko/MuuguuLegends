@@ -207,6 +207,201 @@
         saveSlotButtons.push(saveButton);
         loadSlotButtons.push(loadButton);
     }
+
+    const copySaveTextToClipboard = function (text) {
+        if (navigator.clipboard
+            && typeof navigator.clipboard.writeText === "function") {
+            return navigator.clipboard.writeText(text);
+        }
+        return new Promise(function (resolve, reject) {
+            const area = document.createElement("textarea");
+            area.value = text;
+            area.style.position = "fixed";
+            area.style.left = "-9999px";
+            document.body.appendChild(area);
+            area.select();
+            try {
+                const ok = document.execCommand("copy");
+                area.remove();
+                if (ok) resolve();
+                else reject(new Error("copy failed"));
+            } catch (error) {
+                area.remove();
+                reject(error);
+            }
+        });
+    };
+
+    const saveTransfer = document.createElement("div");
+    saveTransfer.className = "saveslot savetransfer";
+    saveTransfer.id = "savetransfer";
+
+    const saveTransferTitle = document.createElement("span");
+    saveTransferTitle.className = "saveslotlabel savetransferstatus";
+    saveTransferTitle.innerText = "Save transfer";
+    saveTransfer.appendChild(saveTransferTitle);
+
+    const saveTransferSlot = document.createElement("select");
+    saveTransferSlot.id = "savetransferslot";
+    saveTransferSlot.className = "habitselect savetransferslot";
+    for (let slot = 1; slot <= 3; slot++) {
+        const option = document.createElement("option");
+        option.value = String(slot);
+        option.innerText = "Slot " + slot;
+        saveTransferSlot.appendChild(option);
+    }
+    saveTransfer.appendChild(saveTransferSlot);
+
+    const saveTransferText = document.createElement("textarea");
+    saveTransferText.id = "savetransfertext";
+    saveTransferText.className = "savetransfertext";
+    saveTransferText.placeholder = "Save JSON";
+    saveTransfer.appendChild(saveTransferText);
+
+    const saveTransferButtons = document.createElement("div");
+    saveTransferButtons.className = "savetransferbuttons";
+
+    const saveTransferStatus = document.createElement("span");
+    saveTransferStatus.id = "savetransferstatus";
+    saveTransferStatus.className = "saveslotlabel savetransferstatus";
+    saveTransferStatus.innerText = "Ready.";
+
+    const setSaveTransferStatus = function (message, isError) {
+        saveTransferStatus.innerText = message;
+        saveTransferStatus.classList.toggle("error", !!isError);
+    };
+
+    const exportCurrentButton = document.createElement("button");
+    exportCurrentButton.type = "button";
+    exportCurrentButton.className = "optionsbutton";
+    exportCurrentButton.innerText = "Export current";
+    exportCurrentButton.title = "Put the current game save into the text box.";
+    exportCurrentButton.addEventListener("click", function () {
+        if (typeof window.exportCurrentSaveToString !== "function") {
+            setSaveTransferStatus("Export is not available.", true);
+            return;
+        }
+        try {
+            const text = window.exportCurrentSaveToString();
+            saveTransferText.value = text;
+            setSaveTransferStatus(
+                "Current save exported (" + text.length + " chars)."
+            );
+        } catch (error) {
+            setSaveTransferStatus("Export failed.", true);
+        }
+    });
+    saveTransferButtons.appendChild(exportCurrentButton);
+
+    const copySaveButton = document.createElement("button");
+    copySaveButton.type = "button";
+    copySaveButton.className = "optionsbutton";
+    copySaveButton.innerText = "Copy";
+    copySaveButton.title = "Copy the save string to the clipboard.";
+    copySaveButton.addEventListener("click", function () {
+        let text = saveTransferText.value.trim();
+        if (!text && typeof window.exportCurrentSaveToString === "function") {
+            text = window.exportCurrentSaveToString();
+            saveTransferText.value = text;
+        }
+        if (!text) {
+            setSaveTransferStatus("Nothing to copy.", true);
+            return;
+        }
+        copySaveTextToClipboard(text).then(function () {
+            setSaveTransferStatus("Copied to clipboard.");
+        }).catch(function () {
+            setSaveTransferStatus("Clipboard copy failed.", true);
+        });
+    });
+    saveTransferButtons.appendChild(copySaveButton);
+
+    const importSaveButton = document.createElement("button");
+    importSaveButton.type = "button";
+    importSaveButton.className = "optionsbutton";
+    importSaveButton.innerText = "Import to slot";
+    importSaveButton.title = "Validate the save string, write it to the selected slot and load it.";
+    importSaveButton.addEventListener("click", function () {
+        const text = saveTransferText.value.trim();
+        const slot = Number(saveTransferSlot.value) || 1;
+        if (!text) {
+            setSaveTransferStatus("Paste a save string or choose a file first.", true);
+            return;
+        }
+        if (typeof window.importSaveStringToSlot !== "function") {
+            setSaveTransferStatus("Import is not available.", true);
+            return;
+        }
+        const ok = window.importSaveStringToSlot(text, slot);
+        setSaveTransferStatus(ok
+            ? "Imported into slot " + slot + "."
+            : "Import failed. See the log.", !ok);
+    });
+    saveTransferButtons.appendChild(importSaveButton);
+
+    const downloadSaveButton = document.createElement("button");
+    downloadSaveButton.type = "button";
+    downloadSaveButton.className = "optionsbutton";
+    downloadSaveButton.innerText = "Download file";
+    downloadSaveButton.title = "Download the save string as a JSON file.";
+    downloadSaveButton.addEventListener("click", function () {
+        let text = saveTransferText.value.trim();
+        if (!text && typeof window.exportCurrentSaveToString === "function") {
+            text = window.exportCurrentSaveToString();
+            saveTransferText.value = text;
+        }
+        if (!text) {
+            setSaveTransferStatus("Nothing to download.", true);
+            return;
+        }
+        if (typeof window.downloadSaveTextFile !== "function") {
+            setSaveTransferStatus("Download is not available.", true);
+            return;
+        }
+        window.downloadSaveTextFile(
+            text,
+            "muuguu-save-slot-"
+                + (Number(saveTransferSlot.value) || 1) + ".json"
+        );
+        setSaveTransferStatus("Download started.");
+    });
+    saveTransferButtons.appendChild(downloadSaveButton);
+
+    const uploadSaveButton = document.createElement("button");
+    uploadSaveButton.type = "button";
+    uploadSaveButton.className = "optionsbutton";
+    uploadSaveButton.innerText = "Choose file";
+    uploadSaveButton.title = "Load a save JSON file into the text box.";
+    saveTransferButtons.appendChild(uploadSaveButton);
+
+    const saveFileInput = document.createElement("input");
+    saveFileInput.type = "file";
+    saveFileInput.id = "savefileinput";
+    saveFileInput.accept = ".json,application/json,text/plain";
+    saveFileInput.style.display = "none";
+    uploadSaveButton.addEventListener("click", function () {
+        saveFileInput.click();
+    });
+    saveFileInput.addEventListener("change", function () {
+        const file = saveFileInput.files && saveFileInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function () {
+            saveTransferText.value = String(reader.result || "");
+            setSaveTransferStatus("File loaded. Click Import to slot.");
+        };
+        reader.onerror = function () {
+            setSaveTransferStatus("Could not read the file.", true);
+        };
+        reader.readAsText(file);
+        saveFileInput.value = "";
+    });
+
+    saveTransfer.appendChild(saveTransferButtons);
+    saveTransfer.appendChild(saveFileInput);
+    saveTransfer.appendChild(saveTransferStatus);
+    optionsContent.appendChild(saveTransfer);
+
     optionsContent.appendChild(debugFilterButton);
 
     const numberFormatRow = document.createElement('label');

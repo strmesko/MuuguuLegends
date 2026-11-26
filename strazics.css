@@ -3435,3 +3435,52 @@ body.theme-dark .habitrangevalue {
     text-align: center;
     box-sizing: border-box;
 }
+
+/* --- save transfer --- */
+.savetransfer {
+    flex-wrap: wrap;
+    align-items: stretch;
+}
+.savetransfer .savetransfertext {
+    width: calc(100% - 8px);
+    min-height: 56px;
+    margin: 4px;
+    padding: 4px;
+    box-sizing: border-box;
+    resize: vertical;
+    font-family: "SimSun", serif;
+    font-size: 8px;
+    line-height: 1.3;
+    background-color: #f2ffe0;
+    color: #2b5a36;
+    border: 1px solid #9fd65f;
+}
+.savetransferbuttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    width: 100%;
+    padding: 0 4px 4px;
+    box-sizing: border-box;
+}
+.savetransferbuttons .optionsbutton {
+    margin: 0;
+}
+.savetransferslot {
+    margin: 4px;
+}
+.savetransferstatus {
+    width: calc(100% - 8px);
+    margin: 0 4px 4px;
+}
+.savetransferstatus.error {
+    color: #a40000;
+}
+body.theme-dark .savetransfer .savetransfertext {
+    background-color: #1b231b;
+    color: #d8e8d8;
+    border-color: #4b5d4b;
+}
+body.theme-dark .savetransferstatus.error {
+    color: #ff8a8a;
+}

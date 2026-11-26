@@ -1030,4 +1030,76 @@
         }
     }
 
+    function exportCurrentSaveToString() {
+        return JSON.stringify(collectSaveData());
+    }
+
+    function importSaveStringToSlot(text, slot) {
+        const targetSlot = isValidSaveSlot(Number(slot)) ? Number(slot) : 1;
+        const raw = typeof text === "string" ? text.trim() : "";
+        if (!raw) {
+            logMessage("Save string is empty.");
+            return false;
+        }
+
+        let parsed;
+        try {
+            parsed = JSON.parse(raw);
+        } catch (error) {
+            logMessage("Invalid save JSON.");
+            return false;
+        }
+        if (!parsed || typeof parsed !== "object") {
+            logMessage("Invalid save data.");
+            return false;
+        }
+
+        try {
+            parsed = normalizeSaveData(parsed);
+        } catch (error) {
+            logMessage("Could not migrate save data.");
+            return false;
+        }
+        if (!parsed) {
+            logMessage("Invalid save data.");
+            return false;
+        }
+
+        try {
+            localStorage.setItem(
+                SAVE_SLOT_KEY_PREFIX + targetSlot,
+                JSON.stringify(parsed)
+            );
+        } catch (error) {
+            logMessage("Could not write save slot.");
+            return false;
+        }
+
+        updateSaveSlotLabels();
+        loadGame(targetSlot);
+        return true;
+    }
+
+    function downloadSaveTextFile(text, filename) {
+        const raw = typeof text === "string" ? text : "";
+        if (!raw) return false;
+
+        const blob = new Blob([raw], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = filename || "muuguu-save.json";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(function () {
+            URL.revokeObjectURL(url);
+        }, 1000);
+        return true;
+    }
+
+    window.exportCurrentSaveToString = exportCurrentSaveToString;
+    window.importSaveStringToSlot = importSaveStringToSlot;
+    window.downloadSaveTextFile = downloadSaveTextFile;
+
     updateSaveSlotLabels();
