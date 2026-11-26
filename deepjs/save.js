@@ -570,6 +570,9 @@
         restoreTechnologies(saved.technologies);
         minPotentialBonusPercent = saved.minPotentialBonusPercent
             ?? (NOT_SO_WORTHLESS_TECHNOLOGY.level * MIN_POTENTIAL_BONUS_PER_LEVEL);
+        if (typeof clampAllPotentials === "function") {
+            clampAllPotentials();
+        }
         activeResearchTechnology = getTechnologyByName(saved.activeResearchTechnology);
         ResearchLeft = saved.ResearchLeft ?? (activeResearchTechnology ? activeResearchTechnology.getRequiredResearch() : 0);
         researchQueue.length = 0;

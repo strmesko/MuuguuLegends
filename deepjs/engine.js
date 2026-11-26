@@ -1180,7 +1180,7 @@ function tryDreamPotentialGain(diff) {
 
     const skill = skills[Math.floor(Math.random() * skills.length)];
     const requested = getSleepQuality();
-    const gained = increasePotential(skill, MAX_POTENTIAL * requested / PERCENT);
+    const gained = increasePotential(skill, getMaxPotential() * requested / PERCENT);
 
     if (gained > 0) {
         logMessage("You dream about " + skill.name

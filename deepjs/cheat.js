@@ -218,7 +218,7 @@
 
         "max-potential": function () {
             eachCharacterEntry(function (entry) {
-                entry.potential = MAX_POTENTIAL;
+                entry.potential = getMaxPotential();
             });
             setCheatStatus("All potentials set to maximum.");
             refreshGameUI();

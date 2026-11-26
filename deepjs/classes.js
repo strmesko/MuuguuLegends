@@ -3,10 +3,10 @@ const EXPERIENCE_LEVEL_STEP = 10;
 const EXPERIENCE_LEVEL_MULTIPLIER = 1.1;
 const CHARACTER_EXP_LEVEL_STEP = 10;
 const CHARACTER_EXP_LEVEL_MULTIPLIER = 1.01;
-// 100% is the baseline potential scale used by experience calculations. It is
-// not a hard cap: research and minimum-potential bonuses can push it above 100.
+// 100% is the baseline potential scale. The actual maximum is dynamic and
+// depends on the "My skills needs potental" technology.
 const MAX_POTENTIAL = 100;
-const MIN_POTENTIAL = 1;
+const MIN_POTENTIAL = 100;
 const MIN_POTENTIAL_BONUS_PER_LEVEL = 1;
 const STAT_POTENTIAL_DECAY = 0.90;
 const SKILL_POTENTIAL_DECAY = 0.95;
@@ -16,11 +16,38 @@ let minPotentialBonusPercent = 0;
 let suppressAutismLevelLogs = false;
 
 function getMinPotential() {
-    return MIN_POTENTIAL + MAX_POTENTIAL * minPotentialBonusPercent / PERCENT;
+    let techLevel = 0;
+    try {
+        if (typeof NOT_SO_WORTHLESS_TECHNOLOGY !== "undefined"
+            && NOT_SO_WORTHLESS_TECHNOLOGY) {
+            techLevel = Math.max(
+                0,
+                Number(NOT_SO_WORTHLESS_TECHNOLOGY.level) || 0
+            );
+        }
+    } catch (error) {
+        techLevel = 0;
+    }
+    return MIN_POTENTIAL + techLevel;
+}
+
+function getMaxPotential() {
+    let techLevel = 0;
+    try {
+        if (typeof SKILL_POTENTIAL_TECHNOLOGY !== "undefined"
+            && SKILL_POTENTIAL_TECHNOLOGY) {
+            techLevel = Math.max(
+                0,
+                Number(SKILL_POTENTIAL_TECHNOLOGY.level) || 0
+            );
+        }
+    } catch (error) {
+        techLevel = 0;
+    }
+    return Math.max(MAX_POTENTIAL + techLevel, getMinPotential());
 }
 
 function increaseMinPotential(percent) {
-    minPotentialBonusPercent += percent;
     const minPotential = getMinPotential();
 
     CORE_STAT_NAMES.forEach(function (statName) {
@@ -31,6 +58,7 @@ function increaseMinPotential(percent) {
         const skill = player && player[skillName];
         if (skill && skill.potential < minPotential) skill.potential = minPotential;
     });
+    return minPotential;
 }
 const STARTING_SPEED_LEVEL = 100;
 const BASE_TRAVEL_TIME_SECONDS = 5 * 60;
@@ -2511,17 +2539,25 @@ function addPlayerExp(amount) {
 
     if (typeof calculateStats === "function") calculateStats();
 }
-// Potential is not capped at 100%: values above 100% increase experience gain.
+// Potential is capped by research-defined minimum and maximum values.
 // Returns the amount actually added.
 function increasePotential(entry, amount) {
     if (!entry || !Number.isFinite(amount) || amount <= 0) return 0;
 
-    const current = Number.isFinite(entry.potential) ? entry.potential : 0;
-    entry.potential = current + amount;
-    return amount;
+    const minPotential = getMinPotential();
+    const maxPotential = getMaxPotential();
+    const current = Number.isFinite(entry.potential)
+        ? entry.potential
+        : minPotential;
+    const next = Math.max(
+        minPotential,
+        Math.min(maxPotential, current + amount)
+    );
+    entry.potential = next;
+    return next - current;
 }
 function increaseAllPotentials(percent) {
-    const amount = MAX_POTENTIAL * percent / PERCENT;
+    const amount = getMaxPotential() * percent / PERCENT;
 
     CORE_STAT_NAMES.forEach(function (statName) {
         if (player && player[statName]) increasePotential(player[statName], amount);
@@ -2675,10 +2711,29 @@ function getCharacterExperienceRequiredForLevel(level) {
         * Math.pow(CHARACTER_EXP_LEVEL_MULTIPLIER, tiers);
 }
 
+function clampAllPotentials() {
+    const minPotential = getMinPotential();
+    const maxPotential = getMaxPotential();
+    const clampEntry = function (entry) {
+        if (!entry) return;
+        const value = Number(entry.potential);
+        entry.potential = Math.max(
+            minPotential,
+            Math.min(maxPotential, Number.isFinite(value) ? value : minPotential)
+        );
+    };
+    CORE_STAT_NAMES.forEach(function (statName) {
+        clampEntry(player && player[statName]);
+    });
+    LEARNABLE_SKILL_KEYS.forEach(function (skillName) {
+        clampEntry(player && player[skillName]);
+    });
+}
+
 function getExperiencePotentialRate(entry) {
     const potential = Number(entry && entry.potential);
     return Number.isFinite(potential) && potential > 0
-        ? potential / MAX_POTENTIAL
+        ? potential / getMaxPotential()
         : 0;
 }
 
@@ -2693,9 +2748,12 @@ function levelUpExperienceEntry(entry, options, key) {
     entry.exp = getExperienceRequiredForLevel(entry.lvl);
 
     const decay = Number(opts.potentialDecay);
-    entry.potential = Math.max(
-        getMinPotential(),
-        entry.potential * (Number.isFinite(decay) && decay > 0 ? decay : 1)
+    entry.potential = Math.min(
+        getMaxPotential(),
+        Math.max(
+            getMinPotential(),
+            entry.potential * (Number.isFinite(decay) && decay > 0 ? decay : 1)
+        )
     );
 
     const shouldLog = typeof opts.shouldLogLevelUp !== "function"
@@ -2799,7 +2857,7 @@ class Stat {
         this.name = name;
         this.exp = BASE_EXP;
         this.lvl = 1;
-        this.potential = MAX_POTENTIAL;
+        this.potential = getMaxPotential();
         this.id = nextStatId;
         nextStatId++;
     }
@@ -2820,7 +2878,7 @@ class Skill {
         this.name = name;
         this.exp = BASE_EXP;
         this.lvl = 1;
-        this.potential = MAX_POTENTIAL;
+        this.potential = getMaxPotential();
         this.description = description
     }
     addexp(amount){

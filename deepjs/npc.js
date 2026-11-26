@@ -848,7 +848,7 @@ function processNpcDailyNoon(days) {
                     if (npc[key] && typeof increasePotential === "function") {
                         increasePotential(
                             npc[key],
-                            (Number(MAX_POTENTIAL) || 100) * 0.10
+                            getMaxPotential() * 0.10
                         );
                     }
                 });
