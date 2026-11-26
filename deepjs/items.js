@@ -633,11 +633,13 @@ function consumeInventoryFood(index) {
 
     player.equipinventory[index] = null;
 
-    logMessage(
-        "You eat " + name
+    const eatLogText = "You eat " + name
         + ". Hunger -" + round2(Math.max(0, hungerBefore - hungerAfter))
-        + (potentialLines.length ? ". " + potentialLines.join(", ") : "")
-    );
+        + (potentialLines.length ? ". " + potentialLines.join(", ") : "");
+    if (!(typeof queueAutoCookLog === "function"
+        && queueAutoCookLog(eatLogText))) {
+        logMessage(eatLogText);
+    }
 
     if (typeof renderInventorySlots === "function"
         && !(typeof isOfflineSimulationRunning === "function"

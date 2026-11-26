@@ -6126,13 +6126,18 @@ function performCraft(recipe) {
     const suffix = " (" + rarityLabel + ", quality " + qualityInfo.quality
         + propertySuffix + ")";
 
-    logMessage(prefix + craftedName + suffix, {
+    const craftLogText = prefix + craftedName + suffix;
+    const craftLogOptions = {
         html: highlightLogText(prefix)
             + '<span class="itemname rarity-' + rarity + '">'
             + escapeLogHtml(craftedName)
             + "</span>"
             + highlightLogText(suffix),
-    });
+    };
+    if (!(typeof queueAutoCookLog === "function"
+        && queueAutoCookLog(craftLogText, craftLogOptions))) {
+        logMessage(craftLogText, craftLogOptions);
+    }
 
     if (typeof renderResources === "function"
         && !(typeof isOfflineSimulationRunning === "function"

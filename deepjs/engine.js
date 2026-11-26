@@ -624,6 +624,46 @@ function getAutoEatCandidates(excludedId) {
 // One unit restores (1 + quality^1.2) hunger, so the amount needed for the
 // current hunger is Hunger / (1 + ql^1.2). If a stack is too small, it is
 // consumed completely and another edible resource is tried.
+let autoCookLogBatch = null;
+let autoCookDishCount = 0;
+
+function beginAutoCookLogBatch() {
+    autoCookLogBatch = [];
+    autoCookDishCount = 0;
+}
+
+function isAutoCookLogBatchActive() {
+    return Array.isArray(autoCookLogBatch);
+}
+
+function queueAutoCookLog(text, options) {
+    if (!isAutoCookLogBatchActive()) return false;
+    autoCookLogBatch.push({ text: text, options: options || null });
+    return true;
+}
+
+function noteAutoCookDish() {
+    if (isAutoCookLogBatchActive()) autoCookDishCount += 1;
+}
+
+function endAutoCookLogBatch() {
+    if (!isAutoCookLogBatchActive()) return;
+
+    const entries = autoCookLogBatch;
+    const dishCount = autoCookDishCount;
+    autoCookLogBatch = null;
+    autoCookDishCount = 0;
+
+    if (dishCount > 1) {
+        logMessage("You cook and ate " + dishCount + " dishes");
+        return;
+    }
+
+    entries.forEach(function (entry) {
+        logMessage(entry.text, entry.options || undefined);
+    });
+}
+
 function updateAutoHungerEating() {
     let hunger = getHungerValue();
     if (hunger <= 0) {
@@ -645,7 +685,10 @@ function updateAutoHungerEating() {
 
     let excludedId = null;
     let safety = 0;
+    const autoCookLogging = typeof beginAutoCookLogBatch === "function";
+    if (autoCookLogging) beginAutoCookLogBatch();
 
+    try {
     while (hunger > 0 && safety < 1000) {
         safety += 1;
 
@@ -668,6 +711,9 @@ function updateAutoHungerEating() {
             if (DIET_BASICS_TECHNOLOGY.level >= 4
                 && typeof autoCookDietFood === "function"
                 && autoCookDietFood()) {
+                if (typeof noteAutoCookDish === "function") {
+                    noteAutoCookDish();
+                }
                 continue;
             }
         }
@@ -738,6 +784,9 @@ function updateAutoHungerEating() {
         // The selected stack could not finish the job; the next iteration must
         // use a different edible resource.
         excludedId = resourceId;
+    }
+    } finally {
+        if (autoCookLogging) endAutoCookLogBatch();
     }
 
     if (getHungerValue() <= 0) {
