@@ -1883,7 +1883,13 @@ function getAvailableCraftCategoryIds() {
         const hasRecipe = getCraftRecipesByCategory(category.id).some(function (recipe) {
             return canCraftRecipe(recipe);
         });
-        if (hasRecipe) return true;
+        const hasUnlockedResearchRecipe = typeof isCraftRecipeUnlocked === "function"
+            && typeof getContentUnlockRequirement === "function"
+            && getCraftRecipesByCategory(category.id).some(function (recipe) {
+                return isCraftRecipeUnlocked(recipe)
+                    && getContentUnlockRequirement("craft", recipe.id) != null;
+            });
+        if (hasRecipe || hasUnlockedResearchRecipe) return true;
         return category.id === "food"
             && typeof SPICE_CRAFT_RECIPES !== "undefined"
             && typeof canCraftSpice === "function"
