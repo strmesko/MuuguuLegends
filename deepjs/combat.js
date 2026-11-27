@@ -754,12 +754,18 @@ function getCombatAttackIntervalMs(combatant) {
     }
 
     const agility = Math.max(1, getCombatantStat(combatant, "agi"));
-    const speed = Math.max(1, getCombatantStat(combatant, "speed"));
+    const speed = Math.max(0, getCombatantStat(combatant, "speed"));
     const tempo = Math.max(0.01, agility * speed * COMBAT_ATTACK_SPEED_FACTOR);
 
-    // The supplied formula is read as (base + tempo) / tempo: the base
-    // interval shrinks as agility * speed grows.
-    return Math.max(100, (COMBAT_ATTACK_SPEED_BASE_MS + tempo) / tempo);
+    // The existing formula is the unarmed/default interval. Weapon speed then
+    // divides it, and every Speed level adds 1% attack speed (100 = x1.0).
+    const baseInterval = Math.max(100, (COMBAT_ATTACK_SPEED_BASE_MS + tempo) / tempo);
+    const weaponSpeed = typeof getEquippedWeaponAttackSpeedMultiplier === "function"
+        ? getEquippedWeaponAttackSpeedMultiplier()
+        : 1;
+    const speedSkillMultiplier = Math.max(0.01, speed / 100);
+    const totalSpeedMultiplier = Math.max(0.01, weaponSpeed * speedSkillMultiplier);
+    return Math.max(10, baseInterval / totalSpeedMultiplier);
 }
 
 function formatCombatStat(value) {

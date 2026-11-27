@@ -776,8 +776,9 @@ function normalizeToolPowerConfigs(config) {
     return Object.freeze(source.map(normalizeToolPowerConfig).filter(Boolean));
 }
 
-function createToolDefinition(id, name, icon, toolPower, description, stats, weaponSkill) {
+function createToolDefinition(id, name, icon, toolPower, description, stats, weaponSkill, attackSpeed) {
     const toolPowers = normalizeToolPowerConfigs(toolPower);
+    const normalizedAttackSpeed = Number(attackSpeed);
 
     return Object.freeze({
         id: id,
@@ -796,16 +797,20 @@ function createToolDefinition(id, name, icon, toolPower, description, stats, wea
         toolPower: toolPowers[0] || null,
         toolPowers: toolPowers,
         weaponSkill: WEAPON_SKILL_LABELS[weaponSkill] ? weaponSkill : null,
+        attackSpeed: Number.isFinite(normalizedAttackSpeed) && normalizedAttackSpeed > 0
+            ? normalizedAttackSpeed
+            : null,
         description: description || TOOL_DESCRIPTION,
     });
 }
 
-function createForagingToolDefinition(id, name, icon, toolPower, description, weaponSkill) {
+function createForagingToolDefinition(id, name, icon, toolPower, description, weaponSkill, attackSpeed) {
     return createToolDefinition(
         id, name, icon, toolPower,
         description || FORAGING_TOOL_DESCRIPTION,
         FORAGING_TOOL_STATS,
-        weaponSkill
+        weaponSkill,
+        attackSpeed
     );
 }
 
@@ -849,13 +854,14 @@ const RING_SLOT_IDS = Object.freeze(Array.from({ length: 10 }, function (_, inde
     return "ring" + (index + 1);
 }));
 
-function createCombatGearDefinition(id, name, slot, icon, stats, equipSlots, description, weaponSkill, toolPowers) {
+function createCombatGearDefinition(id, name, slot, icon, stats, equipSlots, description, weaponSkill, toolPowers, attackSpeed) {
     const allowedSlots = Array.isArray(equipSlots) && equipSlots.length
         ? equipSlots.slice()
         : [slot];
     const powers = typeof normalizeToolPowerConfigs === "function"
         ? normalizeToolPowerConfigs(toolPowers)
         : Object.freeze([]);
+    const normalizedAttackSpeed = Number(attackSpeed);
 
     return Object.freeze({
         id: id,
@@ -873,6 +879,9 @@ function createCombatGearDefinition(id, name, slot, icon, stats, equipSlots, des
         toolPower: powers[0] || null,
         toolPowers: powers,
         weaponSkill: WEAPON_SKILL_LABELS[weaponSkill] ? weaponSkill : null,
+        attackSpeed: Number.isFinite(normalizedAttackSpeed) && normalizedAttackSpeed > 0
+            ? normalizedAttackSpeed
+            : null,
         description: description,
     });
 }
@@ -1284,6 +1293,34 @@ function getItemWeaponSkill(item) {
     return WEAPON_SKILL_LABELS[skill] ? skill : null;
 }
 
+const UNARMED_ATTACK_SPEED = 1;
+
+function getItemAttackSpeed(item) {
+    if (!item) return null;
+    const definition = item.definition && typeof item.definition === "object"
+        ? item.definition
+        : (item.itemId != null ? getItemDefinition(item.itemId) : null);
+    const speed = Number(definition && definition.attackSpeed);
+    return Number.isFinite(speed) && speed > 0 ? speed : null;
+}
+
+// Dual-wielded weapons average their speed instead of stacking. No weapon
+// means the unarmed default of 1.0.
+function getEquippedWeaponAttackSpeedMultiplier(targetPlayer) {
+    const character = targetPlayer || (typeof player !== "undefined" ? player : null);
+    if (!character || !character.equipment) return UNARMED_ATTACK_SPEED;
+
+    const speeds = [];
+    Object.keys(character.equipment).forEach(function (slotId) {
+        const speed = getItemAttackSpeed(character.equipment[slotId]);
+        if (speed) speeds.push(speed);
+    });
+    if (!speeds.length) return UNARMED_ATTACK_SPEED;
+    return speeds.reduce(function (sum, speed) {
+        return sum + speed;
+    }, 0) / speeds.length;
+}
+
 // Metal tool and utensil variants. Every recipe uses the matching metal bar
 // and a wooden handle/shaft. Each metal has a common stat multiplier; gold
 // additionally grants a Luck bonus, which is ten times the original value.
@@ -1326,30 +1363,35 @@ const METAL_VARIANT_TOOL_BASES = Object.freeze([
         weight: 0.5, durability: 40, handleResourceId: RESOURCE_IDS.HANDLES,
         toolPowers: Object.freeze([{ type: "cutting", power: 3 }]),
         weaponSkill: "knifesstabbing",
+        attackSpeed: 1.5,
     }),
     Object.freeze({
         key: "hammer", name: "Hammer", category: "tools", icon: "stonehammer",
         weight: 0.5, durability: 40, handleResourceId: RESOURCE_IDS.HANDLES,
         toolPowers: Object.freeze([{ type: "smash", power: 2 }]),
         weaponSkill: "hammerscrushworks",
+        attackSpeed: 0.65,
     }),
     Object.freeze({
         key: "axe", name: "Axe", category: "tools", icon: "stoneaxe",
         weight: 0.5, durability: 40, handleResourceId: RESOURCE_IDS.HANDLES,
         toolPowers: Object.freeze([{ type: "cutting", power: 1 }, { type: "chopping", power: 2 }]),
         weaponSkill: "axechopping",
+        attackSpeed: 0.8,
     }),
     Object.freeze({
         key: "pickaxe", name: "Pickaxe", category: "tools", icon: "flintpickaxe",
         weight: 0.5, durability: 40, handleResourceId: RESOURCE_IDS.SHAFTS,
         toolPowers: Object.freeze([{ type: "mining", power: 1 }]),
         weaponSkill: "axechopping",
+        attackSpeed: 0.8,
     }),
     Object.freeze({
         key: "shovel", name: "Shovel", category: "tools", icon: "metalshovel",
         weight: 0.5, durability: 40, handleResourceId: RESOURCE_IDS.SHAFTS,
         toolPowers: Object.freeze([{ type: "digging", power: 1 }]),
         weaponSkill: "hammerscrushworks",
+        attackSpeed: 0.85,
     }),
     Object.freeze({
         key: "spear", name: "Spear", category: "tools", icon: "flintspear",
@@ -1358,6 +1400,7 @@ const METAL_VARIANT_TOOL_BASES = Object.freeze([
             { type: "fishing", power: 1 },
         ]),
         weaponSkill: "spearsspooning",
+        attackSpeed: 1.05,
     }),
 ]);
 
@@ -1423,6 +1466,7 @@ METAL_VARIANT_METALS.forEach(function (metal) {
             toolPower: toolPowers[0] || null,
             toolPowers: toolPowers,
             weaponSkill: base.weaponSkill || null,
+            attackSpeed: base.attackSpeed || null,
             description: metal.name + " " + base.name.toLowerCase()
                 + " forged from refined metal and mounted on a sturdy wooden "
                 + (base.handleResourceId === RESOURCE_IDS.SHAFTS ? "shaft." : "handle."),
@@ -1763,18 +1807,18 @@ const ITEM_DEFS = Object.freeze({
     [ITEM_IDS.HANDY_STICK]: createForagingToolDefinition(
         ITEM_IDS.HANDY_STICK, "Handy Stick", "handystick",
         { type: "digging", power: 1 },
-        null, "spearsspooning"
+        null, "spearsspooning", 0.95
     ),
     [ITEM_IDS.FLINT_KNIFE]: createForagingToolDefinition(
         ITEM_IDS.FLINT_KNIFE, "Flint Knife", "flintknife",
         { type: "cutting", power: 3 },
-        null, "knifesstabbing"
+        null, "knifesstabbing", 1.5
     ),
     [ITEM_IDS.STONE_HAMMER]: createToolDefinition(
         ITEM_IDS.STONE_HAMMER, "Stone Hammer", "stonehammer",
         { type: "smash", power: 2 },
         "A heavy stone hammer for smashing stone and driving wedges.",
-        null, "hammerscrushworks"
+        null, "hammerscrushworks", 0.65
     ),
     [ITEM_IDS.STONE_AXE]: createToolDefinition(
         ITEM_IDS.STONE_AXE, "Stone Axe", "stoneaxe",
@@ -1783,7 +1827,7 @@ const ITEM_DEFS = Object.freeze({
             { type: "chopping", power: 2 },
         ],
         "A sturdy stone axe for chopping wood and shaping shafts.",
-        null, "axechopping"
+        null, "axechopping", 0.8
     ),
     [ITEM_IDS.KEBOB_ON_STICK]: Object.freeze({
         id: ITEM_IDS.KEBOB_ON_STICK,
@@ -1994,37 +2038,37 @@ const ITEM_DEFS = Object.freeze({
         ITEM_IDS.BONE_CLUB, "Bone club", "arm1", "boneclub",
         { attack: 6, defence: 1 }, FORAGING_TOOL_SLOTS,
         "A heavy femur with a wrapped grip. Simple and honest violence.",
-        "hammerscrushworks"
+        "hammerscrushworks", null, 0.7
     ),
     [ITEM_IDS.IRON_SWORD]: createCombatGearDefinition(
         ITEM_IDS.IRON_SWORD, "Iron sword", "arm1", "ironsword",
         { attack: 8, hit: 4 }, FORAGING_TOOL_SLOTS,
         "A straight iron blade with a short crossguard. Heavy enough to matter.",
-        "swordsswingin"
+        "swordsswingin", null, 1.15
     ),
     [ITEM_IDS.HUNTING_SPEAR]: createCombatGearDefinition(
         ITEM_IDS.HUNTING_SPEAR, "Hunting spear", "arm1", "huntingspear",
         { attack: 7, hit: 3, flee: 3 }, FORAGING_TOOL_SLOTS,
         "A long spear with a barbed head. Keeps the argument at a distance.",
-        "spearsspooning", { type: "fishing", power: 1 }
+        "spearsspooning", { type: "fishing", power: 1 }, 1.05
     ),
     [ITEM_IDS.POISONED_DAGGER]: createCombatGearDefinition(
         ITEM_IDS.POISONED_DAGGER, "Poisoned dagger", "arm1", "poisoneddagger",
         { attack: 5, critChance: 8, poisonOnHit: 20 }, FORAGING_TOOL_SLOTS,
         "A thin blade coated in something the spiders taught you.",
-        "knifesstabbing"
+        "knifesstabbing", null, 1.5
     ),
     [ITEM_IDS.BUTCHER_CLEAVER]: createCombatGearDefinition(
         ITEM_IDS.BUTCHER_CLEAVER, "Butcher cleaver", "arm1", "butchercleaver",
         { attack: 6, lootAmount: 25 }, FORAGING_TOOL_SLOTS,
         "A wide cleaver made for cutting meat. Excellent at getting more of it.",
-        "hammerscrushworks"
+        "hammerscrushworks", null, 0.9
     ),
     [ITEM_IDS.GUARDBREAKER_AXE]: createCombatGearDefinition(
         ITEM_IDS.GUARDBREAKER_AXE, "Guardbreaker axe", "arm1", "guardbreakeraxe",
         { attack: 7, attackPercent: 10, weakenOnDefend: 20 }, FORAGING_TOOL_SLOTS,
         "A notched axe with a hooked back. Every block leaves the enemy weaker.",
-        "axechopping"
+        "axechopping", null, 0.8
     ),
     [ITEM_IDS.LADLE]: Object.freeze({
         id: ITEM_IDS.LADLE,
@@ -2142,13 +2186,13 @@ const ITEM_DEFS = Object.freeze({
         ITEM_IDS.FLINT_PICKAXE, "Flint Pickaxe", "flintpickaxe",
         { type: "mining", power: 1 },
         "A flint-headed pickaxe for breaking stone and ore.",
-        null, "axechopping"
+        null, "axechopping", 0.8
     ),
     [ITEM_IDS.FLINT_SPEAR]: createToolDefinition(
         ITEM_IDS.FLINT_SPEAR, "Flint Spear", "flintspear",
         { type: "fishing", power: 1 },
         "A flint-tipped spear for hunting, fighting and spearing fish.",
-        null, "spearsspooning"
+        null, "spearsspooning", 1.05
     ),
     [ITEM_IDS.LEAF_OF_NATURE]: createLeafClothingDefinition(
         ITEM_IDS.LEAF_OF_NATURE, "Leaf of Nature", "pants", "leafofnature"
@@ -2457,6 +2501,13 @@ function getItemBonusDescriptions(item) {
         : null;
     if (weaponSkill && WEAPON_SKILL_LABELS[weaponSkill]) {
         descriptions.push("Weapon skill: " + WEAPON_SKILL_LABELS[weaponSkill]);
+    }
+
+    const attackSpeed = typeof getItemAttackSpeed === "function"
+        ? getItemAttackSpeed(item)
+        : null;
+    if (attackSpeed) {
+        descriptions.push("Attack speed: x" + roundItemNumber(attackSpeed));
     }
 
     if (typeof getItemInventorySlotBonus === "function") {
