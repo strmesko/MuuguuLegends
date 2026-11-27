@@ -984,6 +984,8 @@ body{font-size:max(6px,1em);}
   box-shadow: 3px 3px 3px rgba(65, 39, 5, 0.3);
   /* Tooltips must stay above every overlay, including the travel overlay. */
   z-index: 1000;
+  /* The tooltip must never steal hover from the element it describes. */
+  pointer-events: none;
 }
 
 .itemrarity,

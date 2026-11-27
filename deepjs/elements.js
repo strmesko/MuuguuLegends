@@ -1306,52 +1306,116 @@ createToolPowerSection();
 createHousePowerSection();
 updateCharacterPowerGUI();
 ensureSkillsDivider();
-let tooltipElem;
+let tooltipElem = null;
+let tooltipTarget = null;
 
-document.onmouseover = function(event) { //tuultip whoa :o
-  let target = event.target;
+function removeTooltip() {
+  if (tooltipElem) {
+    tooltipElem.remove();
+    tooltipElem = null;
+  }
+  tooltipTarget = null;
+}
 
-  // Hovering an icon or label inside a button must still show the button's
-  // tooltip, so use the nearest ancestor that actually has one.
-  const tooltipTarget = target && typeof target.closest === "function"
-    ? target.closest("[data-tooltip]")
+function getTooltipTarget(node) {
+  return node && typeof node.closest === "function"
+    ? node.closest("[data-tooltip]")
     : null;
-  if (!tooltipTarget) return;
+}
 
-  // if thereis tooltip
-  let tooltipHtml = tooltipTarget.dataset.tooltip;
-  if (!tooltipHtml) return;
+function showTooltip(target) {
+  const tooltipHtml = target && target.dataset
+    ? target.dataset.tooltip
+    : "";
+  if (!tooltipHtml) {
+    removeTooltip();
+    return;
+  }
 
-  // create elemunt
+  // Every new tooltip replaces the previous one, so repeated mouseover events
+  // on the same element can never leave orphaned tooltip nodes behind.
+  removeTooltip();
+  tooltipTarget = target;
 
   tooltipElem = document.createElement('div');
   tooltipElem.className = 'tooltip';
   tooltipElem.innerHTML = tooltipHtml;
   document.body.append(tooltipElem);
 
-  // default position are top center
-  let coords = tooltipTarget.getBoundingClientRect();
+  // Default position is top center, clamped to the viewport so long texts
+  // never run off screen.
+  const coords = target.getBoundingClientRect();
+  const viewportWidth = document.documentElement.clientWidth;
+  const viewportHeight = document.documentElement.clientHeight;
 
-  let left = coords.left + (tooltipTarget.offsetWidth - tooltipElem.offsetWidth) / 2;
-  if (left < 0) left = 0; // booorder
+  let left = coords.left + (target.offsetWidth - tooltipElem.offsetWidth) / 2;
+  const maxLeft = Math.max(0, viewportWidth - tooltipElem.offsetWidth);
+  left = Math.min(Math.max(0, left), maxLeft);
 
   let top = coords.top - tooltipElem.offsetHeight - 5;
   if (top < 0) { // show tooltip on bottom if needed
-    top = coords.top + tooltipTarget.offsetHeight + 5;
+    top = coords.top + target.offsetHeight + 5;
   }
+  const maxTop = Math.max(0, viewportHeight - tooltipElem.offsetHeight);
+  top = Math.min(Math.max(0, top), maxTop);
 
   tooltipElem.style.left = left + 'px';
   tooltipElem.style.top = top + 'px';
-};
+}
 
-document.onmouseout = function(e) {
-
-  if (tooltipElem) {
-    tooltipElem.remove();
-    tooltipElem = null;
+document.addEventListener("mouseover", function (event) {
+  // Hovering an icon or label inside a button must still show the button's
+  // tooltip, so use the nearest ancestor that actually has one.
+  const target = getTooltipTarget(event.target);
+  if (!target) {
+    // No tooltip here: close the previous one. This also covers a rebuilt
+    // ancestor that swallowed the matching mouseout event.
+    removeTooltip();
+    return;
   }
 
-};
+  // Moving between children of the same tooltip owner keeps the tooltip and
+  // does not recreate it.
+  if (target === tooltipTarget && tooltipElem) return;
+  showTooltip(target);
+});
+
+document.addEventListener("mouseout", function (event) {
+  if (!tooltipElem) return;
+
+  const related = event.relatedTarget;
+  if (related && tooltipTarget && tooltipTarget.contains(related)) return;
+  removeTooltip();
+});
+
+// Re-rendered UI can remove the hovered node without firing mouseout, and a
+// fixed tooltip would otherwise stay on screen forever. There is no auto-hide
+// timer, so a tooltip can be read for as long as the pointer stays on it.
+document.addEventListener("mousemove", function (event) {
+  if (!tooltipElem) return;
+
+  const target = event.target;
+  if (!tooltipTarget
+      || !document.documentElement.contains(tooltipTarget)
+      || (target !== tooltipTarget && !tooltipTarget.contains(target))) {
+    removeTooltip();
+  }
+}, { passive: true });
+
+// Scrolling the page moves the anchor away from the fixed tooltip. Inner
+// panels scroll on their own and must not close a tooltip the player is
+// reading, so only the window scroll is observed here.
+window.addEventListener("scroll", function () {
+  if (tooltipElem) removeTooltip();
+});
+
+document.documentElement.addEventListener("mouseleave", function () {
+  if (tooltipElem) removeTooltip();
+});
+
+window.addEventListener("blur", function () {
+  if (tooltipElem) removeTooltip();
+});
 
 // --- buff / debuff icons -------------------------------------------------
 // Icons live in the bottom-left corner of the top bar with the coordinates.
