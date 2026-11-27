@@ -308,6 +308,17 @@ function getMobLevelForTile(x, y) {
         + getMobYearLevelBonus();
 }
 
+// Spooky travel multiplies only the distance-based part of the mob level.
+// The year bonus is added afterwards so the upgrade does not scale with time.
+function getSpookyMobLevelForTile(x, y) {
+    const yearBonus = getMobYearLevelBonus();
+    const distanceLevel = Math.max(1, getMobLevelForTile(x, y) - yearBonus);
+    const multiplier = typeof getSpookyTravelMobLevelMultiplier === "function"
+        ? getSpookyTravelMobLevelMultiplier()
+        : 1;
+    return Math.max(1, distanceLevel * multiplier + yearBonus);
+}
+
 function getMobLevelMultiplier(level) {
     const normalized = Math.max(1, Math.floor(Number(level) || 1));
     return Math.pow(MOB_LEVEL_STAT_MULTIPLIER, normalized - 1);
@@ -795,7 +806,7 @@ function createMobCombatant(mobId, level, prefixes) {
         ? Math.max(1, Math.floor(Number(level)))
         : Math.max(
             1,
-            getMobLevelForTile(tileX, tileY)
+            getSpookyMobLevelForTile(tileX, tileY)
                 + Math.floor(getCombatGearStat("mobLevelBonus"))
         );
     const multiplier = getMobLevelMultiplier(mobLevel);
@@ -1469,8 +1480,8 @@ function getBullyMobLevel() {
     const tile = typeof currentTile !== "undefined" && currentTile
         ? currentTile
         : { x: 0, y: 0 };
-    const baseLevel = typeof getMobLevelForTile === "function"
-        ? getMobLevelForTile(tile.x, tile.y)
+    const baseLevel = typeof getSpookyMobLevelForTile === "function"
+        ? getSpookyMobLevelForTile(tile.x, tile.y)
         : 1;
     const gearBonus = typeof getCombatGearStat === "function"
         ? Math.floor(getCombatGearStat("mobLevelBonus"))

@@ -613,7 +613,10 @@ function getDramaCombatMobLevel(levelOffset) {
     const tile = typeof currentTile !== "undefined" && currentTile
         ? currentTile
         : null;
-    const baseLevel = getMobLevelForTile(
+    const levelForTile = typeof getSpookyMobLevelForTile === "function"
+        ? getSpookyMobLevelForTile
+        : getMobLevelForTile;
+    const baseLevel = levelForTile(
         tile ? Number(tile.x) || 0 : 0,
         tile ? Number(tile.y) || 0 : 0
     );

@@ -33,6 +33,13 @@ const ASCENSION_UPGRADE_DEFS = Object.freeze([
         costGrowth: 1.1,
     }),
     Object.freeze({
+        id: "spookyTravel",
+        name: "Spooky travel",
+        description: "Multiplies the distance-based mob level by (upgrade level + 1).",
+        baseCost: 4000,
+        costPerLevel: 2000,
+    }),
+    Object.freeze({
         id: "ethernalSmuggling",
         name: "ethernal smuggling",
         description: "Smuggle one item from the old world into the new one.",
@@ -49,6 +56,7 @@ var ascensionUpgrades = {
     megagrid: 0,
     wonderland: 0,
     photosynthesis: 0,
+    spookyTravel: 0,
     ethernalSmuggling: 0,
 };
 var playerDeathInProgress = false;
@@ -69,6 +77,7 @@ function loadAscensionProgress() {
             megagrid: Math.max(0, Math.floor(Number(upgrades.megagrid) || 0)),
             wonderland: Math.max(0, Math.floor(Number(upgrades.wonderland) || 0)),
             photosynthesis: Math.max(0, Math.floor(Number(upgrades.photosynthesis) || 0)),
+            spookyTravel: Math.max(0, Math.floor(Number(upgrades.spookyTravel) || 0)),
             ethernalSmuggling: Math.max(0, Math.floor(Number(upgrades.ethernalSmuggling) || 0)),
         };
     } catch (error) {
@@ -192,6 +201,14 @@ function getWonderlandSleepMultiplier() {
 
 function getPhotosynthesisLevel() {
     return getAscensionUpgradeLevel("photosynthesis");
+}
+
+function getSpookyTravelLevel() {
+    return getAscensionUpgradeLevel("spookyTravel");
+}
+
+function getSpookyTravelMobLevelMultiplier() {
+    return 1 + getSpookyTravelLevel();
 }
 
 const SMUGGLED_ITEM_STORAGE_KEY = "muuguu_smuggled_item";
@@ -338,8 +355,10 @@ function showSmuggleSelection(cause) {
 function getAscensionUpgradeCost(id) {
     const definition = getAscensionUpgradeDefinition(id);
     if (!definition) return Infinity;
-    const raw = definition.baseCost
-        * Math.pow(definition.costGrowth, getAscensionUpgradeLevel(id));
+    const level = getAscensionUpgradeLevel(id);
+    const raw = definition.costPerLevel != null
+        ? definition.baseCost + definition.costPerLevel * level
+        : definition.baseCost * Math.pow(definition.costGrowth, level);
     // Avoid floating-point noise making an exact cost one point too high.
     return Math.ceil(raw - 1e-9);
 }
