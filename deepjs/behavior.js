@@ -7,9 +7,10 @@
 //   2. Rest
 //   3. Harvest trees
 //   4. Quartermaster resource actions
-//   5. Research
-//   6. Saved actions (last N actions, excluding habit-managed ones)
-//   7. Daydream
+//   5. TileHabits model
+//   6. Research
+//   7. Saved actions (last N actions, excluding habit-managed ones)
+//   8. Daydream
 //
 // Higher tiers may preempt lower tiers when no action slot is free. Lower
 // tiers only fill free slots and never interrupt a higher tier.
@@ -19,6 +20,7 @@ const PLAYER_BEHAVIOR_PRIORITIES = Object.freeze([
     { id: "rest", name: "Rest", rank: 2 },
     { id: "treesharvest", name: "Harvest trees", rank: 3 },
     { id: "quartermaster", name: "Manage resources", rank: 4 },
+    { id: "tilehabits", name: "Tile habits", rank: 4.5 },
     { id: "research", name: "Research", rank: 5 },
     { id: "saved", name: "Saved actions", rank: 6 },
     { id: "daydream", name: "Daydream", rank: 7 },
@@ -97,14 +99,50 @@ function isActionManagedByEnabledHabit(actionId) {
             && typeof isHabitEnabled === "function"
             && isHabitEnabled("daydreamIdle");
     }
+    const tileHabit = typeof getSelectedTileHabitModel === "function"
+        ? getSelectedTileHabitModel()
+        : null;
+    if (tileHabit) {
+        if (tileHabit.id === "explore"
+            && (actionId === "explore" || actionId === "search")) {
+            return true;
+        }
+        if (tileHabit.id === "foodbringer" && actionId === "treesharvest") {
+            return true;
+        }
+        if (tileHabit.id === "deforester" && actionId === "cuttree") {
+            return true;
+        }
+    }
     return getQuartermisterHabitForAction(actionId) !== null;
 }
 
 function getBehaviorRank(actionId) {
     if (actionId === "sleep") return 1;
     if (actionId === "rest") return 2;
+    const tileHabit = typeof getSelectedTileHabitModel === "function"
+        ? getSelectedTileHabitModel()
+        : null;
     if (actionId === "treesharvest") {
-        return isActionManagedByEnabledHabit("treesharvest") ? 3 : 6;
+        const harvestHabitManaged = typeof HARVEST_THE_YUMMIES_TECHNOLOGY !== "undefined"
+            && HARVEST_THE_YUMMIES_TECHNOLOGY.level >= 1
+            && typeof isHabitEnabled === "function"
+            && isHabitEnabled("harvestTrees");
+        if (harvestHabitManaged) return 3;
+        if (tileHabit && tileHabit.id === "foodbringer") {
+            return TILE_HABIT_BEHAVIOR_RANK;
+        }
+        return 6;
+    }
+    if (actionId === "explore" || actionId === "search") {
+        if (tileHabit && tileHabit.id === "explore") {
+            return TILE_HABIT_BEHAVIOR_RANK;
+        }
+    }
+    if (actionId === "cuttree") {
+        if (tileHabit && tileHabit.id === "deforester") {
+            return TILE_HABIT_BEHAVIOR_RANK;
+        }
     }
     if (getQuartermisterHabitForAction(actionId)) return 4;
     if (actionId === "research") return 5;
@@ -230,6 +268,184 @@ function tryBehaviorQuartermaster() {
     return true;
 }
 
+// --- TileHabits ------------------------------------------------------------
+// The selected model works across neighbouring tiles. It has a lower priority
+// than Manage Resources and a higher priority than Research.
+
+let tileHabitNextTravelAttempt = 0;
+
+function collectTileHabitCandidates(predicate, limit) {
+    if (typeof window === "undefined" || !window.mapView
+        || !window.mapView.world
+        || !(window.mapView.world.chunks instanceof Map)) {
+        return [];
+    }
+    const world = window.mapView.world;
+    const tile = typeof currentTile !== "undefined" ? currentTile : null;
+    if (!tile) return [];
+
+    const currentX = Math.trunc(Number(tile.x) || 0);
+    const currentY = Math.trunc(Number(tile.y) || 0);
+    const chunkSize = Math.max(1, Math.trunc(Number(world.chunkSize) || 16));
+    const maxResults = Math.max(1, Math.trunc(Number(limit) || 12));
+    const candidates = [];
+
+    world.chunks.forEach(function (chunk, key) {
+        if (!Array.isArray(chunk)) return;
+        const parts = String(key).split(",");
+        const chunkX = Math.trunc(Number(parts[0]));
+        const chunkY = Math.trunc(Number(parts[1]));
+        if (!Number.isFinite(chunkX) || !Number.isFinite(chunkY)) return;
+
+        for (let localY = 0; localY < chunk.length; localY++) {
+            const row = chunk[localY];
+            if (!Array.isArray(row)) continue;
+            for (let localX = 0; localX < row.length; localX++) {
+                const candidate = row[localX];
+                if (!candidate || candidate.discovered !== true) continue;
+                const x = chunkX * chunkSize + localX;
+                const y = chunkY * chunkSize + localY;
+                if (x === currentX && y === currentY) continue;
+                if (!predicate(candidate, x, y)) continue;
+                candidates.push({
+                    tile: candidate,
+                    x: x,
+                    y: y,
+                    distance: Math.abs(x - currentX) + Math.abs(y - currentY),
+                });
+            }
+        }
+    });
+
+    candidates.sort(function (a, b) {
+        if (a.distance !== b.distance) return a.distance - b.distance;
+        if (a.y !== b.y) return a.y - b.y;
+        return a.x - b.x;
+    });
+    return candidates.slice(0, maxResults);
+}
+
+function startTileHabitTimedAction(actionId) {
+    if (typeof getAction !== "function" || typeof isActionVisible !== "function"
+        || typeof startTimedAction !== "function") {
+        return false;
+    }
+    const action = getAction(actionId);
+    if (!action) return false;
+    if (typeof isActionActive === "function" && isActionActive(action.id)) {
+        return false;
+    }
+    if (!isActionVisible(action)) return false;
+    if (typeof action.isComplete === "function" && action.isComplete()) {
+        return false;
+    }
+    if (!ensureBehaviorSlot(TILE_HABIT_BEHAVIOR_RANK)) return false;
+    return startTimedAction(action, { remember: false });
+}
+
+function travelToNearestTileHabitCandidate(candidates) {
+    if (!Array.isArray(candidates) || candidates.length === 0) return false;
+    if (Date.now() < tileHabitNextTravelAttempt) return false;
+    if (typeof currentTile === "undefined" || !currentTile) return false;
+    if (typeof findMoveToXYPath !== "function"
+        || typeof startMoveToXYTravel !== "function") {
+        return false;
+    }
+    if (typeof areMovementActionsAvailable === "function"
+        && !areMovementActionsAvailable()) {
+        return false;
+    }
+
+    for (let index = 0; index < candidates.length; index++) {
+        const candidate = candidates[index];
+        const pathInfo = findMoveToXYPath(
+            currentTile.x,
+            currentTile.y,
+            candidate.x,
+            candidate.y
+        );
+        if (!pathInfo || !Array.isArray(pathInfo.path)
+            || pathInfo.path.length === 0) {
+            continue;
+        }
+        pathInfo.targetX = candidate.x;
+        pathInfo.targetY = candidate.y;
+        if (startMoveToXYTravel(pathInfo)) return true;
+        break;
+    }
+
+    tileHabitNextTravelAttempt = Date.now() + 10000;
+    return false;
+}
+
+function tryTileHabitExplore() {
+    const tile = typeof currentTile !== "undefined" ? currentTile : null;
+    if (!tile) return false;
+
+    const revealed = Number(tile.revealed) || 0;
+    const investigated = Number(tile.investigated) || 0;
+    if (revealed < EXPLORATION_COMPLETE) {
+        return startTileHabitTimedAction("explore");
+    }
+    if (investigated < revealed) {
+        return startTileHabitTimedAction("search");
+    }
+
+    const candidates = collectTileHabitCandidates(function (candidate) {
+        const candidateRevealed = Number(candidate.revealed) || 0;
+        const candidateInvestigated = Number(candidate.investigated) || 0;
+        return candidateRevealed < EXPLORATION_COMPLETE
+            || candidateInvestigated < candidateRevealed;
+    }, 12);
+    return travelToNearestTileHabitCandidate(candidates);
+}
+
+function tryTileHabitFoodBringer() {
+    const tile = typeof currentTile !== "undefined" ? currentTile : null;
+    if (!tile || typeof hasHarvestableTrees !== "function") return false;
+
+    if (hasHarvestableTrees(tile)) {
+        return startTileHabitTimedAction("treesharvest");
+    }
+
+    const candidates = collectTileHabitCandidates(function (candidate) {
+        return (Number(candidate.revealed) || 0) >= EXPLORATION_COMPLETE
+            && hasHarvestableTrees(candidate);
+    }, 12);
+    return travelToNearestTileHabitCandidate(candidates);
+}
+
+function tryTileHabitDeforester() {
+    const tile = typeof currentTile !== "undefined" ? currentTile : null;
+    if (!tile || typeof hasCuttableTrees !== "function") return false;
+    if (typeof getCharacterToolPower !== "function"
+        || getCharacterToolPower("chopping") < 1) {
+        return false;
+    }
+
+    if (hasCuttableTrees(tile)) {
+        return startTileHabitTimedAction("cuttree");
+    }
+
+    const candidates = collectTileHabitCandidates(function (candidate) {
+        return hasCuttableTrees(candidate);
+    }, 12);
+    return travelToNearestTileHabitCandidate(candidates);
+}
+
+function tryBehaviorTileHabits() {
+    if (hasActiveRestorationActionForBehavior()) return false;
+    const model = typeof getSelectedTileHabitModel === "function"
+        ? getSelectedTileHabitModel()
+        : null;
+    if (!model) return false;
+
+    if (model.id === "explore") return tryTileHabitExplore();
+    if (model.id === "foodbringer") return tryTileHabitFoodBringer();
+    if (model.id === "deforester") return tryTileHabitDeforester();
+    return false;
+}
+
 function hasBehaviorResearchTarget() {
     if (typeof activeResearchTechnology !== "undefined"
         && activeResearchTechnology) {
@@ -344,6 +560,7 @@ function runPlayerBehavior(reason) {
 
     tryBehaviorHarvestTrees();
     tryBehaviorQuartermaster();
+    tryBehaviorTileHabits();
     tryBehaviorResearch();
     tryBehaviorSavedActions();
     tryBehaviorDayDream();
@@ -375,7 +592,15 @@ function updateBehaviorSummary() {
         })
         : [];
     const priorityText = PLAYER_BEHAVIOR_PRIORITIES
-        .map(function (entry) { return entry.name; })
+        .map(function (entry) {
+            if (entry.id !== "tilehabits") return entry.name;
+            const model = typeof getSelectedTileHabitModel === "function"
+                ? getSelectedTileHabitModel()
+                : null;
+            return model
+                ? "TileHabits (" + model.name + ")"
+                : entry.name;
+        })
         .join(" → ");
     const savedText = "Saved actions: " + saved.length + " / " + max
         + (saved.length ? " (" + saved.join(", ") + ")" : "");

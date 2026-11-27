@@ -164,6 +164,7 @@
             dietPriorityStat: dietPriorityStat,
             dietAutoCookCategory: dietAutoCookCategory,
             harvestTreePriorityStat: harvestTreePriorityStat,
+            tileHabitModel: tileHabitModel,
             landTotals: landTotals,
             resources: resources,
             foodStatBindings: Object.assign({}, foodStatBindings),
@@ -346,6 +347,7 @@
             dietPriorityStat: saveData.dietPriorityStat ?? "",
             dietAutoCookCategory: saveData.dietAutoCookCategory ?? "",
             harvestTreePriorityStat: saveData.harvestTreePriorityStat ?? "",
+            tileHabitModel: saveData.tileHabitModel ?? "",
             resources: saveData.resources ?? saveData.stocks,
             foodStatBindings: saveData.foodStatBindings ?? null,
             buildings: Array.isArray(saveData.buildings) ? saveData.buildings : [],
@@ -621,6 +623,10 @@
         harvestTreePriorityStat = CORE_STAT_NAMES.includes(saved.harvestTreePriorityStat)
             ? saved.harvestTreePriorityStat
             : "";
+        tileHabitModel = "";
+        if (saved.tileHabitModel) {
+            setTileHabitModel(saved.tileHabitModel);
+        }
         updateHabitToggles();
         updateHabitVisibility();
         landTotals = saved.landTotals;

@@ -1650,6 +1650,10 @@ function renderStatusIcons() {
     createChildElement('li', 'habit-node open', '', 'habitquartermisternode', 'habitharvesttheyummieschildren', '');
     createChildElement('button', 'habit-skill', QUARTERMISTER_TECHNOLOGY.name, 'habitquartermister', 'habitquartermisternode', QUARTERMISTER_TECHNOLOGY.getDescription());
     decorateResearchNode('habitquartermister', 'fa-clipboard', QUARTERMISTER_TECHNOLOGY);
+    createChildElement('ul', 'habit-children', '', 'habitmultitilemacrochildren', 'habitquartermisternode', '');
+    createChildElement('li', 'habit-node', '', 'habitmultitilemacronode', 'habitmultitilemacrochildren', '');
+    createChildElement('button', 'habit-skill', MULTI_TILE_MACRO_TECHNOLOGY.name, 'habitmultitilemacro', 'habitmultitilemacronode', MULTI_TILE_MACRO_TECHNOLOGY.getDescription());
+    decorateResearchNode('habitmultitilemacro', 'fa-map-signs', MULTI_TILE_MACRO_TECHNOLOGY);
     createChildElement('li', 'habit-node open', '', 'habitfaunabullynode', 'habitdietbasicschildren', '');
     createChildElement('button', 'habit-skill', FAUNA_BULLY_TECHNOLOGY.name, 'habitfaunabully', 'habitfaunabullynode', FAUNA_BULLY_TECHNOLOGY.getDescription());
     decorateResearchNode('habitfaunabully', 'fa-hand-rock-o', FAUNA_BULLY_TECHNOLOGY);
@@ -1704,6 +1708,9 @@ function renderStatusIcons() {
         if (habit.requiredTechnology === "quartermister") {
             return typeof QUARTERMISTER_TECHNOLOGY === "undefined" ? null : QUARTERMISTER_TECHNOLOGY;
         }
+        if (habit.requiredTechnology === "multiTileMacro") {
+            return typeof MULTI_TILE_MACRO_TECHNOLOGY === "undefined" ? null : MULTI_TILE_MACRO_TECHNOLOGY;
+        }
         return typeof LAZY_BASICS_TECHNOLOGY === "undefined" ? null : LAZY_BASICS_TECHNOLOGY;
     }
 
@@ -1728,6 +1735,24 @@ function renderStatusIcons() {
         const autoCookCategory = document.getElementById('habitsetting-dietAutoCookCategory');
         if (autoCookCategory) {
             autoCookCategory.value = getDietAutoCookCategory() || '';
+        }
+
+        const tileModelSelect = document.getElementById('habitsetting-tileHabitModel');
+        if (tileModelSelect) {
+            const availableModels = getAvailableTileHabitModels();
+            const selectedModel = getSelectedTileHabitModel();
+            tileModelSelect.innerHTML = '';
+            const noneOption = document.createElement('option');
+            noneOption.value = '';
+            noneOption.innerText = 'None';
+            tileModelSelect.appendChild(noneOption);
+            availableModels.forEach(function (model) {
+                const option = document.createElement('option');
+                option.value = model.id;
+                option.innerText = model.name;
+                tileModelSelect.appendChild(option);
+            });
+            tileModelSelect.value = selectedModel ? selectedModel.id : '';
         }
 
         getQuartermisterHabits().forEach(function (habit) {
@@ -1928,6 +1953,51 @@ function renderStatusIcons() {
                     const select = document.createElement('select');
                     select.className = 'habitselect';
                     select.id = 'habitsetting-' + habit.id;
+
+                    if (habit.id === 'tileHabitModel') {
+                        const noneOption = document.createElement('option');
+                        noneOption.value = '';
+                        noneOption.innerText = 'None';
+                        select.appendChild(noneOption);
+
+                        getAvailableTileHabitModels().forEach(function (model) {
+                            const option = document.createElement('option');
+                            option.value = model.id;
+                            option.innerText = model.name;
+                            select.appendChild(option);
+                        });
+
+                        const currentModel = getSelectedTileHabitModel();
+                        select.value = currentModel ? currentModel.id : '';
+                        select.addEventListener('change', function () {
+                            if (!setTileHabitModel(select.value)) {
+                                const fallback = getSelectedTileHabitModel();
+                                select.value = fallback ? fallback.id : '';
+                                if (typeof logMessage === 'function') {
+                                    logMessage('This TileHabit model is not unlocked.');
+                                }
+                                return;
+                            }
+                            const model = getSelectedTileHabitModel();
+                            if (typeof logMessage === 'function') {
+                                logMessage('TileHabit model: '
+                                    + (model ? model.name : 'none'));
+                            }
+                            updateHabitSettings();
+                            if (typeof updateBehaviorSummary === 'function') {
+                                updateBehaviorSummary();
+                            }
+                            if (typeof runPlayerBehavior === 'function') {
+                                runPlayerBehavior('tile-habit-model');
+                            }
+                        });
+
+                        setting.appendChild(name);
+                        setting.appendChild(select);
+                        item.appendChild(setting);
+                        list.appendChild(item);
+                        return;
+                    }
 
                     if (Array.isArray(habit.options)) {
                         habit.options.forEach(function (optionDefinition) {

@@ -268,7 +268,32 @@ const QUARTERMISTER_TECHNOLOGY = new Technology(
     }
 );
 
-const TECHNOLOGIES = [LAZY_BASICS_TECHNOLOGY, COZY_SCIENCE_TECHNOLOGY, DIET_BASICS_TECHNOLOGY, HARVEST_THE_YUMMIES_TECHNOLOGY, FAUNA_BULLY_TECHNOLOGY, QUARTERMISTER_TECHNOLOGY, SCIENTIFIC_PLANS_TECHNOLOGY, SKILL_POTENTIAL_TECHNOLOGY, NOT_SO_WORTHLESS_TECHNOLOGY, SURVIVAL_101_TECHNOLOGY, BUILDINGS_TECHNOLOGY];
+const MULTI_TILE_MACRO_TECHNOLOGY = new Technology(
+    "MultiTileMacro",
+    "Teach the character to work across nearby tiles instead of standing still. Unlocks the TileHabits section in Habits.<br>Requires: Quartermister level 8",
+    function (level) {
+        return 200000 * Math.pow(2, level);
+    },
+    "habitmultitilemacro",
+    function () {
+        return QUARTERMISTER_TECHNOLOGY.level >= 8;
+    },
+    null,
+    3,
+    [
+        "Unlocks TileHabit Explore: fully explores the current tile, then travels to the nearest unfinished tile.",
+        "Unlocks TileHabit FoodBringer: harvests ripe trees here, or travels to the nearest scouted tile with ripe trees.",
+        "Unlocks TileHabit Deforester: cuts trees here, or travels to the nearest tile with trees. Requires Chopping power.",
+    ],
+    function () {
+        if (typeof updateHabitVisibility === "function") updateHabitVisibility();
+        if (typeof updateHabitSettings === "function") updateHabitSettings();
+        if (typeof refreshActionButtons === "function") refreshActionButtons();
+        if (typeof updateTechnologyButtons === "function") updateTechnologyButtons();
+    }
+);
+
+const TECHNOLOGIES = [LAZY_BASICS_TECHNOLOGY, COZY_SCIENCE_TECHNOLOGY, DIET_BASICS_TECHNOLOGY, HARVEST_THE_YUMMIES_TECHNOLOGY, FAUNA_BULLY_TECHNOLOGY, QUARTERMISTER_TECHNOLOGY, MULTI_TILE_MACRO_TECHNOLOGY, SCIENTIFIC_PLANS_TECHNOLOGY, SKILL_POTENTIAL_TECHNOLOGY, NOT_SO_WORTHLESS_TECHNOLOGY, SURVIVAL_101_TECHNOLOGY, BUILDINGS_TECHNOLOGY];
 
 // --- unified content unlocks ------------------------------------------------
 // Every gated crafting recipe, building and action declares its technology
@@ -923,6 +948,20 @@ var HABIT_CATEGORIES = [
             },
         ],
     },
+    {
+        id: "tileHabits",
+        name: "TileHabits",
+        habits: [
+            {
+                id: "tileHabitModel",
+                name: "Behavior model:",
+                description: "MultiTileMacro: choose one cross-tile behavior model. Only one model can be active at a time. TileHabits work below Manage Resources and above Research.",
+                requiredTechnology: "multiTileMacro",
+                requiredLevel: 1,
+                control: "select",
+            },
+        ],
+    },
 ];
 
 var habitToggles = {};
@@ -935,6 +974,75 @@ HABIT_CATEGORIES.forEach(function (category) {
 
 function isHabitEnabled(habitId) {
     return habitToggles[habitId] !== false;
+}
+
+var TILE_HABIT_MODELS = [
+    {
+        id: "explore",
+        name: "Explore",
+        requiredLevel: 1,
+        description: "Fully explore and search the current tile, then travel to the nearest unfinished tile.",
+    },
+    {
+        id: "foodbringer",
+        name: "FoodBringer",
+        requiredLevel: 2,
+        description: "Harvest ripe trees on the current tile, or travel to the nearest scouted tile with ripe trees.",
+    },
+    {
+        id: "deforester",
+        name: "Deforester",
+        requiredLevel: 3,
+        description: "Cut trees on the current tile, or travel to the nearest tile with trees. Requires at least 1 Chopping power.",
+    },
+];
+
+var TILE_HABIT_BEHAVIOR_RANK = 4.5;
+var tileHabitModel = "";
+
+function getTileHabitModel(modelId) {
+    return TILE_HABIT_MODELS.find(function (model) {
+        return model.id === modelId;
+    }) || null;
+}
+
+function getMultiTileMacroLevel() {
+    if (typeof MULTI_TILE_MACRO_TECHNOLOGY === "undefined"
+        || !MULTI_TILE_MACRO_TECHNOLOGY) {
+        return 0;
+    }
+    return Math.max(0, Number(MULTI_TILE_MACRO_TECHNOLOGY.level) || 0);
+}
+
+function getAvailableTileHabitModels() {
+    const level = getMultiTileMacroLevel();
+    return TILE_HABIT_MODELS.filter(function (model) {
+        return level >= model.requiredLevel;
+    });
+}
+
+function isTileHabitModelId(modelId) {
+    return !!getTileHabitModel(modelId);
+}
+
+function getSelectedTileHabitModel() {
+    if (!tileHabitModel) return null;
+    const model = getTileHabitModel(tileHabitModel);
+    if (!model) return null;
+    return getMultiTileMacroLevel() >= model.requiredLevel ? model : null;
+}
+
+function setTileHabitModel(modelId) {
+    if (!modelId) {
+        tileHabitModel = "";
+        return true;
+    }
+    const model = getTileHabitModel(modelId);
+    if (!model || getMultiTileMacroLevel() < model.requiredLevel) {
+        return false;
+    }
+    tileHabitModel = model.id;
+    return true;
 }
 
 function getQuartermisterHabits() {
