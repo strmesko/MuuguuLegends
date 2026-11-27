@@ -529,6 +529,298 @@ const ITEM_GLOBAL_PROPERTY_DEFS = Object.freeze([
     { key: "chopYield", label: "Chop yield", basePercent: 0.05 },
 ]);
 
+// Funny prefixes and suffixes used to decorate generated item names. Every
+// property provides three of each; one prefix and one suffix are picked when
+// the item instance is created.
+const ITEM_GLOBAL_PROPERTY_NAMING = Object.freeze({
+    maxhp: {
+        prefixes: ["Beefy", "Unpoppable", "Extra-chunky"],
+        suffixes: ["of suspicious durability", "that refuses to die", "and the doctor is impressed"],
+    },
+    maxmana: {
+        prefixes: ["Wizardly", "Fizzy", "Overcharged"],
+        suffixes: ["of leaking magic", "that hums ominously", "and the mana bill is due"],
+    },
+    maxsp: {
+        prefixes: ["Energized", "Jittery", "Caffeinated"],
+        suffixes: ["of endless fidgeting", "that never sits still", "and the legs disagree"],
+    },
+    hpregen: {
+        prefixes: ["Sticky", "Band-aided", "Self-patching"],
+        suffixes: ["of closing wounds", "that heals with a complaint", "and the scars are jealous"],
+    },
+    manaregen: {
+        prefixes: ["Bubbly", "Refilling", "Slightly haunted"],
+        suffixes: ["of magic reflux", "that leaks power politely", "and the ether approves"],
+    },
+    spregen: {
+        prefixes: ["Second-windy", "Power-napping", "Rubbery"],
+        suffixes: ["of endless second wind", "that bounces back rudely", "and the couch is proud"],
+    },
+    characterExp: {
+        prefixes: ["Overachieving", "Show-off", "Eager"],
+        suffixes: ["of suspiciously fast learning", "that levels while sleeping", "and the teacher is confused"],
+    },
+    sleepRegen: {
+        prefixes: ["Snoring", "Pillow-hugging", "Comatose"],
+        suffixes: ["of aggressive napping", "that sleeps like a rock", "and the blanket has stories"],
+    },
+    travelSpeed: {
+        prefixes: ["Zooming", "Late-for-something", "Slippery"],
+        suffixes: ["of questionable walking", "that outruns the map", "and the road is tired"],
+    },
+    pounchSlots: {
+        prefixes: ["Pocket-laden", "Hoarding", "Bottomless"],
+        suffixes: ["of too many pockets", "that jingles when sneaking", "and the seams are worried"],
+    },
+    itemSlots: {
+        prefixes: ["Overpacked", "Tetris-minded", "Crammed"],
+        suffixes: ["of impossible luggage", "that fits one more thing", "and the inventory groans"],
+    },
+    rareItemsChance: {
+        prefixes: ["Lucky", "Shiny-hunting", "Suspiciously blessed"],
+        suffixes: ["of better loot lies", "that smells like treasure", "and the RNG blinks"],
+    },
+    tilesMoveSpeed: {
+        prefixes: ["Jet-footed", "Map-cheating", "Hopping"],
+        suffixes: ["of illegal shortcuts", "that skips the boring tiles", "and the terrain protests"],
+    },
+    sleepSpeed: {
+        prefixes: ["Insta-nap", "Lights-out", "Pillow-magnet"],
+        suffixes: ["of instant unconsciousness", "that falls asleep mid-sentence", "and the mattress salutes"],
+    },
+    focusTimeskip: {
+        prefixes: ["Zoned-out", "Time-skipping", "Distracted"],
+        suffixes: ["of missing minutes", "that blinks and loses an hour", "and the clock is confused"],
+    },
+    focusCost: {
+        prefixes: ["Thrifty", "Discount-minded", "Bargain-bin"],
+        suffixes: ["of cheap concentration", "that focuses on a budget", "and the mana coupon applies"],
+    },
+    reduceHungerUse: {
+        prefixes: ["Snack-saving", "Dietary", "Frugal"],
+        suffixes: ["of tiny appetite", "that eats like a bird", "and the stomach complains quietly"],
+    },
+    maxHunger: {
+        prefixes: ["Bottomless", "Snack-hoarding", "Unfillable"],
+        suffixes: ["of endless appetite", "that has a second stomach", "and the pantry is afraid"],
+    },
+    harvestFruitAmount: {
+        prefixes: ["Fruit-obsessed", "Orchard-friendly", "Juicy"],
+        suffixes: ["of excessive apples", "that shakes trees rudely", "and the branches surrender"],
+    },
+    harvestForageAmount: {
+        prefixes: ["Bush-rummaging", "Berry-greedy", "Dirt-friendly"],
+        suffixes: ["of overflowing pockets", "that finds snacks everywhere", "and the forest sighs"],
+    },
+    harvestAllAmount: {
+        prefixes: ["Greedy-handed", "Basket-filling", "Overharvesting"],
+        suffixes: ["of too much loot", "that takes everything not nailed down", "and the resources file a complaint"],
+    },
+    productionAllAmount: {
+        prefixes: ["Industrial", "Assembly-line", "Mass-producing"],
+        suffixes: ["of surplus output", "that makes extras by accident", "and the warehouse is worried"],
+    },
+    mobLevelBonus: {
+        prefixes: ["Spooky", "Monster-bait", "Overconfident"],
+        suffixes: ["of tougher enemies", "that attracts bigger problems", "and the local fauna is flattered"],
+    },
+    allToolsPowerMult: {
+        prefixes: ["Tool-believing", "Overengineered", "Gadgety"],
+        suffixes: ["of suspicious leverage", "that makes tools show off", "and the toolbox flexes"],
+    },
+    chopYield: {
+        prefixes: ["Wood-hungry", "Lumber-happy", "Splintering"],
+        suffixes: ["of excessive firewood", "that chops twice as smug", "and the trees are nervous"],
+    },
+});
+
+const TOOL_POWER_PROPERTY_NAMING = Object.freeze({
+    cutting: {
+        prefixes: ["Sharp", "Slicey", "Edge-lord"],
+        suffixes: ["of questionable sharpness", "that cuts corners", "and the whetstone is proud"],
+    },
+    chopping: {
+        prefixes: ["Choppy", "Wood-hungry", "Hacky"],
+        suffixes: ["of too many splinters", "that argues with trees", "and the axe handles it"],
+    },
+    mining: {
+        prefixes: ["Diggy", "Rock-hungry", "Picky"],
+        suffixes: ["of stubborn stone", "that mines the wrong thing", "and the rocks apologize"],
+    },
+    digging: {
+        prefixes: ["Dirty", "Shovel-happy", "Hole-minded"],
+        suffixes: ["of unnecessary holes", "that digs the vibe", "and the worms are thrilled"],
+    },
+    smash: {
+        prefixes: ["Smashy", "Blunt", "Crushing"],
+        suffixes: ["of blunt negotiation", "that solves problems loudly", "and the anvil complains"],
+    },
+    fishing: {
+        prefixes: ["Fishy", "Bait-minded", "Splashy"],
+        suffixes: ["of suspicious catches", "that smells like fish", "and the fish are curious"],
+    },
+});
+
+const CORE_STAT_PROPERTY_NAMING = Object.freeze({
+    str: {
+        prefixes: ["Mighty", "Muscle-brained", "Bicep-flexing"],
+        suffixes: ["of raw beef", "that lifts the wrong things", "and the gym fears it"],
+    },
+    agi: {
+        prefixes: ["Nimble", "Twitchy", "Slippery"],
+        suffixes: ["of unnecessary parkour", "that dodges responsibility", "and the floor is optional"],
+    },
+    vit: {
+        prefixes: ["Beefy", "Unbreakable-ish", "Sturdy"],
+        suffixes: ["of stubborn health", "that refuses the grave", "and the doctor shrugs"],
+    },
+    per: {
+        prefixes: ["Sharp-eyed", "Nosy", "Squinting"],
+        suffixes: ["of seeing too much", "that notices your mistakes", "and the horizon blinks first"],
+    },
+    int: {
+        prefixes: ["Brainy", "Overthinking", "Book-smelling"],
+        suffixes: ["of unnecessary math", "that calculates the vibe", "and the library is proud"],
+    },
+    ins: {
+        prefixes: ["Spooky", "Vibes-based", "Third-eyed"],
+        suffixes: ["of questionable intuition", "that feels something weird", "and the void nods"],
+    },
+    sou: {
+        prefixes: ["Soulful", "Mystical", "Slightly haunted"],
+        suffixes: ["of inner sparkle", "that glows at bad times", "and the spirits gossip"],
+    },
+    cha: {
+        prefixes: ["Charming", "Smooth-talking", "Suspiciously likable"],
+        suffixes: ["of unpaid compliments", "that talks to strangers", "and the mirror agrees"],
+    },
+    luck: {
+        prefixes: ["Lucky", "Coin-flipping", "RNG-blessed"],
+        suffixes: ["of suspicious coincidences", "that finds money in couches", "and the dice apologize"],
+    },
+    speed: {
+        prefixes: ["Quick", "Speedy", "Zooming"],
+        suffixes: ["that goes fasta", "of impatient footsteps", "and the wind complains"],
+    },
+});
+
+const SKILL_PROPERTY_PREFIX_POOL = Object.freeze([
+    "Practiced", "Enthusiastic", "Obsessed", "Dedicated",
+    "Suspiciously skilled", "Hobbyist", "Amateur", "Overconfident",
+    "Certified", "Self-taught", "Fanatical", "Weirdly focused",
+]);
+
+const ACTION_YIELD_PREFIX_POOL = Object.freeze([
+    "Bountiful", "Hoarding", "Overflowing", "Greedy",
+    "Stockpiling", "Surplus", "Suspiciously productive", "Extra-looty",
+    "Bundle-bearing", "Warehouse-minded", "Loot-happy", "Pocket-filling",
+]);
+
+function getPropertyNamingHash(key) {
+    return String(key || "").split("").reduce(function (sum, character) {
+        return sum + character.charCodeAt(0);
+    }, 0);
+}
+
+function pickThreePrefixes(key, pool) {
+    const offset = getPropertyNamingHash(key) % pool.length;
+    return [
+        pool[offset],
+        pool[(offset + 1) % pool.length],
+        pool[(offset + 2) % pool.length],
+    ];
+}
+
+function getSkillPropertyNaming(property) {
+    const label = typeof getItemPropertyTargetName === "function"
+        ? getItemPropertyTargetName(property)
+        : String(property.key);
+    return {
+        prefixes: pickThreePrefixes(property.key, SKILL_PROPERTY_PREFIX_POOL),
+        suffixes: [
+            "of the " + label + " cult",
+            "that believes in " + label,
+            "and the " + label + " spirits approve",
+        ],
+    };
+}
+
+function getActionYieldPropertyNaming(action) {
+    const label = action && action.label ? action.label : "stuff";
+    return {
+        prefixes: pickThreePrefixes(action ? action.id : label, ACTION_YIELD_PREFIX_POOL),
+        suffixes: [
+            "of the " + label.toLowerCase() + " pile",
+            "that overdoes the " + label.toLowerCase(),
+            "and the " + label.toLowerCase() + " quota is exceeded",
+        ],
+    };
+}
+
+function getItemPropertyNaming(property) {
+    if (!property) return null;
+
+    if (property.type === "global") {
+        const direct = ITEM_GLOBAL_PROPERTY_NAMING[property.key];
+        if (direct) return direct;
+
+        const toolPowerType = getToolPowerTypeFromPropertyKey(property.key);
+        if (toolPowerType && TOOL_POWER_PROPERTY_NAMING[toolPowerType]) {
+            return TOOL_POWER_PROPERTY_NAMING[toolPowerType];
+        }
+
+        const actionId = getActionResourcePropertyActionId(property.key);
+        if (actionId && typeof getAction === "function") {
+            const action = getAction(actionId);
+            if (action) return getActionYieldPropertyNaming(action);
+        }
+
+        return {
+            prefixes: ["Mysterious", "Questionable", "Suspicious"],
+            suffixes: ["of unclear purpose", "that does something", "and nobody knows why"],
+        };
+    }
+
+    if (property.type === "stat" && CORE_STAT_PROPERTY_NAMING[property.key]) {
+        return CORE_STAT_PROPERTY_NAMING[property.key];
+    }
+    if (property.type === "skill") {
+        return getSkillPropertyNaming(property);
+    }
+
+    return null;
+}
+
+function buildDecoratedItemName(baseName, properties) {
+    if (!baseName || !Array.isArray(properties) || properties.length === 0) {
+        return null;
+    }
+
+    const named = properties.map(function (property) {
+        return { property: property, naming: getItemPropertyNaming(property) };
+    }).filter(function (entry) {
+        return entry.naming
+            && Array.isArray(entry.naming.prefixes)
+            && entry.naming.prefixes.length > 0
+            && Array.isArray(entry.naming.suffixes)
+            && entry.naming.suffixes.length > 0;
+    });
+    if (!named.length) return null;
+
+    const prefixSource = named[Math.floor(Math.random() * named.length)];
+    const suffixSource = named[Math.floor(Math.random() * named.length)];
+    const prefix = prefixSource.naming.prefixes[
+        Math.floor(Math.random() * prefixSource.naming.prefixes.length)
+    ];
+    const suffix = suffixSource.naming.suffixes[
+        Math.floor(Math.random() * suffixSource.naming.suffixes.length)
+    ];
+    const lowerBase = String(baseName).toLowerCase();
+    return prefix + " " + lowerBase + " " + suffix;
+}
+
+
 // ToolPowerX is stored as one key per power type, for example
 // "toolPower:chopping". A single template algorithm picks one random type at
 // property roll time, so the player never sees a generic "all types" variant.
@@ -3258,6 +3550,7 @@ class ItemInstance {
             && settings.displayName.trim()
             ? settings.displayName
             : null;
+        this.nameGenerated = settings.nameGenerated === true;
         this.sourceResourceId = settings.sourceResourceId != null
             ? settings.sourceResourceId
             : null;
@@ -3286,6 +3579,20 @@ class ItemInstance {
                 this.quality,
                 definition.propertyMultiplier
             ));
+
+        // Give generated equipment a silly prefix/suffix based on its rolled
+        // properties. The decorated name is stored in `displayName` and the
+        // flag prevents it from being decorated again on save/load.
+        if (!this.nameGenerated && this.properties.length > 0) {
+            const decoratedName = buildDecoratedItemName(
+                this.displayName || definition.name,
+                this.properties
+            );
+            if (decoratedName) {
+                this.displayName = decoratedName;
+                this.nameGenerated = true;
+            }
+        }
     }
 
     get definition() {
@@ -3375,6 +3682,7 @@ function restoreItemInstance(savedItem) {
         powerVariance: savedItem.powerVariance,
         locked: savedItem.locked === true,
         displayName: savedItem.displayName,
+        nameGenerated: savedItem.nameGenerated === true,
         sourceResourceId: savedItem.sourceResourceId,
         primaryStat: savedItem.primaryStat,
         potentialBonuses: savedItem.potentialBonuses,

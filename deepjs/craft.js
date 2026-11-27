@@ -6419,11 +6419,12 @@ function performCraft(recipe) {
     const suffix = " (" + rarityLabel + ", quality " + qualityInfo.quality
         + propertySuffix + ")";
 
-    const craftLogText = prefix + craftedName + suffix;
+    const finalCraftedName = item.name || craftedName;
+    const craftLogText = prefix + finalCraftedName + suffix;
     const craftLogOptions = {
         html: highlightLogText(prefix)
             + '<span class="itemname rarity-' + rarity + '">'
-            + escapeLogHtml(craftedName)
+            + escapeLogHtml(finalCraftedName)
             + "</span>"
             + highlightLogText(suffix),
     };
