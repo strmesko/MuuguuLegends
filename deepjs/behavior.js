@@ -525,6 +525,22 @@ function tryBehaviorDayDream() {
     return startDayDreamIfIdle();
 }
 
+function runTileHabitOfflineBehavior() {
+    if (typeof isOfflineSimulationRunning !== "function"
+        || !isOfflineSimulationRunning()) {
+        return false;
+    }
+    if (typeof isCombatActive === "function" && isCombatActive()) return false;
+    if (typeof isTraveling === "function" && isTraveling()) return false;
+    if (typeof isNpcDialogueActive === "function"
+        && isNpcDialogueActive()) return false;
+    if (typeof isActionActive === "function" && isActionActive("sleep")) {
+        return false;
+    }
+    if (hasActiveRestorationActionForBehavior()) return false;
+    return tryBehaviorTileHabits();
+}
+
 function runPlayerBehavior(reason) {
     if (isBehaviorBlocked()) return false;
     if (typeof isActionActive === "function" && isActionActive("sleep")) {

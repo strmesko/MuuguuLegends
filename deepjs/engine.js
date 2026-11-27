@@ -1609,6 +1609,12 @@ function productionLoop(diff, options) {
     if (typeof runPlayerBehavior === "function") {
         runPlayerBehavior("tick");
     }
+    // Offline time skips keep the regular behavior blocked, but TileHabits is
+    // the cross-tile continuation model and must keep choosing actions while
+    // the save is fast-forwarded.
+    if (typeof runTileHabitOfflineBehavior === "function") {
+        runTileHabitOfflineBehavior();
+    }
     if (typeof autoRestRequested !== "undefined") {
         autoRestRequested = false;
     }
