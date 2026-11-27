@@ -96,6 +96,12 @@
             tryStartResearch(QUARTERMISTER_TECHNOLOGY);
         };
     }
+    const habitmultitilemacro = document.getElementById('habitmultitilemacro');
+    if (habitmultitilemacro) {
+        habitmultitilemacro.onclick = function(){
+            tryStartResearch(MULTI_TILE_MACRO_TECHNOLOGY);
+        };
+    }
     habitfaunabully.onclick = function(){
         tryStartResearch(FAUNA_BULLY_TECHNOLOGY);
     };
