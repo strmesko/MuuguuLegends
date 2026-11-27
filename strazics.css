@@ -1963,6 +1963,28 @@ ul.resource-tree li a:before {
     margin-top: 2px;
     color: #4a6b4f;
   }
+  .craftquantityrow {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    font: max(6px, 0.72em) "SimSun";
+    color: #1f5f2a;
+  }
+  .craftquantityinput {
+    width: 64px;
+    height: 20px;
+    padding: 0 3px;
+    box-sizing: border-box;
+    border: 1px solid rgb(159, 206, 73);
+    border-radius: 3px;
+    background-color: #f2ffe0;
+    color: #1f5f2a;
+    font: max(6px, 0.72em) "SimSun";
+  }
+  .craftquantityinput:disabled {
+    opacity: 0.5;
+  }
   .craftbutton {
     margin-top: 4px;
     padding: 2px 10px;
@@ -2369,6 +2391,20 @@ ul.resource-tree li a:before {
   image-rendering: pixelated;
   pointer-events: none;
   filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.85));
+}
+
+.invslot .inventory-count {
+  position: absolute;
+  left: 1px;
+  bottom: 0;
+  z-index: 3;
+  padding: 0 2px;
+  border-radius: 2px;
+  background-color: rgba(0, 0, 0, 0.68);
+  color: #ffffff;
+  font: max(6px, 0.62em) "MS Gothic";
+  line-height: 1.2;
+  pointer-events: none;
 }
 
 .invslot.locked {
@@ -3221,6 +3257,7 @@ body.theme-dark .craftsub,
 body.theme-dark .researchsub,
 body.theme-dark .buildsub,
 body.theme-dark .craftbutton,
+body.theme-dark .craftquantityinput,
 body.theme-dark .tabscrollarrow,
 body.theme-dark .habitslider,
 body.theme-dark .habit-skill,

@@ -303,6 +303,25 @@ function updateInventoryLockBadge(slot, locked) {
     }
 }
 
+function updateInventoryStackBadge(slot, item) {
+    if (!slot) return;
+
+    let badge = slot.querySelector(".inventory-count");
+    const count = item ? Math.max(1, Math.floor(item.count || 1)) : 1;
+    if (!item || count <= 1) {
+        if (badge) badge.remove();
+        return;
+    }
+
+    if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "inventory-count";
+        badge.draggable = false;
+        slot.appendChild(badge);
+    }
+    badge.innerText = "x" + count;
+}
+
 function getInventoryItemName(item) {
     if (!item) return null;
     if (typeof item.name === "string") return item.name;
@@ -643,7 +662,12 @@ function consumeInventoryFood(index) {
         });
     }
 
-    player.equipinventory[index] = null;
+    const itemCount = Math.max(1, Math.floor(item.count || 1));
+    if (itemCount > 1) {
+        item.count = itemCount - 1;
+    } else {
+        player.equipinventory[index] = null;
+    }
     if (typeof startFocusFoodCooldown === "function") {
         startFocusFoodCooldown();
     }
@@ -1108,6 +1132,7 @@ function renderInventorySlots() {
 
         const locked = !!itemName && isInventoryItemLocked(item);
         updateInventoryLockBadge(slot, locked);
+        updateInventoryStackBadge(slot, item);
 
         slot.draggable = !scrapModeActive && !!itemName;
         slot.classList.remove("dragging", "drop-target");
@@ -1124,13 +1149,15 @@ function renderInventorySlots() {
         const quality = typeof item.quality === "number"
             ? " | quality: " + item.quality
             : "";
+        const stackCount = Math.max(1, Math.floor(item.count || 1));
+        const stackLine = stackCount > 1 ? " x" + stackCount : "";
         const rarityLine = getItemRarityLine(item);
         const bonusHtml = getItemBonusHtml(item);
         const propertiesHtml = getItemPropertiesHtml(item);
         const description = getItemDescription(item);
         slot.setAttribute(
             "data-tooltip",
-            getItemNameHtml(item, itemName) + quality
+            getItemNameHtml(item, itemName) + stackLine + quality
                 + (rarityLine ? "<br>" + rarityLine : "")
                 + (bonusHtml ? "<br>" + bonusHtml : "")
                 + (propertiesHtml ? "<br>" + propertiesHtml : "")

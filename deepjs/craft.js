@@ -3246,6 +3246,8 @@ function getJewerlyCutChanceSummary(level) {
 // Which recipe is selected in each category. Kept in memory only: it is a UI
 // detail and does not need to be saved.
 const selectedCraftByCategory = {};
+// Shared amount selected for the next craft action in any category.
+let craftQuantity = 1;
 // Collapsed craft groups are kept for the session so rebuilding the list does
 // not immediately reopen a category the player closed.
 const collapsedCraftGroups = Object.create(null);
@@ -4216,8 +4218,27 @@ function rollCraftRarity(rawQuality, skillLevel) {
     return rarity;
 }
 
+function getFreeInventorySlotCount() {
+    if (!player || !Array.isArray(player.equipinventory)) return 0;
+
+    const slotCount = Math.min(
+        player.equipinventory.length,
+        getEffectiveInventorySlots()
+    );
+
+    let free = 0;
+    for (let index = 0; index < slotCount; index++) {
+        if (!player.equipinventory[index]) free += 1;
+    }
+    return free;
+}
+
 function hasFreeInventorySlot() {
-    if (!player || !Array.isArray(player.equipinventory)) return false;
+    return getFreeInventorySlotCount() > 0;
+}
+
+function getInventoryStackIndexForItem(itemId) {
+    if (!player || !Array.isArray(player.equipinventory)) return -1;
 
     const slotCount = Math.min(
         player.equipinventory.length,
@@ -4225,13 +4246,58 @@ function hasFreeInventorySlot() {
     );
 
     for (let index = 0; index < slotCount; index++) {
-        if (!player.equipinventory[index]) return true;
+        const item = player.equipinventory[index];
+        if (!item || String(item.itemId) !== String(itemId)) continue;
+        const definition = item.definition && typeof item.definition === "object"
+            ? item.definition
+            : getItemDefinition(item.itemId);
+        if (definition && (definition.stackable === true || definition.food)) {
+            return index;
+        }
     }
-    return false;
+    return -1;
+}
+
+function hasInventoryRoomForItem(itemId) {
+    return getInventoryStackIndexForItem(itemId) !== -1
+        || hasFreeInventorySlot();
+}
+
+function getCraftOutputCapacity(recipe) {
+    if (!recipe) return 0;
+    const definition = getItemDefinition(recipe.itemId);
+    if (definition && definition.food) return Infinity;
+    return getFreeInventorySlotCount();
+}
+
+function getCraftQuantityForRecipe(recipe) {
+    const requested = Math.max(1, Math.floor(Number(craftQuantity) || 1));
+    const capacity = getCraftOutputCapacity(recipe);
+    return Number.isFinite(capacity)
+        ? Math.max(1, Math.min(capacity, requested))
+        : requested;
+}
+
+function canCraftOutputFit(recipe) {
+    if (!recipe) return false;
+    const definition = getItemDefinition(recipe.itemId);
+    if (definition && definition.food) {
+        return hasInventoryRoomForItem(recipe.itemId);
+    }
+    return getCraftOutputCapacity(recipe) > 0;
 }
 
 function addCraftedItem(item) {
     if (!player || !Array.isArray(player.equipinventory)) return false;
+
+    // Food stacks into an existing matching pile without using another slot.
+    const stackIndex = getInventoryStackIndexForItem(item.itemId);
+    if (stackIndex !== -1) {
+        const stack = player.equipinventory[stackIndex];
+        stack.count = Math.max(1, Math.floor(stack.count || 1))
+            + Math.max(1, Math.floor(item.count || 1));
+        return true;
+    }
 
     const slotCount = Math.min(
         player.equipinventory.length,
@@ -5393,14 +5459,42 @@ function renderCraftDetails(category) {
 
     panel.appendChild(info);
 
+    const quantityRow = document.createElement("div");
+    quantityRow.className = "craftquantityrow";
+
+    const quantityLabel = document.createElement("span");
+    quantityLabel.className = "craftquantitylabel";
+    quantityLabel.innerText = "Amount:";
+    quantityRow.appendChild(quantityLabel);
+
+    const quantityInput = document.createElement("input");
+    quantityInput.type = "number";
+    quantityInput.className = "craftquantityinput";
+    quantityInput.id = category.id + "craftquantity";
+    quantityInput.min = "1";
+    quantityInput.step = "1";
+    quantityInput.value = String(getCraftQuantityForRecipe(recipe));
+    const quantityCapacity = getCraftOutputCapacity(recipe);
+    if (Number.isFinite(quantityCapacity)) {
+        quantityInput.max = String(Math.max(1, quantityCapacity));
+        quantityInput.disabled = quantityCapacity <= 0;
+    }
+    quantityInput.addEventListener("input", function () {
+        craftQuantity = Math.max(1, Math.floor(Number(quantityInput.value) || 1));
+        refreshCraftAvailability();
+    });
+    quantityRow.appendChild(quantityInput);
+    panel.appendChild(quantityRow);
+
     const button = document.createElement("button");
     button.type = "button";
     button.id = category.id + "craftbutton";
     button.className = "craftbutton";
     button.innerText = "Craft";
-    button.disabled = !canCraftRecipe(recipe) || !hasFreeInventorySlot();
+    button.disabled = !canCraftRecipe(recipe)
+        || !canCraftOutputFit(recipe);
     button.addEventListener("click", function () {
-        performCraft(recipe);
+        performCraftBatch(recipe, getCraftQuantityForRecipe(recipe));
     });
     panel.appendChild(button);
 
@@ -5612,7 +5706,24 @@ function refreshCraftAvailability() {
 
         const button = document.getElementById(category.id + "craftbutton");
         if (button) {
-            button.disabled = !canCraftRecipe(recipe) || !hasFreeInventorySlot();
+            button.disabled = !canCraftRecipe(recipe)
+                || !canCraftOutputFit(recipe);
+        }
+
+        const quantityInput = document.getElementById(category.id + "craftquantity");
+        if (quantityInput) {
+            const capacity = getCraftOutputCapacity(recipe);
+            const quantity = getCraftQuantityForRecipe(recipe);
+            if (Number.isFinite(capacity)) {
+                quantityInput.max = String(Math.max(1, capacity));
+                quantityInput.disabled = capacity <= 0;
+            } else {
+                quantityInput.removeAttribute("max");
+                quantityInput.disabled = false;
+            }
+            if (quantityInput.value !== String(quantity)) {
+                quantityInput.value = String(quantity);
+            }
         }
 
         // Resource quality or skill level may have changed; refresh the
@@ -5973,7 +6084,7 @@ function tryAutoCookRecipe(recipe, level, priorityStat, presetChoices) {
                 if (!dishReady
                     || !canAffordCraftIngredients(recipe, ingredientRecipe)
                     || !canCraftRecipe(ingredientRecipe)
-                    || !hasFreeInventorySlot()) {
+                    || !hasInventoryRoomForItem(ingredientRecipe.itemId)) {
                     return false;
                 }
 
@@ -5984,7 +6095,7 @@ function tryAutoCookRecipe(recipe, level, priorityStat, presetChoices) {
             }
         }
 
-        const canFit = hasFreeInventorySlot()
+        const canFit = hasInventoryRoomForItem(recipe.itemId)
             || getCraftInventoryIngredientItems(recipe).length > 0;
         if (canCraftRecipe(recipe) && canFit) {
             crafted = performCraft(recipe);
@@ -6144,7 +6255,6 @@ function autoCookDietFood(plan) {
         || DIET_BASICS_TECHNOLOGY.level < 4) {
         return false;
     }
-    if (!hasFreeInventorySlot()) return false;
 
     const level = DIET_BASICS_TECHNOLOGY.level;
     const priorityStat = level >= 6 && typeof getDietPriorityStat === "function"
@@ -6268,9 +6378,10 @@ function autoCookDietFood(plan) {
 
 // --- crafting action -------------------------------------------------------
 
-function performCraft(recipe) {
+function performCraft(recipe, options) {
     if (!recipe) return false;
 
+    const silent = !!(options && options.silent);
     const resultName = getCraftResultName(recipe);
 
     if (!getCraftSkill(recipe)) {
@@ -6302,7 +6413,8 @@ function performCraft(recipe) {
     }
 
     // Consumed items free slots, so a full inventory is fine.
-    if (!hasFreeInventorySlot() && !chosenItem && !selectedSauces.length) {
+    if (!hasInventoryRoomForItem(recipe.itemId)
+        && !chosenItem && !selectedSauces.length) {
         logMessage("Your inventory is full, cannot craft " + resultName);
         return false;
     }
@@ -6410,32 +6522,35 @@ function performCraft(recipe) {
         if (luckExp > 0 && player.luck) player.luck.addexp(luckExp);
     }
 
-    const rarityLabel = getRarityLabel(rarity);
-    const propertyCount = Array.isArray(item.properties) ? item.properties.length : 0;
-    const propertySuffix = propertyCount > 0
-        ? ", " + (propertyCount === 1 ? "1 property" : propertyCount + " properties")
-        : "";
-    const prefix = "You crafted ";
-    const suffix = " (" + rarityLabel + ", quality " + qualityInfo.quality
-        + propertySuffix + ")";
+    if (!silent) {
+        const rarityLabel = getRarityLabel(rarity);
+        const propertyCount = Array.isArray(item.properties) ? item.properties.length : 0;
+        const propertySuffix = propertyCount > 0
+            ? ", " + (propertyCount === 1 ? "1 property" : propertyCount + " properties")
+            : "";
+        const prefix = "You crafted ";
+        const suffix = " (" + rarityLabel + ", quality " + qualityInfo.quality
+            + propertySuffix + ")";
 
-    const finalCraftedName = item.name || craftedName;
-    const craftLogText = prefix + finalCraftedName + suffix;
-    const craftLogOptions = {
-        html: highlightLogText(prefix)
-            + '<span class="itemname rarity-' + rarity + '">'
-            + escapeLogHtml(finalCraftedName)
-            + "</span>"
-            + highlightLogText(suffix),
-    };
-    if (!(typeof queueAutoCookLog === "function"
-        && queueAutoCookLog(craftLogText, craftLogOptions))) {
-        logMessage(craftLogText, craftLogOptions);
+        const finalCraftedName = item.name || craftedName;
+        const craftLogText = prefix + finalCraftedName + suffix;
+        const craftLogOptions = {
+            html: highlightLogText(prefix)
+                + '<span class="itemname rarity-' + rarity + '">'
+                + escapeLogHtml(finalCraftedName)
+                + "</span>"
+                + highlightLogText(suffix),
+        };
+        if (!(typeof queueAutoCookLog === "function"
+            && queueAutoCookLog(craftLogText, craftLogOptions))) {
+            logMessage(craftLogText, craftLogOptions);
+        }
     }
 
     // Auto-cook batches and offline simulation refresh the UI once at the end
     // instead of re-rendering every recipe/craft row for each dish.
-    const skipCraftUI = (typeof isAutoCookLogBatchActive === "function"
+    const skipCraftUI = silent
+        || (typeof isAutoCookLogBatchActive === "function"
             && isAutoCookLogBatchActive())
         || (typeof isOfflineSimulationRunning === "function"
             && isOfflineSimulationRunning());
@@ -6444,6 +6559,34 @@ function performCraft(recipe) {
         if (typeof renderInventorySlots === "function") renderInventorySlots();
         renderCraftPanels();
     }
+    return true;
+}
+
+function performCraftBatch(recipe, quantity) {
+    if (!recipe) return false;
+
+    const definition = getItemDefinition(recipe.itemId);
+    const isFood = !!(definition && definition.food);
+    let target = Math.max(1, Math.floor(Number(quantity) || 1));
+    if (!isFood) {
+        target = Math.min(target, getCraftOutputCapacity(recipe));
+    }
+    if (target <= 0) return false;
+    if (target === 1) return performCraft(recipe);
+
+    let crafted = 0;
+    for (let index = 0; index < target; index++) {
+        if (!performCraft(recipe, { silent: true })) break;
+        crafted += 1;
+    }
+    if (crafted <= 0) return false;
+
+    logMessage("You crafted " + getCraftResultName(recipe)
+        + " x" + crafted + ".");
+
+    if (typeof renderResources === "function") renderResources();
+    if (typeof renderInventorySlots === "function") renderInventorySlots();
+    renderCraftPanels();
     return true;
 }
 

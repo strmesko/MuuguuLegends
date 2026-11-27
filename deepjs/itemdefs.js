@@ -3543,7 +3543,7 @@ class ItemInstance {
         // Inventory lock: set when a double-click cannot find a free equipment
         // slot. Locked items are protected from the bulk "Scrap all" action.
         this.locked = settings.locked === true;
-        this.count = definition.stackable
+        this.count = (definition.stackable || definition.food)
             ? Math.max(1, Math.floor(settings.count || 1))
             : 1;
         this.displayName = typeof settings.displayName === "string"
