@@ -2664,11 +2664,43 @@ ul.resource-tree li a:before {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  overflow: hidden;
+  /* The shop can be taller than short screens. Keep the content reachable
+     with a compact scrollbar instead of cutting off the reborn button. */
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 28px 32px;
   background: #000000;
   color: #d8b4fe;
   font-family: "MS Gothic", "SimSun", monospace;
+}
+/* Firefox cannot style ::-webkit-scrollbar, so it gets the native thin one.
+   Chromium ignores ::-webkit-scrollbar when scrollbar-width is set, hence the
+   feature query instead of declaring both unconditionally. */
+@supports (-moz-appearance: none) {
+  .limbo,
+  .smuggle-list {
+    scrollbar-width: thin;
+    scrollbar-color: #8b5cf6 rgba(28, 8, 42, 0.82);
+  }
+}
+.limbo::-webkit-scrollbar,
+.smuggle-list::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.limbo::-webkit-scrollbar-track,
+.smuggle-list::-webkit-scrollbar-track {
+  background: rgba(28, 8, 42, 0.82);
+}
+.limbo::-webkit-scrollbar-thumb,
+.smuggle-list::-webkit-scrollbar-thumb {
+  background: #8b5cf6;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+  border-radius: 4px;
+}
+.limbo::-webkit-scrollbar-thumb:hover,
+.smuggle-list::-webkit-scrollbar-thumb:hover {
+  background: #f59e0b;
 }
 .limbo-stars {
   position: absolute;
@@ -2780,7 +2812,8 @@ ul.resource-tree li a:before {
 
 /* Item transfer selection shown before Limbo. */
 .smuggleoverlay {
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .smuggle-list {
   display: grid;
