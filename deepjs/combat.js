@@ -416,7 +416,14 @@ function dropMobLoot(combatant) {
     if (!drops.length) return;
 
     const quality = getMobLootQuality(combatant);
-    const amountMultiplier = 1 + getCombatGearStat("lootAmount") / 100;
+    // Every 10 mob levels add one full extra base drop: Lv10 = +100%,
+    // Lv20 = +200%, Lv30 = +300%. Equipment lootAmount stacks on top.
+    const levelLootBonus = Math.floor(
+        Math.max(0, Number(combatant.level) || 0) / 10
+    );
+    const amountMultiplier = 1
+        + levelLootBonus
+        + getCombatGearStat("lootAmount") / 100;
     // Loot chance grants one extra full drop roll.
     const rolls = 1 + (rollCombatGearChance("lootChance") ? 1 : 0);
 
