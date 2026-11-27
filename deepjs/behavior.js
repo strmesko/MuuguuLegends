@@ -318,10 +318,30 @@ function collectTileHabitCandidates(predicate, limit) {
     });
 
     candidates.sort(function (a, b) {
-        if (a.distance !== b.distance) return a.distance - b.distance;
-        if (a.y !== b.y) return a.y - b.y;
-        return a.x - b.x;
+        return a.distance - b.distance;
     });
+
+    // Tiles at the same distance are equally good destinations, so shuffle
+    // each distance group instead of always walking to the same one. Farther
+    // groups stay behind nearer ones, but the slice below still picks a random
+    // selection when the nearest group alone does not fill the result limit.
+    let groupStart = 0;
+    while (groupStart < candidates.length) {
+        let groupEnd = groupStart + 1;
+        while (groupEnd < candidates.length
+            && candidates[groupEnd].distance === candidates[groupStart].distance) {
+            groupEnd += 1;
+        }
+        for (let index = groupEnd - 1; index > groupStart; index--) {
+            const swapIndex = groupStart
+                + Math.floor(Math.random() * (index - groupStart + 1));
+            const swap = candidates[index];
+            candidates[index] = candidates[swapIndex];
+            candidates[swapIndex] = swap;
+        }
+        groupStart = groupEnd;
+    }
+
     return candidates.slice(0, maxResults);
 }
 
