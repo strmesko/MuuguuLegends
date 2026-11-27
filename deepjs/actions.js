@@ -1955,6 +1955,33 @@ function getTravelPassabilityForTile(targetX, targetY) {
     return Number.isFinite(passability) && passability > 0 ? passability : 1;
 }
 
+// Travel is faster through tiles the player already knows. Fully explored
+// tiles are twice as fast (time x0.5); fully scouted tiles also cut travel
+// time by 50%.
+const FULLY_EXPLORED_TILE_TRAVEL_TIME_MULTIPLIER = 0.5;
+const FULLY_SCOUTED_TILE_TRAVEL_TIME_MULTIPLIER = 0.5;
+
+function getExploredTileTravelTimeMultiplier(targetX, targetY) {
+    const world = typeof window !== "undefined" && window.mapView
+        ? window.mapView.world
+        : null;
+    if (!world || typeof world.getTileData !== "function") return 1;
+
+    const tile = world.getTileData(
+        Math.trunc(Number(targetX) || 0),
+        Math.trunc(Number(targetY) || 0)
+    );
+    if (!tile) return 1;
+
+    if (Number(tile.investigated) >= EXPLORATION_COMPLETE) {
+        return FULLY_EXPLORED_TILE_TRAVEL_TIME_MULTIPLIER;
+    }
+    if (Number(tile.revealed) >= EXPLORATION_COMPLETE) {
+        return FULLY_SCOUTED_TILE_TRAVEL_TIME_MULTIPLIER;
+    }
+    return 1;
+}
+
 function getTravelPassabilityMultiplier(dx, dy) {
     const targetX = currentTile.x + (Number(dx) || 0);
     const targetY = currentTile.y + (Number(dy) || 0);
@@ -1985,11 +2012,13 @@ function getTravelBaseDurationSeconds() {
 
 function getTravelDurationSecondsTo(targetX, targetY) {
     // The destination tile's passability is a speed multiplier: lower values
-    // make the crossing take proportionally longer. Rounding keeps the tick
-    // count clean (no 3.0000000002s).
+    // make the crossing take proportionally longer. Tiles that are fully
+    // scouted or explored are faster to cross. Rounding keeps the tick count
+    // clean (no 3.0000000002s).
     return round2(
         getTravelBaseDurationSeconds()
         / getTravelPassabilityForTile(targetX, targetY)
+        * getExploredTileTravelTimeMultiplier(targetX, targetY)
     );
 }
 
@@ -2056,7 +2085,12 @@ function findMoveToXYPath(startX, startY, targetX, targetY) {
     }
 
     const baseDuration = getTravelBaseDurationSeconds();
-    const heuristicStepCost = baseDuration / getMaxTilePassability();
+    const minTileTimeMultiplier = Math.min(
+        FULLY_EXPLORED_TILE_TRAVEL_TIME_MULTIPLIER,
+        FULLY_SCOUTED_TILE_TRAVEL_TIME_MULTIPLIER
+    );
+    const heuristicStepCost = baseDuration / getMaxTilePassability()
+        * minTileTimeMultiplier;
     const heuristic = function (x, y) {
         return (Math.abs(x - toX) + Math.abs(y - toY)) * heuristicStepCost;
     };
@@ -2129,7 +2163,8 @@ function findMoveToXYPath(startX, startY, targetX, targetY) {
             if (closed.has(nextKey)) return;
 
             const passability = getTravelPassabilityForTile(nextX, nextY);
-            const stepCost = baseDuration / passability;
+            const stepCost = baseDuration / passability
+                * getExploredTileTravelTimeMultiplier(nextX, nextY);
             const tentativeG = currentG + stepCost;
             const previousG = gScore.get(nextKey);
 
