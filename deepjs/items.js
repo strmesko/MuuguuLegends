@@ -150,6 +150,18 @@ function getItemIconPathByName(itemName) {
     return itemIconPathByName[itemName] || null;
 }
 
+// Generated names (prefixes/suffixes, crafted names) do not match the item
+// definition name, so remember their icon explicitly for every instance.
+function registerItemIconPath(itemName, iconName) {
+    if (!itemName || !iconName) return;
+    if (!itemIconPathByName) {
+        getItemIconPathByName(itemName);
+    }
+    if (itemIconPathByName) {
+        itemIconPathByName[itemName] = GEAR_IMAGE_DIRECTORY + iconName + ".png";
+    }
+}
+
 const CARVED_GEMSTONE_NAME_PATTERN =
     /^(chipped|flawed|normal|flawless|perfect)\s+(.+)$/i;
 

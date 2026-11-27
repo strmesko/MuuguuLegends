@@ -3593,6 +3593,11 @@ class ItemInstance {
                 this.nameGenerated = true;
             }
         }
+
+        if (this.displayName && definition.icon
+            && typeof registerItemIconPath === "function") {
+            registerItemIconPath(this.displayName, definition.icon);
+        }
     }
 
     get definition() {
