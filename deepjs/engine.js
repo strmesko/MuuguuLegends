@@ -1598,6 +1598,12 @@ function productionLoop(diff, options) {
     if (typeof runPlayerBehavior === "function") {
         runPlayerBehavior("tick");
     }
+    // Automatic action switches happen at the end of the tick, after the
+    // regular auto-focus check. Check once more so a newly started non-rest
+    // action can use Focus immediately instead of waiting for the next tick.
+    if (!skipManaRegen && typeof tryAutoFocusMana === "function") {
+        tryAutoFocusMana();
+    }
 }
 
 // Fast-forwards the whole simulation by `seconds`. Used by instant actions
