@@ -4968,42 +4968,50 @@ function getManaSpankingReduction() {
     return factor / (1 + factor);
 }
 
-function applyManaOverspendDamage(beforeMana, afterMana) {
+function getManaOverspendDamage(beforeMana, afterMana) {
     const beforeNegative = Math.max(0, -(Number(beforeMana) || 0));
     const afterNegative = Math.max(0, -(Number(afterMana) || 0));
     const overspend = Math.max(0, afterNegative - beforeNegative);
     if (overspend <= 0) return 0;
 
-    const damage = round2(
-        overspend * (1 - getManaSpankingReduction())
-    );
-    if (damage <= 0) return 0;
+    return round2(overspend * (1 - getManaSpankingReduction()));
+}
+
+function inflictManaOverspendDamage(damage) {
+    const amount = Math.max(0, Number(damage) || 0);
+    if (amount <= 0) return 0;
 
     if (player) {
         player.hp = round2(Math.max(
             0,
-            (Number(player.hp) || 0) - damage
+            (Number(player.hp) || 0) - amount
         ));
         if (player.manaspanking
             && typeof player.manaspanking.addexp === "function") {
-            player.manaspanking.addexp(damage);
+            player.manaspanking.addexp(amount);
         }
         if (player.int && typeof player.int.addexp === "function") {
-            player.int.addexp(damage / 20);
+            player.int.addexp(amount / 20);
         }
         if (player.sou && typeof player.sou.addexp === "function") {
-            player.sou.addexp(damage / 20);
+            player.sou.addexp(amount / 20);
         }
     }
 
     if (typeof logMessage === "function") {
         logMessage("Mana overspend tears through you for "
-            + damage + " damage.");
+            + amount + " damage.");
     }
-    return damage;
+    return amount;
 }
 
-function spendPlayerMana(amount) {
+function applyManaOverspendDamage(beforeMana, afterMana) {
+    return inflictManaOverspendDamage(
+        getManaOverspendDamage(beforeMana, afterMana)
+    );
+}
+
+function spendPlayerMana(amount, options) {
     if (typeof player === "undefined" || !player) {
         return { before: 0, after: 0, spent: 0, damage: 0 };
     }
@@ -5012,7 +5020,12 @@ function spendPlayerMana(amount) {
     const cost = Math.max(0, Number(amount) || 0);
     const after = round2(before - cost);
     player.mana = after;
-    const damage = applyManaOverspendDamage(before, after);
+    // Focus skips simulate time before the overspend damage lands, otherwise
+    // the skipped hp regeneration immediately heals the whole hit.
+    const deferDamage = !!(options && options.deferDamage === true);
+    const damage = deferDamage
+        ? getManaOverspendDamage(before, after)
+        : applyManaOverspendDamage(before, after);
     const spent = Math.max(0, Math.min(before, cost));
 
     return { before: before, after: after, spent: spent, damage: damage };

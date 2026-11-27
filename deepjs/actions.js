@@ -106,7 +106,7 @@ function performFocus() {
     const manaCost = getFocusSkipManaCost();
     const manaBefore = Number(player.mana) || 0;
     const spend = typeof spendPlayerMana === "function"
-        ? spendPlayerMana(manaCost)
+        ? spendPlayerMana(manaCost, { deferDamage: true })
         : {
             before: manaBefore,
             after: round2(Math.max(0, manaBefore - manaCost)),
@@ -133,6 +133,15 @@ function performFocus() {
         // time: the mana spent is the only mana change caused by the action.
         simulateTimePassage(power, { skipManaRegen: true });
     }
+    // The overspend hit lands after the skipped time. Applying it before the
+    // skip lets hp regeneration heal the whole hit on the same tick.
+    if (spend.damage > 0
+        && typeof inflictManaOverspendDamage === "function") {
+        inflictManaOverspendDamage(spend.damage);
+        if (typeof checkPlayerDeath === "function") {
+            checkPlayerDeath("Your body gave out.");
+        }
+    }
     return true;
 }
 
@@ -147,7 +156,7 @@ function performFocusBatch(uses) {
     const totalTime = round2(power * count);
     const manaBefore = Number(player.mana) || 0;
     const spend = typeof spendPlayerMana === "function"
-        ? spendPlayerMana(totalCost)
+        ? spendPlayerMana(totalCost, { deferDamage: true })
         : {
             before: manaBefore,
             after: round2(Math.max(0, manaBefore - totalCost)),
@@ -170,14 +179,29 @@ function performFocusBatch(uses) {
     if (typeof hasActiveGatheringActionForAutoFocus === "function"
         && hasActiveGatheringActionForAutoFocus()) {
         pendingFocusSkipTime += totalTime;
-    } else if (typeof simulateTimePassage === "function") {
-        simulateTimePassage(totalTime, { skipManaRegen: true });
+        // Damage has to wait for the deferred skip as well, otherwise the
+        // skipped regeneration would heal it away before the next action tick.
+        pendingFocusOverspendDamage = round2(
+            pendingFocusOverspendDamage + spend.damage
+        );
+    } else {
+        if (typeof simulateTimePassage === "function") {
+            simulateTimePassage(totalTime, { skipManaRegen: true });
+        }
+        if (spend.damage > 0
+            && typeof inflictManaOverspendDamage === "function") {
+            inflictManaOverspendDamage(spend.damage);
+            if (typeof checkPlayerDeath === "function") {
+                checkPlayerDeath("Your body gave out.");
+            }
+        }
     }
     return true;
 }
 
 let autoFocusManaRunning = false;
 let pendingFocusSkipTime = 0;
+let pendingFocusOverspendDamage = 0;
 let flushingFocusSkip = false;
 // Upper bound for deferred Focus skip time. Keeps the single flush after a
 // gathering action short even if the action runs for a long time.
@@ -210,7 +234,11 @@ function hasActiveGatheringActionForAutoFocus() {
 }
 
 function flushPendingFocusSkipTime() {
-    if (flushingFocusSkip || pendingFocusSkipTime <= 0) return false;
+    if (flushingFocusSkip
+        || (pendingFocusSkipTime <= 0
+            && pendingFocusOverspendDamage <= 0)) {
+        return false;
+    }
     if (typeof hasActiveGatheringActionForAutoFocus === "function"
         && hasActiveGatheringActionForAutoFocus()) {
         return false;
@@ -218,6 +246,8 @@ function flushPendingFocusSkipTime() {
 
     const total = pendingFocusSkipTime;
     pendingFocusSkipTime = 0;
+    const overspendDamage = pendingFocusOverspendDamage;
+    pendingFocusOverspendDamage = 0;
     flushingFocusSkip = true;
     try {
         if (typeof simulateTimePassage === "function") {
@@ -231,6 +261,13 @@ function flushPendingFocusSkipTime() {
         }
     } finally {
         flushingFocusSkip = false;
+    }
+    if (overspendDamage > 0
+        && typeof inflictManaOverspendDamage === "function") {
+        inflictManaOverspendDamage(overspendDamage);
+        if (typeof checkPlayerDeath === "function") {
+            checkPlayerDeath("Your body gave out.");
+        }
     }
     return true;
 }
