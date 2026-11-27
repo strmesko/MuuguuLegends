@@ -490,10 +490,12 @@ function updateHungerStarvationTick(diff) {
     }
 
     const seconds = Number(diff) || 0;
-    if (seconds <= 0) return;
+    if (!Number.isFinite(seconds) || seconds <= 0) return;
 
     hungerStarvationTimer -= seconds;
-    while (hungerStarvationTimer <= 0) {
+    let starvationGuard = 0;
+    while (hungerStarvationTimer <= 0 && starvationGuard < 1000) {
+        starvationGuard += 1;
         hungerStarvationTimer += rollHungerStarvationInterval();
 
         const damage = Math.max(0.01, round2(player.maxhp * 0.01));
@@ -1546,6 +1548,8 @@ function updateQuartermisterAutomation(diff) {
 
 function productionLoop(diff, options) {
     if (diff == null) diff = 1;
+    diff = Number(diff);
+    if (!Number.isFinite(diff) || diff < 0) diff = 0;
 
     if (actionStates.sleep !== Activity.Active) {
         resetSleepTileDiscovery();
@@ -1602,7 +1606,7 @@ function productionLoop(diff, options) {
 // Focus passes skipManaRegen so the skipped time never refills mana.
 function simulateTimePassage(seconds, options) {
     const value = Math.max(0, Number(seconds) || 0);
-    if (value <= 0) return;
+    if (!Number.isFinite(value) || value <= 0) return;
 
     updateSleepyness(value);
     tryFallAsleep(value);
@@ -3523,13 +3527,15 @@ function runTreesHarvestProduction(diff) {
     if (!tile || !hasHarvestableTrees(tile)) return;
 
     let remaining = Math.max(0, Number(diff) || 0);
-    if (remaining <= 0) return;
+    if (!Number.isFinite(remaining) || remaining <= 0) return;
 
     const amountPerSecond = getTreeHarvestAmountPerSecond();
     const quality = getTreeHarvestQuality();
-    if (amountPerSecond <= 0) return;
+    if (!Number.isFinite(amountPerSecond) || amountPerSecond <= 0) return;
 
-    while (remaining > 0) {
+    let harvestGuard = 0;
+    while (remaining > 0 && harvestGuard < 1000) {
+        harvestGuard += 1;
         const species = ensureTreeHarvestTarget(tile);
         if (!species) break;
 

@@ -365,6 +365,27 @@ body{font-size:max(6px,1em);}
   .combatclosebutton:hover {
     filter: brightness(1.08);
   }
+  .npcdialogue-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 3px double #9fce49;
+    border-radius: 50%;
+    background-color: #caf37d;
+    color: #1f3d12;
+    font: bold 20px/1 "MS Gothic";
+    cursor: pointer;
+  }
+  .npcdialogue-close:hover {
+    filter: brightness(1.08);
+  }
   .npcdialogue-stats {
     display: flex;
     flex-wrap: wrap;

@@ -734,6 +734,9 @@
     }
 
     function clearInterfaceForLoad(savedVisibility) {
+        if (typeof resetNpcDialogueState === "function") {
+            resetNpcDialogueState();
+        }
         clearActionButtons();
         document.getElementById("skillstab").innerHTML = 'whoaskills';
 

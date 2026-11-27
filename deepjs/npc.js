@@ -446,7 +446,8 @@ function createNpcPlayAction(npc) {
         },
         run: function (diff) {
             const seconds = Math.max(0, Number(diff) || 0);
-            if (seconds <= 0) return;
+            if (!Number.isFinite(seconds) || seconds <= 0) return;
+            if (!Number.isFinite(progress) || progress < 0) progress = 0;
 
             const staminaCost = getSocialImpact();
             if (typeof player !== "undefined"
@@ -467,7 +468,9 @@ function createNpcPlayAction(npc) {
             }
 
             progress += seconds;
-            while (progress >= 30) {
+            let playGuard = 0;
+            while (progress >= 30 && playGuard < 1000) {
+                playGuard += 1;
                 progress -= 30;
                 const target = getNpcByUid(npcUid);
                 if (!target || !canPlayWithNpc(target)) {
@@ -1695,6 +1698,16 @@ function isNpcDialogueActive() {
     return !!activeNpcDialogue || !!activeNpcChooser || !!activeGiftChooser;
 }
 
+function resetNpcDialogueState() {
+    activeNpcDialogue = null;
+    activeNpcChooser = null;
+    activeGiftChooser = null;
+    ["npcdialogueoverlay", "npcchooseroverlay", "giftchooseroverlay"].forEach(function (id) {
+        const overlay = document.getElementById(id);
+        if (overlay) overlay.remove();
+    });
+}
+
 function getActiveNpcDialogueNpc() {
     if (!activeNpcDialogue) return null;
     return getNpcByUid(activeNpcDialogue.npcUid);
@@ -1829,6 +1842,16 @@ function ensureNpcDialogueOverlay() {
 
     panel.appendChild(actions);
     overlay.appendChild(panel);
+
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.id = "npcdialogueclose";
+    closeButton.className = "npcdialogue-close";
+    closeButton.innerText = "\u00d7";
+    closeButton.setAttribute("aria-label", "Close conversation");
+    closeButton.addEventListener("click", endNpcDialogue);
+    overlay.appendChild(closeButton);
+
     parent.appendChild(overlay);
 
     return overlay;
@@ -2245,3 +2268,27 @@ function commonChatActiveNpc() {
     if (typeof updateGUI === "function") updateGUI();
     return true;
 }
+
+// Escape must always leave a conversation, even when the action panel is too
+// small to show the "Say goodbye" button without scrolling.
+document.addEventListener("keydown", function (event) {
+    if (event.key !== "Escape" && event.key !== "Esc") return;
+    if (typeof isCheatMenuOpen === "function" && isCheatMenuOpen()) return;
+    const wikiOverlay = document.getElementById("wikioverlay");
+    if (wikiOverlay && wikiOverlay.style.display !== "none") return;
+
+    if (activeGiftChooser) {
+        closeGiftChooser();
+        event.preventDefault();
+        return;
+    }
+    if (activeNpcChooser) {
+        closeNpcChooser();
+        event.preventDefault();
+        return;
+    }
+    if (activeNpcDialogue) {
+        endNpcDialogue();
+        event.preventDefault();
+    }
+});
