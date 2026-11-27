@@ -17,6 +17,36 @@ function hasActiveNonRestAction() {
     });
 }
 
+// Digestion pause: Focus and auto-focus are unavailable for a few seconds
+// after any food is eaten. Game time is used so time skips cannot bypass it.
+const FOCUS_FOOD_COOLDOWN_SECONDS = 3;
+let focusFoodCooldownUntil = 0;
+
+function getFocusCooldownClockSeconds() {
+    if (typeof gameTime !== "undefined"
+        && gameTime
+        && Number.isFinite(Number(gameTime.totalMinutes))) {
+        const minutesPerSecond = typeof GAME_MINUTES_PER_REAL_SECOND !== "undefined"
+            ? Number(GAME_MINUTES_PER_REAL_SECOND)
+            : 1;
+        return Number(gameTime.totalMinutes) / (minutesPerSecond > 0 ? minutesPerSecond : 1);
+    }
+    return (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+}
+
+function startFocusFoodCooldown() {
+    focusFoodCooldownUntil = getFocusCooldownClockSeconds() + FOCUS_FOOD_COOLDOWN_SECONDS;
+}
+
+function getFocusFoodCooldownRemaining() {
+    const remaining = focusFoodCooldownUntil - getFocusCooldownClockSeconds();
+    return remaining > 0 ? remaining : 0;
+}
+
+function isFocusFoodCooldownActive() {
+    return getFocusFoodCooldownRemaining() > 0;
+}
+
 // Same pattern as other actions: a stat and the matching skill under a square
 // root, then the shared action-effectiveness multiplier.
 function getFocusPower() {
@@ -62,6 +92,11 @@ function isFocusAvailable() {
 }
 
 function performFocus() {
+    if (isFocusFoodCooldownActive()) {
+        logMessage("You are still digesting. Focus is unavailable for "
+            + round2(getFocusFoodCooldownRemaining()) + " more seconds.");
+        return false;
+    }
     if (!isFocusAvailable()) {
         logMessage("Focus requires an active action other than Rest.");
         return false;
@@ -104,6 +139,7 @@ function performFocus() {
 function performFocusBatch(uses) {
     const count = Math.floor(Number(uses) || 0);
     if (count <= 0 || !isFocusAvailable()) return false;
+    if (isFocusFoodCooldownActive()) return false;
 
     const power = getFocusSkipSeconds();
     const manaCost = getFocusSkipManaCost();
@@ -204,6 +240,7 @@ function flushPendingFocusSkipTime() {
 // so the action loop is not stalled on every tick.
 function tryAutoFocusMana() {
     if (autoFocusManaRunning || flushingFocusSkip) return false;
+    if (isFocusFoodCooldownActive()) return false;
     // While a gathering action is active the skipped time is deferred. Stop
     // queueing more once the pending span reaches the cap so the single
     // deferred simulation does not grow without bound.

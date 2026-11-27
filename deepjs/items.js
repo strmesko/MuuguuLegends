@@ -632,6 +632,9 @@ function consumeInventoryFood(index) {
     }
 
     player.equipinventory[index] = null;
+    if (typeof startFocusFoodCooldown === "function") {
+        startFocusFoodCooldown();
+    }
 
     const eatLogText = "You eat " + name
         + ". Hunger -" + round2(Math.max(0, hungerBefore - hungerAfter))

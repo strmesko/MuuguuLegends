@@ -147,6 +147,7 @@
             actionVisibility: Object.assign({}, actionVisibility),
             previousTimedActionIds: previousTimedActionIds
                 .slice(-getMaxActionSlots()),
+            focusFoodCooldownUntil: Math.max(0, Number(focusFoodCooldownUntil) || 0),
             activeTravel: activeTravel ? Object.assign({}, activeTravel) : null,
             dayDreamUnlocked: dayDreamUnlocked,
             researchUnlocked: researchUnlocked,
@@ -327,6 +328,7 @@
             actionStates: normalizeActionStates(saveData),
             actionVisibility: saveData.actionVisibility ?? {},
             previousTimedActionIds: normalizePreviousTimedActionIds(saveData.previousTimedActionIds, saveData.previousTimedActionId, saveData.maxActions),
+            focusFoodCooldownUntil: Math.max(0, Number(saveData.focusFoodCooldownUntil) || 0),
             activeTravel: saveData.activeTravel ?? null,
             dayDreamUnlocked: saveData.dayDreamUnlocked ?? false,
             researchUnlocked: saveData.researchUnlocked ?? false,
@@ -555,6 +557,7 @@
         ).map(function (actionId) {
             return actionId === "meditate" ? "focus" : actionId;
         });
+        focusFoodCooldownUntil = Math.max(0, Number(saved.focusFoodCooldownUntil) || 0);
         activeTravel = restoreTravel(saved.activeTravel);
         hearthfireStacks = 0;
         hearthfireFuelElapsed = Math.max(0, Number(saved.hearthfireFuelElapsed) || 0);

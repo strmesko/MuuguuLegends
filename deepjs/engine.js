@@ -805,6 +805,9 @@ function updateAutoHungerEating() {
         stack.amount = round2(Math.max(0, available - consumed));
         hunger = round2(Math.max(0, hunger - consumed * restorePerUnit));
         player.hunger = hunger;
+        if (typeof startFocusFoodCooldown === "function") {
+            startFocusFoodCooldown();
+        }
 
         if (typeof consumeCaloriesBoosterMana === "function") {
             consumeCaloriesBoosterMana();
