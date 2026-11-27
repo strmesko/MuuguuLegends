@@ -208,6 +208,62 @@
         loadSlotButtons.push(loadButton);
     }
 
+    // Autosave options. The interval is real time and travels with the save.
+    const autoSaveRow = document.createElement('label');
+    autoSaveRow.className = 'habitsetting autosaverow';
+    autoSaveRow.setAttribute(
+        'data-tooltip',
+        'Automatically save the game to the last used slot. The interval is measured in real minutes.'
+    );
+
+    const autoSaveName = document.createElement('span');
+    autoSaveName.className = 'habitname';
+    autoSaveName.innerText = 'Autosave:';
+    autoSaveRow.appendChild(autoSaveName);
+
+    const autoSaveToggle = document.createElement('input');
+    autoSaveToggle.type = 'checkbox';
+    autoSaveToggle.id = 'autosavetoggle';
+    autoSaveToggle.checked = autoSaveEnabled === true;
+
+    const autoSaveInterval = document.createElement('input');
+    autoSaveInterval.type = 'number';
+    autoSaveInterval.className = 'habitrange habitnumber autosaveinterval';
+    autoSaveInterval.id = 'autosaveinterval';
+    autoSaveInterval.min = String(AUTO_SAVE_MIN_INTERVAL_MINUTES);
+    autoSaveInterval.max = String(AUTO_SAVE_MAX_INTERVAL_MINUTES);
+    autoSaveInterval.step = '1';
+    autoSaveInterval.value = String(
+        clampAutoSaveIntervalMinutes(autoSaveIntervalMinutes)
+    );
+    autoSaveInterval.disabled = autoSaveEnabled !== true;
+
+    const autoSaveValue = document.createElement('span');
+    autoSaveValue.className = 'habitrangevalue';
+    autoSaveValue.innerText = 'minutes';
+
+    autoSaveToggle.addEventListener('change', function () {
+        autoSaveEnabled = autoSaveToggle.checked;
+        autoSaveInterval.disabled = !autoSaveEnabled;
+        autoSaveLastAt = Date.now();
+        logMessage('Autosave ' + (autoSaveEnabled ? 'enabled' : 'disabled') + '.');
+    });
+
+    autoSaveInterval.addEventListener('change', function () {
+        autoSaveIntervalMinutes = clampAutoSaveIntervalMinutes(
+            autoSaveInterval.value
+        );
+        autoSaveInterval.value = String(autoSaveIntervalMinutes);
+        autoSaveLastAt = Date.now();
+        logMessage('Autosave interval: every '
+            + autoSaveIntervalMinutes + ' minute(s).');
+    });
+
+    autoSaveRow.appendChild(autoSaveToggle);
+    autoSaveRow.appendChild(autoSaveInterval);
+    autoSaveRow.appendChild(autoSaveValue);
+    optionsContent.appendChild(autoSaveRow);
+
     const copySaveTextToClipboard = function (text) {
         if (navigator.clipboard
             && typeof navigator.clipboard.writeText === "function") {

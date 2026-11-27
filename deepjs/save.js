@@ -184,8 +184,88 @@
             assPoisonRemaining: typeof getAssPoisonSnapshot === "function"
                 ? getAssPoisonSnapshot().remaining
                 : 0,
+            ascensionPoints: typeof ascensionPoints !== "undefined"
+                ? Math.max(0, Number(ascensionPoints) || 0)
+                : 0,
+            ascensionSkillPercent: typeof ascensionSkillPercent !== "undefined"
+                ? Math.max(0, Number(ascensionSkillPercent) || 0)
+                : 0,
+            ascensionStatPercent: typeof ascensionStatPercent !== "undefined"
+                ? Math.max(0, Number(ascensionStatPercent) || 0)
+                : 0,
+            ascensionUpgrades: typeof ascensionUpgrades !== "undefined"
+                ? Object.assign({}, ascensionUpgrades)
+                : {},
+            // Pending rebirth state lives in separate localStorage keys. Keep
+            // the raw strings so a save file can move them to another browser.
+            smuggledItem: readStorageString("muuguu_smuggled_item"),
+            nextWorldSeed: readStorageString("muuguu_next_seed"),
+            autoSaveEnabled: autoSaveEnabled === true,
+            autoSaveIntervalMinutes: clampAutoSaveIntervalMinutes(
+                autoSaveIntervalMinutes
+            ),
             mapSeed: window.mapView ? window.mapView.getSeed() : null,
         };
+    }
+
+    function readStorageString(key) {
+        try {
+            const value = localStorage.getItem(key);
+            return typeof value === "string" && value ? value : null;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function writeStorageString(key, value) {
+        if (typeof value !== "string" || !value) return false;
+        try {
+            localStorage.setItem(key, value);
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    function restoreAscensionState(saved) {
+        if (saved.ascensionPoints == null
+            && saved.ascensionSkillPercent == null
+            && saved.ascensionStatPercent == null
+            && saved.ascensionUpgrades == null) {
+            // Old save without ascension data: keep the local Limbo progress.
+            return;
+        }
+
+        ascensionPoints = Math.max(0, Math.floor(
+            Number(saved.ascensionPoints) || 0
+        ));
+        ascensionSkillPercent = Math.max(
+            0,
+            Number(saved.ascensionSkillPercent) || 0
+        );
+        ascensionStatPercent = Math.max(
+            0,
+            Number(saved.ascensionStatPercent) || 0
+        );
+
+        const savedUpgrades = saved.ascensionUpgrades
+            && typeof saved.ascensionUpgrades === "object"
+            ? saved.ascensionUpgrades
+            : {};
+        if (typeof ASCENSION_UPGRADE_DEFS !== "undefined") {
+            ASCENSION_UPGRADE_DEFS.forEach(function (definition) {
+                ascensionUpgrades[definition.id] = Math.max(0, Math.floor(
+                    Number(savedUpgrades[definition.id]) || 0
+                ));
+            });
+        }
+
+        if (typeof saveAscensionProgress === "function") {
+            saveAscensionProgress();
+        }
+        if (typeof updateAscensionMultiplierDisplay === "function") {
+            updateAscensionMultiplierDisplay();
+        }
     }
 
     function getSaveSlotKey(slot) {
@@ -259,11 +339,15 @@
         return savedLevel > currentLevel;
     }
 
-    function saveGame(slot) {
+    function saveGame(slot, options) {
         const targetSlot = isValidSaveSlot(slot) ? slot : 1;
+        const silent = !!(options && options.silent);
+        const force = !!(options && options.force);
 
         // Refuse to silently overwrite a more advanced save.
-        if (readSaveSlotRaw(targetSlot) && shouldConfirmOverwrite(targetSlot)) {
+        if (!force
+            && readSaveSlotRaw(targetSlot)
+            && shouldConfirmOverwrite(targetSlot)) {
             const confirmed = window.confirm(
                 "Characters level in save file is higher than from current game. Are you sure to overwrite it?"
             );
@@ -277,9 +361,44 @@
         saveData.slot = targetSlot;
         saveData.savedAt = Date.now();
         localStorage.setItem(getSaveSlotKey(targetSlot), JSON.stringify(saveData));
-        logMessage('Game saved to slot ' + targetSlot);
+        activeSaveSlot = targetSlot;
+        autoSaveArmed = true;
+        autoSaveLastAt = Date.now();
+        if (!silent) {
+            logMessage('Game saved to slot ' + targetSlot);
+        }
         updateSaveSlotLabels();
         return true;
+    }
+
+    // Real-time autosave: the main loop calls this once per tick. It writes to
+    // the slot used by the last manual save/load, so autosave never silently
+    // fills an unrelated empty slot.
+    function tryAutoSaveTick() {
+        if (autoSaveEnabled !== true) return false;
+        // Never write a slot before the player has saved or loaded one: an
+        // autosave must not silently replace an unrelated existing game.
+        if (autoSaveArmed !== true) return false;
+        if (typeof offlineSimulationActive !== "undefined"
+            && offlineSimulationActive) {
+            return false;
+        }
+        if (typeof playerDeathInProgress !== "undefined"
+            && playerDeathInProgress) {
+            return false;
+        }
+        if (typeof player === "undefined" || !player) return false;
+
+        const intervalMs = clampAutoSaveIntervalMinutes(autoSaveIntervalMinutes)
+            * 60 * 1000;
+        if (Date.now() - autoSaveLastAt < intervalMs) return false;
+
+        autoSaveLastAt = Date.now();
+        const saved = saveGame(activeSaveSlot, { force: true, silent: true });
+        if (saved) {
+            logMessage('Autosaved to slot ' + activeSaveSlot + '.');
+        }
+        return saved;
     }
 
     function readSavedGame(slot) {
@@ -360,6 +479,18 @@
             dramaDebuffs: saveData.dramaDebuffs ?? {},
             assPoisonStacks: saveData.assPoisonStacks ?? 0,
             assPoisonRemaining: saveData.assPoisonRemaining ?? 0,
+            // null means the save predates ascension persistence; loading it
+            // must keep the local Limbo progress instead of wiping it.
+            ascensionPoints: saveData.ascensionPoints ?? null,
+            ascensionSkillPercent: saveData.ascensionSkillPercent ?? null,
+            ascensionStatPercent: saveData.ascensionStatPercent ?? null,
+            ascensionUpgrades: saveData.ascensionUpgrades ?? null,
+            smuggledItem: saveData.smuggledItem ?? null,
+            nextWorldSeed: saveData.nextWorldSeed ?? null,
+            autoSaveEnabled: saveData.autoSaveEnabled !== false,
+            autoSaveIntervalMinutes: clampAutoSaveIntervalMinutes(
+                saveData.autoSaveIntervalMinutes
+            ),
             mapSeed: saveData.mapSeed ?? null,
             tileStates: saveData.tileStates ?? {},
             landTotals: saveData.landTotals ?? {
@@ -627,6 +758,20 @@
         if (saved.tileHabitModel) {
             setTileHabitModel(saved.tileHabitModel);
         }
+        restoreAscensionState(saved);
+        // A save file carries the pending rebirth state; a missing value means
+        // an old save and must not delete an item already queued locally.
+        if (saved.smuggledItem) {
+            writeStorageString("muuguu_smuggled_item", saved.smuggledItem);
+        }
+        if (saved.nextWorldSeed) {
+            writeStorageString("muuguu_next_seed", saved.nextWorldSeed);
+        }
+        autoSaveEnabled = saved.autoSaveEnabled !== false;
+        autoSaveIntervalMinutes = clampAutoSaveIntervalMinutes(
+            saved.autoSaveIntervalMinutes
+        );
+        autoSaveLastAt = Date.now();
         updateHabitToggles();
         updateHabitVisibility();
         landTotals = saved.landTotals;
@@ -984,6 +1129,8 @@
             logMessage('Slot ' + targetSlot + ' is empty');
             return;
         }
+        activeSaveSlot = targetSlot;
+        autoSaveArmed = true;
 
         const savedAt = Number(saved.lastUpdate);
         const offlineSeconds = Number.isFinite(savedAt)
@@ -1000,6 +1147,13 @@
         suppressAutismLevelLogs = true;
         try {
             applySavedState(saved);
+            const autoSaveToggle = document.getElementById('autosavetoggle');
+            if (autoSaveToggle) autoSaveToggle.checked = autoSaveEnabled === true;
+            const autoSaveInterval = document.getElementById('autosaveinterval');
+            if (autoSaveInterval) {
+                autoSaveInterval.value = String(autoSaveIntervalMinutes);
+                autoSaveInterval.disabled = autoSaveEnabled !== true;
+            }
             restoreResources(saved.resources);
             calculateStats();
             clearInterfaceForLoad(saved.actionVisibility);

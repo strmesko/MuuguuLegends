@@ -5124,6 +5124,9 @@ function mainLoop(){
     updateGUI();
 
     checkAddContent();
+    if (typeof tryAutoSaveTick === "function") {
+        tryAutoSaveTick();
+    }
     //messagelog("retardability check");
     //mesasgelog(diff);
 }

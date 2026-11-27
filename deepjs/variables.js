@@ -395,6 +395,26 @@ var numberFormat = "standard";
 // Cheat-menu display toggle: reveal tabs, technologies and locked recipes,
 // but never the action buttons.
 var showSpoilers = false;
+
+// Automatic saving uses real time, not game time. The interval is stored per
+// save slot together with the rest of the options.
+const AUTO_SAVE_DEFAULT_INTERVAL_MINUTES = 5;
+const AUTO_SAVE_MIN_INTERVAL_MINUTES = 1;
+const AUTO_SAVE_MAX_INTERVAL_MINUTES = 1440;
+var autoSaveEnabled = true;
+var autoSaveIntervalMinutes = AUTO_SAVE_DEFAULT_INTERVAL_MINUTES;
+var autoSaveLastAt = Date.now();
+var autoSaveArmed = false;
+var activeSaveSlot = 1;
+
+function clampAutoSaveIntervalMinutes(value) {
+    const minutes = Math.floor(Number(value));
+    if (!Number.isFinite(minutes)) return AUTO_SAVE_DEFAULT_INTERVAL_MINUTES;
+    return Math.min(
+        AUTO_SAVE_MAX_INTERVAL_MINUTES,
+        Math.max(AUTO_SAVE_MIN_INTERVAL_MINUTES, minutes)
+    );
+}
 const NUMBER_FORMAT_OPTIONS = Object.freeze([
     Object.freeze({ value: "standard", label: "Standard" }),
     Object.freeze({ value: "suffix", label: "Suffix (1.23K)" }),
