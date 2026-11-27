@@ -2121,11 +2121,12 @@ function runBatchProduction(diff, recipe) {
     const quality = typeof recipe.getQuality === "function"
         ? recipe.getQuality()
         : RESOURCE_DEFAULT_QUALITY;
+    const outputMultiplier = getActionResourceAmountMultiplier(actionId);
 
     (recipe.outputs || []).forEach(function (output) {
         addResource(
             output.resourceId,
-            roundAmount(batches * output.amountPerBatch),
+            roundAmount(batches * output.amountPerBatch * outputMultiplier),
             quality
         );
     });
@@ -2653,6 +2654,7 @@ function runFishingProduction(diff) {
 
     const waterMultiplier = getFishingWaterMultiplier(currentTile);
     const quality = getFishingQuality(power);
+    const yieldMultiplier = getActionResourceAmountMultiplier("fish");
     let caught = 0;
 
     for (let tick = 0; tick < ticks; tick++) {
@@ -2666,8 +2668,11 @@ function runFishingProduction(diff) {
                 * waterMultiplier;
             if (Math.random() >= chancePerTick) continue;
 
-            const amount = Math.max(0.01, Number(definition.fishSize) || 1);
-            addResource(resourceId, round2(amount), quality);
+            const amount = round2(Math.max(
+                0.01,
+                (Number(definition.fishSize) || 1) * yieldMultiplier
+            ));
+            addResource(resourceId, amount, quality);
             logMessage("You catch " + definition.name + " x"
                 + round2(amount) + ".");
             if (player.fishing) {
@@ -2853,14 +2858,17 @@ function performBurnFuel(fuel) {
     const quality = applyWellFedActionQuality(rawQuality);
     const heat = getBurnScaledAmount(fuel.baseHeat);
     const ash = getBurnScaledAmount(fuel.baseAsh);
+    const outputMultiplier = getActionResourceAmountMultiplier(fuel.id);
+    const producedHeat = round2(heat * outputMultiplier);
+    const producedAsh = round2(ash * outputMultiplier);
 
     stack.amount = round2(Math.max(0, stack.amount - required));
-    addResource(RESOURCE_IDS.HEAT_UNITS, heat, quality);
-    addResource(RESOURCE_IDS.ASH, ash, quality);
+    addResource(RESOURCE_IDS.HEAT_UNITS, producedHeat, quality);
+    addResource(RESOURCE_IDS.ASH, producedAsh, quality);
 
     const definition = RESOURCE_DEFS[fuel.resourceId];
     logMessage("Burned " + required + " " + (definition ? definition.name : "fuel")
-        + " for " + heat + " Heat Units and " + ash + " Ash.");
+        + " for " + producedHeat + " Heat Units and " + producedAsh + " Ash.");
 
     if (typeof renderResources === "function") renderResources();
     if (typeof refreshActionButtons === "function") refreshActionButtons(true);
@@ -3066,7 +3074,7 @@ function getForageBaseAmount(resourceId, profitAmount) {
 function getForageAmount(resourceId, profitAmount) {
     const baseAmount = getForageBaseAmount(resourceId, profitAmount);
     const itemAmountMultiplier = getEquippedStatMultiplier("forageQuantity")
-        * getGlobalPropertyMultiplier("harvestForageAmount");
+        * getActionResourceAmountMultiplier("forage");
     return baseAmount * itemAmountMultiplier / FORAGE_AMOUNT_DIVISOR;
 }
 
@@ -3416,7 +3424,7 @@ function getTreeHarvestPower() {
 function getTreeHarvestAmountPerSecond() {
     return getTreeHarvestPower()
         * getActionEffectivenessMultiplier("treesharvest")
-        * getGlobalPropertyMultiplier("harvestFruitAmount")
+        * getActionResourceAmountMultiplier("treesharvest")
         / TREE_HARVEST_AMOUNT_DIVISOR;
 }
 
@@ -3599,12 +3607,12 @@ const farmHarvestState = {
 // A farm yields its base amount plus 10 units for every full quality level of
 // that particular farm. Planted trees keep their flat base yield.
 function getFarmHarvestAmount(building) {
-    if (!building || building.defId !== BUILDING_IDS.FARM_CROP) {
-        return FARM_HARVEST_AMOUNT;
+    let amount = FARM_HARVEST_AMOUNT;
+    if (building && building.defId === BUILDING_IDS.FARM_CROP) {
+        const qualityLevel = Math.floor(Math.max(0, getBuildingQualityValue(building)));
+        amount = FARM_HARVEST_AMOUNT + qualityLevel * FARM_HARVEST_QUALITY_BONUS;
     }
-
-    const qualityLevel = Math.floor(Math.max(0, getBuildingQualityValue(building)));
-    return FARM_HARVEST_AMOUNT + qualityLevel * FARM_HARVEST_QUALITY_BONUS;
+    return round2(amount * getActionResourceAmountMultiplier("harvestcrops"));
 }
 
 function resetFarmHarvestState() {
@@ -4102,11 +4110,9 @@ function runCutTreeProduction(diff) {
     const power = getCutTreePower() * weatherPowerMultiplier
         * coldPowerMultiplier * shakingPowerMultiplier;
     const quality = getCutTreeQuality(power);
-    // ChopYield multiplies everything Cut Tree extracts from the tree, but
-    // explicitly not the Fertile Soil left behind.
-    const chopYieldMultiplier = typeof getGlobalPropertyMultiplier === "function"
-        ? Math.max(0, getGlobalPropertyMultiplier("chopYield"))
-        : 1;
+    // ChopYield and the generic harvest bonuses multiply everything Cut Tree
+    // extracts from the tree, but explicitly not the Fertile Soil left behind.
+    const chopYieldMultiplier = getActionResourceAmountMultiplier("cuttree");
     const logsPerTree = round2(
         power * CUT_TREE_LOGS_PER_POWER * chopYieldMultiplier
     );
@@ -4265,6 +4271,7 @@ function getDigResourceChance(difficulty, power) {
 
 function rollDigResources(power, seconds, quality, foundTotals) {
     const entries = [];
+    const yieldMultiplier = getActionResourceAmountMultiplier("dig");
     DIG_RESOURCE_ROLLS.forEach(function (roll) {
         const spaceMultiplier = getDigSpaceMultiplier(roll.resourceId);
         if (spaceMultiplier <= 0) return;
@@ -4272,7 +4279,7 @@ function rollDigResources(power, seconds, quality, foundTotals) {
         entries.push({
             chancePerSecond: getDigResourceChance(roll.difficulty, power)
                 * spaceMultiplier,
-            amountPerSecond: roll.amount,
+            amountPerSecond: roll.amount * yieldMultiplier,
             quality: quality,
             add: function (amount) {
                 const rounded = round2(amount);
@@ -4493,7 +4500,7 @@ function getRandomMiningGemResourceId() {
     ];
 }
 
-function rollMiningGem(seconds, quality, foundTotals) {
+function rollMiningGem(seconds, quality, foundTotals, yieldMultiplier) {
     const chancePerSecond = getMiningGemChance();
     if (chancePerSecond <= 0 || !(seconds > 0)) return null;
 
@@ -4503,9 +4510,13 @@ function rollMiningGem(seconds, quality, foundTotals) {
     const resourceId = getRandomMiningGemResourceId();
     if (resourceId == null) return null;
 
-    addResource(resourceId, 1, quality);
+    const multiplier = Number.isFinite(yieldMultiplier) && yieldMultiplier > 0
+        ? yieldMultiplier
+        : 1;
+    const amount = round2(multiplier);
+    addResource(resourceId, amount, quality);
     if (foundTotals) {
-        foundTotals[resourceId] = (foundTotals[resourceId] || 0) + 1;
+        foundTotals[resourceId] = (foundTotals[resourceId] || 0) + amount;
     }
     return resourceId;
 }
@@ -4580,7 +4591,7 @@ function rollMiningResources(power, seconds, quality, foundTotals, yieldMultipli
     });
 
     resolveIntervalResourceRolls(seconds, entries);
-    rollMiningGem(seconds, quality, foundTotals);
+    rollMiningGem(seconds, quality, foundTotals, multiplier);
 }
 
 const MINING_EXTRACTION = Object.freeze({
@@ -4593,9 +4604,9 @@ const MINING_EXTRACTION = Object.freeze({
     noSpaceMessage: "There is no stone or ore here that you can mine",
     getPower: getMiningPower,
     rollResources: function (power, seconds, quality, foundTotals) {
-        const mineMultiplier = typeof getMineEntranceMiningMultiplier === "function"
+        const mineMultiplier = (typeof getMineEntranceMiningMultiplier === "function"
             ? Math.max(0, getMineEntranceMiningMultiplier(currentTile))
-            : 1;
+            : 1) * getActionResourceAmountMultiplier("mining");
         rollMiningResources(power, seconds, quality, foundTotals, mineMultiplier);
     },
     experience: Object.freeze([
@@ -4706,6 +4717,7 @@ function runGrindFlourProduction(diff) {
     grindFlourState.progress -= batches * GRIND_SECONDS_PER_BATCH;
 
     let produced = 0;
+    const yieldMultiplier = getActionResourceAmountMultiplier("grindflour");
     for (let batch = 0; batch < batches; batch++) {
         const seedIds = getAvailableSeedResourceIds();
         if (!seedIds.length) break;
@@ -4721,7 +4733,7 @@ function runGrindFlourProduction(diff) {
 
             const quality = getGrindFlourQuality(seedId);
             seedStack.amount = round2(Math.max(0, Number(seedStack.amount) - 1));
-            addResource(flourId, 1, quality);
+            addResource(flourId, round2(yieldMultiplier), quality);
             produced += 1;
         });
     }
@@ -4831,6 +4843,7 @@ function runPressOilProduction(diff) {
     oilPressState.progress -= batches * OIL_PRESS_SECONDS_PER_BATCH;
 
     let produced = 0;
+    const yieldMultiplier = getActionResourceAmountMultiplier("pressoil");
     for (let batch = 0; batch < batches; batch++) {
         const sourceIds = getAvailableOilSourceResourceIds();
         if (!sourceIds.length) break;
@@ -4846,7 +4859,7 @@ function runPressOilProduction(diff) {
 
             const quality = getPressedOilQuality(sourceId);
             sourceStack.amount = round2(Math.max(0, Number(sourceStack.amount) - 1));
-            addResource(oilId, 1, quality);
+            addResource(oilId, round2(yieldMultiplier), quality);
             produced += 1;
         });
     }

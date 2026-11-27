@@ -516,6 +516,12 @@ const ITEM_GLOBAL_PROPERTY_DEFS = Object.freeze([
     { key: "maxHunger", label: "Max Hunger", basePercent: 0.15 },
     { key: "harvestFruitAmount", label: "Harvest fruit amount", basePercent: 0.05 },
     { key: "harvestForageAmount", label: "Harvest forage amount", basePercent: 0.05 },
+    // Global harvest/production amount bonuses. Specific action properties are
+    // generated below from the ACTIONS tags and stored as "actionAmount:<id>".
+    { key: "harvestAllAmount", label: "All harvest amount", basePercent: 0.03 },
+    { key: "productionAllAmount", label: "All production amount", basePercent: 0.03 },
+    // Random equipment property that raises the level of combat monsters.
+    { key: "mobLevelBonus", label: "Mob level", flatValue: 1, kind: "flat" },
     // Tool power modifiers. AllToolsPowerMult multiplies every tool power;
     // ToolPowerX targets one randomly chosen power type and the two multiply
     // each other. ChopYield increases Cut Tree output, but never Fertile Soil.
@@ -540,6 +546,98 @@ function getToolPowerTypeFromPropertyKey(key) {
 
     const type = key.slice(TOOL_POWER_PROPERTY_PREFIX.length);
     return type || null;
+}
+
+// Per-action resource amount properties are stored as "actionAmount:<id>".
+// The action list is read at runtime because itemdefs.js loads before
+// actions.js; property rolls only happen after every script is loaded.
+const ACTION_RESOURCE_PROPERTY_PREFIX = "actionAmount:";
+const ACTION_ALL_HARVEST_RESOURCE_KEY = "harvestAllAmount";
+const ACTION_ALL_PRODUCTION_RESOURCE_KEY = "productionAllAmount";
+const ACTION_SPECIFIC_RESOURCE_BASE_PERCENT = 0.05;
+const LEGACY_ACTION_RESOURCE_PROPERTY_KEYS = Object.freeze({
+    forage: "harvestForageAmount",
+    treesharvest: "harvestFruitAmount",
+    cuttree: "chopYield",
+});
+
+function getActionResourcePropertyKey(actionId) {
+    return ACTION_RESOURCE_PROPERTY_PREFIX + String(actionId || "");
+}
+
+function getActionResourcePropertyActionId(key) {
+    if (typeof key !== "string"
+        || key.indexOf(ACTION_RESOURCE_PROPERTY_PREFIX) !== 0) {
+        return null;
+    }
+    const actionId = key.slice(ACTION_RESOURCE_PROPERTY_PREFIX.length);
+    return actionId || null;
+}
+
+function getActionResourcePropertyActionIds() {
+    if (typeof ACTIONS === "undefined"
+        || !Array.isArray(ACTIONS)
+        || typeof hasActionTag !== "function") {
+        return [];
+    }
+
+    const seen = Object.create(null);
+    return ACTIONS.filter(function (action) {
+        if (!action || typeof action.id !== "string" || !action.id) return false;
+        if (seen[action.id]) return false;
+        if (!hasActionTag(action, "harvest")
+            && !hasActionTag(action, "production")) {
+            return false;
+        }
+        seen[action.id] = true;
+        return true;
+    }).map(function (action) {
+        return action.id;
+    });
+}
+
+function getActionResourcePropertyDefinition(key) {
+    const actionId = getActionResourcePropertyActionId(key);
+    if (!actionId || typeof getAction !== "function") return null;
+    const action = getAction(actionId);
+    if (!action) return null;
+    if (typeof hasActionTag === "function"
+        && !hasActionTag(action, "harvest")
+        && !hasActionTag(action, "production")) {
+        return null;
+    }
+    return {
+        key: key,
+        label: (action.label || actionId) + " yield",
+        basePercent: ACTION_SPECIFIC_RESOURCE_BASE_PERCENT,
+        kind: "percent",
+    };
+}
+
+// Combined multiplier for resources produced by one action. The all-actions
+// bonus and the action-specific bonus stack additively, then multiply the
+// action's base output.
+function getActionResourceAmountMultiplier(actionId) {
+    if (typeof getEquippedGlobalPropertyBonus !== "function"
+        || typeof getAction !== "function") {
+        return 1;
+    }
+    const action = getAction(actionId);
+    if (!action) return 1;
+
+    let bonus = 0;
+    if (typeof hasActionTag === "function") {
+        if (hasActionTag(action, "harvest")) {
+            bonus += getEquippedGlobalPropertyBonus(ACTION_ALL_HARVEST_RESOURCE_KEY);
+        }
+        if (hasActionTag(action, "production")) {
+            bonus += getEquippedGlobalPropertyBonus(ACTION_ALL_PRODUCTION_RESOURCE_KEY);
+        }
+    }
+    bonus += getEquippedGlobalPropertyBonus(getActionResourcePropertyKey(actionId));
+    const legacyKey = LEGACY_ACTION_RESOURCE_PROPERTY_KEYS[actionId];
+    if (legacyKey) bonus += getEquippedGlobalPropertyBonus(legacyKey);
+    return 1 + bonus;
 }
 
 const ITEM_RARITY_PROPERTY_COUNTS = Object.freeze({
@@ -2628,6 +2726,9 @@ function getItemGlobalPropertyDef(key) {
         };
     }
 
+    const actionResourceDefinition = getActionResourcePropertyDefinition(key);
+    if (actionResourceDefinition) return actionResourceDefinition;
+
     return ITEM_GLOBAL_PROPERTY_DEFS.find(function (definition) {
         return definition.key === key;
     }) || null;
@@ -2676,6 +2777,19 @@ function getItemPropertyTemplates() {
             kind: definition.kind || "percent",
             basePercent: definition.basePercent,
             flatValue: definition.flatValue,
+        });
+    });
+
+    // One specific resource-amount property per harvest/production action.
+    // Legacy keys (Forage/Fruit/Chop) already cover their actions.
+    getActionResourcePropertyActionIds().forEach(function (actionId) {
+        if (LEGACY_ACTION_RESOURCE_PROPERTY_KEYS[actionId]) return;
+        templates.push({
+            type: "global",
+            key: getActionResourcePropertyKey(actionId),
+            effect: "special",
+            kind: "percent",
+            basePercent: ACTION_SPECIFIC_RESOURCE_BASE_PERCENT,
         });
     });
 

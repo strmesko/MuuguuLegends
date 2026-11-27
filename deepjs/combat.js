@@ -549,7 +549,14 @@ function getCombatantSkill(combatant, key) {
 // Combat-only equipment stats, flat or in percentage points (10 = +10%).
 function getCombatGearStat(key) {
     if (typeof getEquippedStatBonus !== "function") return 0;
-    return Math.max(0, Number(getEquippedStatBonus(key)) || 0);
+    let value = Number(getEquippedStatBonus(key)) || 0;
+    // Random "Mob level" properties are global flat properties, while the
+    // static Predator Band bonus is a normal equipment stat. Stack both.
+    if (key === "mobLevelBonus"
+        && typeof getEquippedGlobalFlatBonus === "function") {
+        value += Number(getEquippedGlobalFlatBonus("mobLevelBonus")) || 0;
+    }
+    return Math.max(0, value);
 }
 
 function rollCombatGearChance(key) {
