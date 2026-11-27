@@ -4974,7 +4974,21 @@ function getManaOverspendDamage(beforeMana, afterMana) {
     const overspend = Math.max(0, afterNegative - beforeNegative);
     if (overspend <= 0) return 0;
 
-    return round2(overspend * (1 - getManaSpankingReduction()));
+    // The deeper mana falls below zero, the harder every further point of
+    // overspend hits. Scaling by the deficit relative to maximum mana keeps
+    // the first overspend almost unchanged while a deep debt becomes brutal
+    // without depending on the absolute mana pool size.
+    const maxMana = Math.max(
+        1,
+        Number(typeof player !== "undefined" && player
+            ? player.maxmana
+            : 0) || 1
+    );
+    const depthMultiplier = 1 + Math.sqrt(afterNegative / maxMana);
+
+    return round2(
+        overspend * depthMultiplier * (1 - getManaSpankingReduction())
+    );
 }
 
 function inflictManaOverspendDamage(damage) {
