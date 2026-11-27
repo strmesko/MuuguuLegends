@@ -1362,6 +1362,12 @@ const researchQueue = [];
 // Every non-restoration timed action the player starts is remembered here,
 // so Lazy basics level 2 can resume all of them after rest or sleep.
 let previousTimedActionIds = [];
+// True while Rest was started by the Auto rest habit. Keeps the behavior
+// model from switching to other actions until Rest finishes naturally.
+let autoRestActive = false;
+// Set before stamina regeneration when the tick began with low stamina, so
+// huge regeneration cannot hide the low-stamina state from Auto rest.
+let autoRestRequested = false;
 let activeTravel = null;
 
 function getResearchQueueLimit() {
@@ -1726,6 +1732,7 @@ function stopTimedAction(action) {
 
     logMessage(action.stopMessage);
     actionStates[action.id] = Activity.Idle;
+    if (action.id === "rest") autoRestActive = false;
     actionsCount += 1;
     updateActionButton(action.id);
     if (action.id !== "focus") updateActionButton("focus");
@@ -1736,6 +1743,7 @@ function finishAction(actionId) {
     if (!isActionActive(actionId)) return;
 
     actionStates[actionId] = Activity.Done;
+    if (actionId === "rest") autoRestActive = false;
     actionsCount += 1;
     refreshActionButtons();
 }
@@ -1743,6 +1751,7 @@ function finishAction(actionId) {
 function startSearchAfterExploration() {
     if (LAZY_BASICS_TECHNOLOGY.level < 3) return;
     if (!isHabitEnabled("searchAfterExplore")) return;
+    if (autoRestActive) return;
 
     const searchAction = getAction("search");
     if (!searchAction || isActionActive(searchAction.id)) return;
@@ -1756,6 +1765,7 @@ function startSearchAfterExploration() {
 
 function startForageAfterSearch() {
     if (LAZY_BASICS_TECHNOLOGY.level < 4) return;
+    if (autoRestActive) return;
 
     const forageAction = getAction("forage");
     if (!forageAction || isActionActive(forageAction.id)) return;
@@ -1772,6 +1782,7 @@ function startTreeHarvestIfEnabled() {
         || !isHarvestTreesAutomationEnabled()) {
         return false;
     }
+    if (autoRestActive) return false;
     if (typeof isTraveling === "function" && isTraveling()) return false;
     if (typeof isCombatActive === "function" && isCombatActive()) return false;
 
@@ -1796,6 +1807,7 @@ function startTreeHarvestIfEnabled() {
 function startDayDreamIfIdle() {
     if (LAZY_BASICS_TECHNOLOGY.level < 5) return;
     if (!isHabitEnabled("daydreamIdle")) return;
+    if (autoRestActive) return;
 
     const dayDreamAction = getAction("daydream");
     if (!dayDreamAction || isActionActive(dayDreamAction.id)) return;
@@ -2628,10 +2640,16 @@ function updateTechnologyButtons() {
     if (typeof updateTechnologyVisibility === "function") updateTechnologyVisibility();
 }
 
+function getAutoRestStaminaThreshold() {
+    const maxStamina = Math.max(0, Number(player && player.maxstamina) || 0);
+    return Math.max(MIN_STAMINA_TO_FORAGE, maxStamina * 0.1);
+}
+
 function tryActivateAutoRest() {
     if (LAZY_BASICS_TECHNOLOGY.level < 1) return false;
     if (!isHabitEnabled("autoRest")) return false;
-    if (player.stamina > MIN_STAMINA_TO_FORAGE) return false;
+    const threshold = getAutoRestStaminaThreshold();
+    if (!autoRestRequested && player.stamina > threshold) return false;
     if (player.stamina >= player.maxstamina) return false;
 
     const restAction = getAction("rest");
@@ -2641,7 +2659,9 @@ function tryActivateAutoRest() {
     if (isActionActive("sleep")) return false;
 
     refreshActionButtons();
-    return startTimedAction(restAction, { remember: false });
+    const started = startTimedAction(restAction, { remember: false });
+    if (started) autoRestActive = true;
+    return started;
 }
 
 function beginResearch(technology) {

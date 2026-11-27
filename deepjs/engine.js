@@ -1564,6 +1564,14 @@ function productionLoop(diff, options) {
     const skipManaRegen = !!(options && options.skipManaRegen);
     const skipRegenHunger = !!(options && options.skipRegenHunger);
 
+    // Remember whether the tick started with low stamina before regeneration
+    // fills it. Auto rest uses this so huge regen does not hide exhaustion.
+    if (typeof autoRestRequested !== "undefined") {
+        autoRestRequested = typeof getAutoRestStaminaThreshold === "function"
+            && player.stamina <= getAutoRestStaminaThreshold()
+            && player.stamina < player.maxstamina;
+    }
+
     runHearthfireProduction(diff);
     const previousRegenHungerSuppressed = regenHungerSuppressed;
     regenHungerSuppressed = skipRegenHunger;
@@ -1600,6 +1608,9 @@ function productionLoop(diff, options) {
     }
     if (typeof runPlayerBehavior === "function") {
         runPlayerBehavior("tick");
+    }
+    if (typeof autoRestRequested !== "undefined") {
+        autoRestRequested = false;
     }
     // Automatic action switches happen at the end of the tick, after the
     // regular auto-focus check. Check once more so a newly started non-rest

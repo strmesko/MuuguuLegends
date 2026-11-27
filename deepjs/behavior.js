@@ -151,7 +151,10 @@ function tryBehaviorRest() {
         return false;
     }
     if (typeof player === "undefined" || !player) return false;
-    if (player.stamina > MIN_STAMINA_TO_FORAGE) return false;
+    const threshold = typeof getAutoRestStaminaThreshold === "function"
+        ? getAutoRestStaminaThreshold()
+        : MIN_STAMINA_TO_FORAGE;
+    if (!autoRestRequested && player.stamina > threshold) return false;
     if (player.stamina >= player.maxstamina) return false;
     if (hasActiveRestorationActionForBehavior()) return false;
     if (typeof isActionActive === "function" && isActionActive("rest")) {
@@ -312,6 +315,16 @@ function runPlayerBehavior(reason) {
         return false;
     }
 
+    // Auto rest is sticky: nothing except Sleep may replace it, and it runs
+    // until the Rest action completes at full stamina.
+    if (typeof autoRestActive !== "undefined" && autoRestActive) {
+        if (typeof isActionActive === "function" && isActionActive("rest")) {
+            updateBehaviorSummary();
+            return true;
+        }
+        autoRestActive = false;
+    }
+
     // Sleep is owned by the forced-sleep roll in tryFallAsleep. If sleep is
     // due right now, do not start anything below it.
     if (typeof getForcedSleepChance === "function"
@@ -323,7 +336,8 @@ function runPlayerBehavior(reason) {
 
     tryBehaviorRest();
     // Recovery is exclusive: lower tiers wait until rest or sleep ends.
-    if (hasActiveRestorationActionForBehavior()) {
+    if ((typeof autoRestActive !== "undefined" && autoRestActive)
+        || hasActiveRestorationActionForBehavior()) {
         updateBehaviorSummary();
         return true;
     }
