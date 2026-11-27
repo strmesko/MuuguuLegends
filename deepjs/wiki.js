@@ -10,6 +10,7 @@
         { id: "building", title: "Building" },
         { id: "world", title: "World" },
         { id: "items", title: "Items & Resources" },
+        { id: "habits", title: "Habits" },
         { id: "research", title: "Research" },
         { id: "formulas", title: "Formulas" },
     ];
@@ -293,7 +294,9 @@
                 pageLink("items-overview", "Items and resources"),
                 pageLink("research-overview", "Research"),
                 pageLink("formulas", "Formulas and source references"),
-            ]);
+            ].concat(isHabitsWikiVisible()
+                ? [pageLink("habits-overview", "Habits and automation")]
+                : []));
     });
 
     addSimplePage("basics-controls", "basics", "Controls and interface", function () {
@@ -619,6 +622,7 @@
         return "<h1>Crafting overview</h1>"
             + "<p>Recipes use resources, optional ingredient choices, crafted item ingredients and stations. Result quality starts as the weighted ingredient quality and is softcapped by the recipe skill.</p>"
             + "<p>Rarity is rolled from quality and skill, modified by Luck and equipment. Random item properties scale with quality and rarity. Food instead converts its rarity slots into potential bonuses.</p>"
+            + "<p>Every recipe has an Amount field. Item crafts are limited by free inventory slots. Food is limited only by available resources and stacks into one inventory pile without a maximum stack size; eating consumes one unit at a time.</p>"
             + "<p>The Common, Tools and Cultery categories accept optional raw gemstones. Jewelry recipes use carved gemstones and their own cut system.</p>"
             + bullets(categories.map(function (category) {
                 return pageLink("craft-category-" + category.id, category.name);
@@ -1241,6 +1245,137 @@
             },
         });
     });
+
+    // --- Habits -------------------------------------------------------------
+
+    function getWikiHabitTechnology(habit) {
+        if (!habit) return null;
+        const mapping = {
+            cozyScience: typeof COZY_SCIENCE_TECHNOLOGY !== "undefined"
+                ? COZY_SCIENCE_TECHNOLOGY
+                : null,
+            dietBasics: typeof DIET_BASICS_TECHNOLOGY !== "undefined"
+                ? DIET_BASICS_TECHNOLOGY
+                : null,
+            harvestTheYummies: typeof HARVEST_THE_YUMMIES_TECHNOLOGY !== "undefined"
+                ? HARVEST_THE_YUMMIES_TECHNOLOGY
+                : null,
+            faunaBully: typeof FAUNA_BULLY_TECHNOLOGY !== "undefined"
+                ? FAUNA_BULLY_TECHNOLOGY
+                : null,
+            quartermister: typeof QUARTERMISTER_TECHNOLOGY !== "undefined"
+                ? QUARTERMISTER_TECHNOLOGY
+                : null,
+            multiTileMacro: typeof MULTI_TILE_MACRO_TECHNOLOGY !== "undefined"
+                ? MULTI_TILE_MACRO_TECHNOLOGY
+                : null,
+        };
+        if (habit.requiredTechnology && mapping[habit.requiredTechnology]) {
+            return mapping[habit.requiredTechnology];
+        }
+        return typeof LAZY_BASICS_TECHNOLOGY !== "undefined"
+            ? LAZY_BASICS_TECHNOLOGY
+            : null;
+    }
+
+    function getWikiHabitControl(habit) {
+        const focusCost = Math.max(0, Number(habit.focusCost) || 0);
+        if (habit.control === "number") {
+            return "Number" + (focusCost > 0
+                ? " (" + formatValue(focusCost) + " FP)"
+                : "");
+        }
+        if (habit.control === "range") return "Percentage slider";
+        if (habit.control === "select") return "Selection";
+        return focusCost > 0
+            ? "Toggle (" + formatValue(focusCost) + " FP)"
+            : "Toggle";
+    }
+
+    function isHabitsWikiVisible() {
+        if (isSpoilerMode()) return true;
+        if (typeof HABIT_CATEGORIES === "undefined") return false;
+        return HABIT_CATEGORIES.some(function (category) {
+            return (category.habits || []).some(function (habit) {
+                const technology = getWikiHabitTechnology(habit);
+                if (!technology) return false;
+                return (Number(technology.level) || 0)
+                    >= (Number(habit.requiredLevel) || 0);
+            });
+        });
+    }
+
+    addSimplePage("habits-overview", "habits", "Habits & automation", function () {
+        const spoilers = isSpoilerMode();
+        const categories = typeof HABIT_CATEGORIES !== "undefined"
+            ? HABIT_CATEGORIES
+            : [];
+        const habitRows = [];
+        categories.forEach(function (category) {
+            (category.habits || []).forEach(function (habit) {
+                const technology = getWikiHabitTechnology(habit);
+                const level = technology ? Number(technology.level) || 0 : 0;
+                if (!spoilers && level < (Number(habit.requiredLevel) || 0)) {
+                    return;
+                }
+                habitRows.push([
+                    escapeHtml(category.name || category.id),
+                    escapeHtml(habit.name || habit.id),
+                    escapeHtml(habit.description || ""),
+                    escapeHtml(getWikiHabitControl(habit)),
+                ]);
+            });
+        });
+
+        const priority = typeof PLAYER_BEHAVIOR_PRIORITIES !== "undefined"
+            ? PLAYER_BEHAVIOR_PRIORITIES.map(function (entry) {
+                return entry.name;
+            }).join(" > ")
+            : "";
+
+        const macro = typeof MULTI_TILE_MACRO_TECHNOLOGY !== "undefined"
+            ? MULTI_TILE_MACRO_TECHNOLOGY
+            : null;
+        const macroLevel = macro ? Number(macro.level) || 0 : 0;
+        const models = typeof TILE_HABIT_MODELS !== "undefined"
+            ? TILE_HABIT_MODELS
+            : [];
+        const modelRows = models.filter(function (model) {
+            return spoilers || macroLevel >= (Number(model.requiredLevel) || 1);
+        }).map(function (model) {
+            return [
+                escapeHtml(model.name || model.id),
+                "MultiTileMacro Lv" + formatValue(model.requiredLevel || 1),
+                escapeHtml(model.description || ""),
+            ];
+        });
+        const macroLink = macro && isTechnologyVisible(macro)
+            ? pageLink("tech-" + slugify(macro.name), macro.name)
+            : "MultiTileMacro";
+
+        return "<h1>Habits & automation</h1>"
+            + "<p>Habits are automatic behaviors unlocked by research. Open the Habits tab to enable them. Some settings cost Focus Points (FP) when enabled and refund them when disabled. Automatic behavior runs after every action tick and can also continue during offline simulation.</p>"
+            + (priority
+                ? "<p><b>Behavior priority:</b> " + escapeHtml(priority) + ".</p>"
+                : "")
+            + "<h2>Habit settings</h2>"
+            + (habitRows.length
+                ? table(["Category", "Setting", "Effect", "Control"], habitRows)
+                : "<p>No habit settings are unlocked yet.</p>")
+            + "<h2>TileHabits</h2>"
+            + "<p>" + macroLink + " unlocks the TileHabits section. It is listed below Manage Resources and above Research. Only one TileHabits model is active at a time; choosing None disables the section.</p>"
+            + "<p>TileHabits has priority "
+            + formatValue(typeof TILE_HABIT_BEHAVIOR_RANK !== "undefined"
+                ? TILE_HABIT_BEHAVIOR_RANK
+                : 4.5)
+            + ": it runs after Manage Resources but before Research, saved actions and Daydream. The models keep working during offline simulation. When several tiles are equally close, the destination is chosen randomly; if a candidate cannot be reached, the next one is tried.</p>"
+            + (modelRows.length
+                ? table(["Model", "Unlock", "Behavior"], modelRows)
+                : "<p>No TileHabits models are unlocked yet.</p>")
+            + "<p>Explore finishes scouting and investigating the current tile, then travels to the nearest unfinished tile. FoodBringer harvests ripe trees here or travels to the nearest fully scouted tile with ripe trees. Deforester needs at least 1 Chopping power, cuts trees here or travels to the nearest tile with trees.</p>";
+    }).hidden = function () {
+        return !isHabitsWikiVisible();
+    };
 
     // --- Formulas -----------------------------------------------------------
 
