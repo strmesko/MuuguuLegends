@@ -117,8 +117,26 @@ function updateGUI(forceHeavy) {
     if (typeof refreshTabVisibility === "function") refreshTabVisibility();
 }
 
+function formatBarValue(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return "0";
+
+    const absolute = Math.abs(number);
+    // toFixed() falls back to a full-precision exponential above 1e21, which
+    // produced values like 4.398928904881553e+107. Bars are narrow, so very
+    // large numbers use a short exponential with two decimal places.
+    if (absolute >= 1e9) {
+        const exponent = Math.floor(Math.log10(absolute));
+        const scale = Math.pow(10, exponent);
+        const mantissa = Math.trunc((number / scale) * 100) / 100;
+        return mantissa.toFixed(2) + "e+" + exponent;
+    }
+
+    return String(round2(number));
+}
+
 function updateBar(barId, textId, current, maximum, label) {
-    document.getElementById(textId).innerHTML = "<b>" + round2(current).toString() + "/" + round2(maximum).toString() + label + "</b>";
+    document.getElementById(textId).innerHTML = "<b>" + formatBarValue(current) + "/" + formatBarValue(maximum) + label + "</b>";
     document.getElementById(barId).style.width = PERCENT * (current / maximum) + '%';
 }
 
